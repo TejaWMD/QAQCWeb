@@ -4,6 +4,7 @@ import { appRoleOf, statusChangeGuard } from "@/lib/permissions";
 import RecordsTable from "@/components/factoryops/RecordsTable";
 import EvidenceLink from "@/components/factoryops/EvidenceLink";
 import { createCapaDraft } from "@/lib/capaDraft";
+import RaiseCapaButton from "@/components/qaqc/RaiseCapaButton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { productionLines, lineCode } from "@/lib/shiftLogConstants";
 import { CheckCircle2, XCircle } from "lucide-react";
@@ -160,9 +161,12 @@ export default function QaHaccp() {
 
   return (
     <div className="min-h-screen bg-[#0a0e17] p-4 md:p-6 space-y-4">
-      <div>
-        <h2 className="text-white text-lg font-semibold">QA &amp; HACCP Safety</h2>
-        <p className="text-[#a0aec0] text-sm mt-1">CCP checks, product holds, defects and halal verification, with evidence on every record.</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-white text-lg font-semibold">QA &amp; HACCP Safety</h2>
+          <p className="text-[#a0aec0] text-sm mt-1">CCP checks, product holds, defects and halal verification, with evidence on every record.</p>
+        </div>
+        {canManageQa && <RaiseCapaButton />}
       </div>
       <Tabs defaultValue={initialTab}>
         <TabsList className="bg-[#131926] border border-[#1e2740] flex-wrap h-auto">

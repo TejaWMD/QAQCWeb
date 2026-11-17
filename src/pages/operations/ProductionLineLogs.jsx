@@ -5,7 +5,6 @@ import OperationLogs from "@/pages/operations/OperationLogs";
 import OvertimeRecord from "@/pages/operations/OvertimeRecord";
 import WastageLogs from "@/pages/operations/WastageLogs";
 import BaselineCapacity from "@/pages/operations/BaselineCapacity";
-import ActivityLogs from "@/pages/admin/ActivityLogs";
 
 // The former Packaging Ops pages, now one "Production Line Logs" hub. Each tab
 // renders the original page component unchanged, so every form, table, chart
@@ -16,7 +15,6 @@ const TABS = [
   { value: "overtime_record", label: "Overtime Record", Component: OvertimeRecord },
   { value: "wastage_records", label: "Wastage Record", Component: WastageLogs },
   { value: "baseline_capacity", label: "Baseline Capacity", Component: BaselineCapacity },
-  { value: "activity_logs", label: "Activity Logs", Component: ActivityLogs },
 ];
 
 const STORAGE_KEY = "production_line_logs_active_tab";

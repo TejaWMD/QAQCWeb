@@ -99,6 +99,7 @@ export default function ProductionSchedule() {
         onSaved={reload}
         products={products.filter((p) => p.active !== false && !p.hidden)}
         machines={machines}
+        recipes={recipes}
         orders={orders}
         settings={settings}
         user={user}

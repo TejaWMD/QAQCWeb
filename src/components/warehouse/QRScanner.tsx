@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { Button } from '@/components/ui/button';
 import { Camera, CameraOff } from 'lucide-react';
@@ -7,7 +7,8 @@ export function CameraQRScanner({ onDecode }: { onDecode: (decodedText: string) 
   const [active, setActive] = useState(false);
   const [errMsg, setErrMsg] = useState('');
   const scannerRef = useRef<Html5Qrcode | null>(null);
-  const regionId = 'wms-camera-qr-region';
+  const rawId = useId();
+  const regionId = `camera-qr-${rawId.replace(/[^a-zA-Z0-9_-]/g, '')}`;
 
   const stopScanner = async () => {
     try {

@@ -1,6 +1,6 @@
 import { supabase } from './supabaseClient';
 import { createSupabaseEntity } from './supabaseEntityAdapter';
-import { recordShiftLog, deleteShiftSession } from '@/services/shiftLogService';
+import { recordShiftLog, recordOperationLog, deleteShiftSession } from '@/services/shiftLogService';
 import {
   getCurrentUserProfile,
   getUserAccessState,
@@ -8,6 +8,8 @@ import {
   setUserStatus,
   submitRegistrationRequest,
 } from '@/services/authService';
+
+const EVIDENCE_BUCKET = 'evidence';
 
 const entityCache = new Map<string, ReturnType<typeof createSupabaseEntity>>();
 
@@ -75,12 +77,35 @@ export const base44 = {
     verifyOtp: async () => ({}),
     resendOtp: async () => {},
   },
+  // Evidence photos / files live in the private Supabase Storage bucket "evidence"
+  // (create it with supabase/storage_evidence_bucket.sql).
+  integrations: {
+    Core: {
+      UploadPrivateFile: async ({ file }: { file: File }) => {
+        const safeName = file.name.replace(/[^A-Za-z0-9._-]+/g, '_');
+        const path = `${new Date().toISOString().slice(0, 10)}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${safeName}`;
+        const { error } = await supabase.storage.from(EVIDENCE_BUCKET).upload(path, file, {
+          contentType: file.type || undefined,
+          upsert: false,
+        });
+        if (error) throw new Error(`Evidence upload failed: ${error.message}`);
+        return { file_uri: path };
+      },
+      CreateFileSignedUrl: async ({ file_uri, expires_in = 3600 }: { file_uri: string; expires_in?: number }) => {
+        const { data, error } = await supabase.storage.from(EVIDENCE_BUCKET).createSignedUrl(file_uri, expires_in);
+        if (error) throw new Error(`Could not open evidence: ${error.message}`);
+        return { signed_url: data.signedUrl };
+      },
+    },
+  },
   functions: {
     async invoke(name: string, args: Record<string, any> = {}) {
       const actor = await getCurrentUserProfile();
       switch (name) {
         case 'recordShiftLog':
           return { data: await recordShiftLog({ ...args, actor: actor || undefined } as any) };
+        case 'recordOperationLog':
+          return { data: await recordOperationLog({ ...args, actor: actor || undefined } as any) };
         case 'deleteShiftLog':
           return { data: await deleteShiftSession({ ...args, actor: actor || undefined }) };
         case 'getUserAccess':

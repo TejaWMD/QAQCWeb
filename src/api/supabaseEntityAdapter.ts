@@ -90,64 +90,183 @@ function normalizeRow(row: Record<string, any> | null): any {
   };
 }
 
+// Date / timestamp columns reject "" in Postgres, so blank form values become NULL.
+const DATE_KEY = /(_date|_at|_datetime)$/;
+
 function stripVirtualFields(data: Record<string, any>): Record<string, any> {
-  const clean = { ...data };
+  const clean: Record<string, any> = { ...data };
   delete clean.created_date;
   delete clean.updated_date;
+  for (const key of Object.keys(clean)) {
+    if (clean[key] === undefined) delete clean[key];
+    else if (clean[key] === '' && DATE_KEY.test(key)) clean[key] = null;
+  }
   return clean;
+}
+
+const colName = (key: string) =>
+  key === 'created_date' ? 'created_at' : key === 'updated_date' ? 'updated_at' : key;
+
+// PostgREST filter values inside .or() must not contain reserved characters.
+const orSafe = (v: any) => String(v).replace(/[,()*]/g, ' ').trim();
+
+function regexToLike(pattern: string): string {
+  const anchoredStart = pattern.startsWith('^');
+  const body = pattern.replace(/^\^/, '').replace(/\$$/, '').replace(/[%_]/g, (m) => `\\${m}`);
+  return anchoredStart ? `${body}%` : `%${body}%`;
+}
+
+function applyOperators(q: any, col: string, val: Record<string, any>) {
+  let out = q;
+  let matched = false;
+  for (const [op, v] of Object.entries(val)) {
+    matched = true;
+    switch (op) {
+      case '$ne':
+        out = v === null ? out.not(col, 'is', null) : out.neq(col, v);
+        break;
+      case '$eq':
+        out = v === null ? out.is(col, null) : out.eq(col, v);
+        break;
+      case '$in':
+        out = out.in(col, Array.isArray(v) ? v : [v]);
+        break;
+      case '$nin':
+        out = out.not(col, 'in', `(${(Array.isArray(v) ? v : [v]).join(',')})`);
+        break;
+      case '$gt':
+        out = out.gt(col, v);
+        break;
+      case '$gte':
+        out = out.gte(col, v);
+        break;
+      case '$lt':
+        out = out.lt(col, v);
+        break;
+      case '$lte':
+        out = out.lte(col, v);
+        break;
+      case '$regex':
+        out = out.ilike(col, regexToLike(String(v)));
+        break;
+      case '$exists':
+        out = v ? out.not(col, 'is', null) : out.is(col, null);
+        break;
+      default:
+        break;
+    }
+  }
+  return matched ? out : q.eq(col, val);
 }
 
 function applyQueryFilters(qb: any, query: Record<string, any> = {}) {
   let q = qb;
-  for (const [key, val] of Object.entries(query)) {
+  for (const [key, val] of Object.entries(query || {})) {
     if (val === undefined) continue;
-    const col = key === 'created_date' ? 'created_at' : key === 'updated_date' ? 'updated_at' : key;
-    if (val === null) {
-      q = q.is(col, null);
-    } else if (typeof val === 'object' && !Array.isArray(val)) {
-      if ('$ne' in val) {
-        if (val.$ne === null) q = q.not(col, 'is', null);
-        else q = q.neq(col, val.$ne);
-      } else if ('$in' in val && Array.isArray(val.$in)) {
-        q = q.in(col, val.$in);
-      } else {
-        q = q.eq(col, val);
+    if (key === '$or' && Array.isArray(val)) {
+      const parts: string[] = [];
+      for (const cond of val) {
+        for (const [k, v] of Object.entries(cond as Record<string, any>)) {
+          const col = colName(k);
+          if (v && typeof v === 'object' && '$regex' in v) parts.push(`${col}.ilike.${regexToLike(orSafe(v.$regex))}`);
+          else if (v && typeof v === 'object' && '$gte' in v) parts.push(`${col}.gte.${orSafe(v.$gte)}`);
+          else if (v && typeof v === 'object' && '$lte' in v) parts.push(`${col}.lte.${orSafe(v.$lte)}`);
+          else if (v === null) parts.push(`${col}.is.null`);
+          else parts.push(`${col}.eq.${orSafe(v)}`);
+        }
       }
-    } else {
-      q = q.eq(col, val);
+      if (parts.length) q = q.or(parts.join(','));
+      continue;
     }
+    const col = colName(key);
+    if (val === null) q = q.is(col, null);
+    else if (typeof val === 'object' && !Array.isArray(val)) q = applyOperators(q, col, val);
+    else q = q.eq(col, val);
   }
   return q;
+}
+
+// Pages were written against the Base44 SDK, which returns `{ items, next_cursor,
+// has_more }` from filter(). Returning an array that also carries those fields keeps
+// both `rows.map(...)` and `page.items` working.
+function withPage<T>(rows: T[], extra: { next_cursor?: string | null; has_more?: boolean } = {}) {
+  return Object.assign(rows, {
+    items: rows,
+    total: rows.length,
+    next_cursor: extra.next_cursor ?? null,
+    has_more: !!extra.has_more,
+  });
+}
+
+interface QueryOptions {
+  sort?: string;
+  limit?: number;
+  cursor?: string | number | null;
+  distinct?: string;
+}
+
+function parseOptions(sortOrOpts: any, limitArg: any, defaultSort: string): Required<Pick<QueryOptions, 'sort' | 'limit'>> & QueryOptions {
+  if (sortOrOpts && typeof sortOrOpts === 'object') {
+    return {
+      sort: sortOrOpts.sort || defaultSort,
+      limit: Number(sortOrOpts.limit ?? limitArg ?? 500),
+      cursor: sortOrOpts.cursor,
+      distinct: sortOrOpts.distinct,
+    };
+  }
+  return { sort: typeof sortOrOpts === 'string' ? sortOrOpts : defaultSort, limit: Number(limitArg ?? 500) };
 }
 
 export function createSupabaseEntity(entityName: string) {
   const table = resolveTable(entityName);
 
-  return {
-    async list(sortField = '-created_at', limit = 500) {
-      const { column, ascending } = mapSortField(sortField);
-      let q = supabase.from(table).select('*').order(column, { ascending });
-      if (limit) q = q.limit(limit);
-      const { data, error } = await q;
-      if (error) {
-        console.error(`[Supabase:${table}] list error:`, error.message);
-        return [];
+  const run = async (query: Record<string, any>, opts: QueryOptions & { sort: string; limit: number }, label: string) => {
+    const { column, ascending } = mapSortField(opts.sort);
+    const offset = Number(opts.cursor) > 0 ? Number(opts.cursor) : 0;
+    let q = supabase.from(table).select('*');
+    q = applyQueryFilters(q, query);
+    q = q.order(column, { ascending });
+    if (opts.limit) q = q.range(offset, offset + opts.limit); // limit + 1 rows, to detect more
+    const { data, error } = await q;
+    if (error) {
+      console.error(`[Supabase:${table}] ${label} error:`, error.message);
+      return withPage([] as any[]);
+    }
+    const all = (data || []).map(normalizeRow);
+    const hasMore = !!opts.limit && all.length > opts.limit;
+    const rows = hasMore ? all.slice(0, opts.limit) : all;
+    return withPage(rows, { has_more: hasMore, next_cursor: hasMore ? String(offset + opts.limit) : null });
+  };
+
+  const entity = {
+    async list(sortOrOpts: any = '-created_at', limit?: number) {
+      const opts = parseOptions(sortOrOpts, limit, '-created_at');
+      if (opts.distinct) {
+        const col = colName(opts.distinct);
+        const { data, error } = await supabase.from(table).select(col).limit(5000);
+        if (error) {
+          console.error(`[Supabase:${table}] distinct error:`, error.message);
+          return withPage([] as any[]);
+        }
+        const values = [...new Set((data || []).map((r: any) => r[col]).filter((v: any) => v !== null && v !== ''))];
+        return withPage(values as any[]);
       }
-      return (data || []).map(normalizeRow);
+      return run({}, opts, 'list');
     },
 
-    async filter(query: Record<string, any> = {}, sortField = '-created_at', limit = 500) {
-      const { column, ascending } = mapSortField(sortField);
-      let q = supabase.from(table).select('*');
+    async filter(query: Record<string, any> = {}, sortOrOpts: any = '-created_at', limit?: number) {
+      return run(query, parseOptions(sortOrOpts, limit, '-created_at'), 'filter');
+    },
+
+    async count(query: Record<string, any> = {}) {
+      let q = supabase.from(table).select('id', { count: 'exact', head: true });
       q = applyQueryFilters(q, query);
-      q = q.order(column, { ascending });
-      if (limit) q = q.limit(limit);
-      const { data, error } = await q;
+      const { count, error } = await q;
       if (error) {
-        console.error(`[Supabase:${table}] filter error:`, error.message);
-        return [];
+        console.error(`[Supabase:${table}] count error:`, error.message);
+        return 0;
       }
-      return (data || []).map(normalizeRow);
+      return count || 0;
     },
 
     async get(id: string) {
@@ -172,6 +291,15 @@ export function createSupabaseEntity(entityName: string) {
       const { data, error } = await supabase.from(table).update(clean).eq('id', id).select().single();
       if (error) throw new Error(`[Supabase:${table}] update failed: ${error.message}`);
       return normalizeRow(data);
+    },
+
+    async updateMany(query: Record<string, any> = {}, change: Record<string, any> = {}) {
+      const values = stripVirtualFields({ ...(change.$set || change), updated_at: new Date().toISOString() });
+      let q = supabase.from(table).update(values);
+      q = applyQueryFilters(q, query);
+      const { data, error } = await q.select('id');
+      if (error) throw new Error(`[Supabase:${table}] updateMany failed: ${error.message}`);
+      return { updated: data?.length || 0 };
     },
 
     async delete(id: string) {
@@ -200,8 +328,7 @@ export function createSupabaseEntity(entityName: string) {
       const results = [];
       for (const rec of records) {
         if (!rec.id) continue;
-        const updated = await this.update(rec.id, rec);
-        results.push(updated);
+        results.push(await entity.update(rec.id, rec));
       }
       return results;
     },
@@ -220,4 +347,6 @@ export function createSupabaseEntity(entityName: string) {
       };
     },
   };
+
+  return entity;
 }

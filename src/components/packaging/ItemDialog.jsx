@@ -14,6 +14,7 @@ const empty = (categories, units) => ({
   description: "",
   category: categories[0] || "",
   unit: units[0] || "",
+  quantity: "",
   min_level: "",
   default_rack: "",
   supplier: "",
@@ -74,7 +75,10 @@ export default function ItemDialog({ open, item, categories, units, racks, onClo
       };
       const saved = item
         ? await base44.entities.PackagingItem.update(item.id, payload)
-        : await base44.entities.PackagingItem.create({ ...payload, quantity: 0 });
+        : await base44.entities.PackagingItem.create({
+            ...payload,
+            quantity: Math.max(0, Number(form.quantity) || 0),
+          });
       onSaved?.(saved);
       onClose?.();
     } catch (err) {
@@ -125,6 +129,12 @@ export default function ItemDialog({ open, item, categories, units, racks, onClo
               <label className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Minimum Level</label>
               <Input type="number" min="0" value={form.min_level} onChange={(e) => set("min_level", e.target.value)} placeholder="Low stock at or below this" className={FIELD} />
             </div>
+            {!item && (
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Initial Quantity</label>
+                <Input type="number" min="0" step="0.001" value={form.quantity} onChange={(e) => set("quantity", e.target.value)} placeholder="0" className={FIELD} />
+              </div>
+            )}
             <div className="space-y-1">
               <label className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Default Rack</label>
               <Select value={form.default_rack || "none"} onValueChange={(v) => set("default_rack", v === "none" ? "" : v)}>

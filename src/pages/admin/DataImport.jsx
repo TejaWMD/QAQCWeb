@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Upload } from "lucide-react";
 import CsvImportPanel from "@/components/import/CsvImportPanel";
@@ -13,6 +14,7 @@ import { panelClass, primaryButton } from "@/components/planning/styles";
 // CSV Data Import (admin only): the Product Master datasheet plus the CSV
 // exports from the original app. Imports never delete existing records.
 export default function DataImport() {
+  const [destination, setDestination] = useState(IMPORT_ENTITY_CONFIGS[0].entity);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [seed, setSeed] = useState({ products: [], recipes: [], settings: { id: "", brands: [], channels: [], mapping: null, mapping_signature: "" } });
 
@@ -52,7 +54,26 @@ export default function DataImport() {
         </Button>
       </div>
 
-      <Tabs defaultValue={IMPORT_ENTITY_CONFIGS[0].entity}>
+      <div className={`${panelClass} p-4 flex flex-wrap items-center justify-between gap-3`}>
+        <div>
+          <p className="text-white text-sm font-semibold">Destination Database Table</p>
+          <p className="text-[#a0aec0] text-xs mt-1">
+            Select where your CSV operational records should be routed and saved.
+          </p>
+        </div>
+        <Select value={destination} onValueChange={setDestination}>
+          <SelectTrigger className="w-64 bg-[#0e131d] border-[#1e2740] text-white">
+            <SelectValue placeholder="Select destination..." />
+          </SelectTrigger>
+          <SelectContent>
+            {IMPORT_ENTITY_CONFIGS.map((c) => (
+              <SelectItem key={c.entity} value={c.entity}>{c.tabLabel}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <Tabs value={destination} onValueChange={setDestination}>
         <TabsList className="bg-[#131926] border border-[#1e2740] flex-wrap h-auto">
           {IMPORT_ENTITY_CONFIGS.map((c) => (
             <TabsTrigger key={c.entity} value={c.entity} className="data-[state=active]:bg-[#00e5ff] data-[state=active]:text-[#0a0e17] text-[#a0aec0]">

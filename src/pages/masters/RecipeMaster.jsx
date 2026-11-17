@@ -2,10 +2,11 @@ import React, { useEffect, useState } from "react";
 import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { History, Pencil, ShieldAlert } from "lucide-react";
+import { History, Pencil, ShieldAlert, Download, FlaskConical, Tag, Clock } from "lucide-react";
 import RecipeDialog from "@/components/planning/RecipeDialog";
 import RecipeHistoryDialog from "@/components/planning/RecipeHistoryDialog";
 import { canEditRecipes, fmtQty, loadMaterials, loadProducts, loadRecipes } from "@/lib/planning";
+import { downloadCsv, todayStr } from "@/lib/warehouse";
 import { recipeFamilies, recipeVersionsFor } from "@/lib/recipeMaster";
 import { inputClass, subtleButton, panelClass } from "@/components/planning/styles";
 
@@ -54,11 +55,57 @@ export default function RecipeMaster() {
 
   const openNew = (product) => setEdit({ recipe: null, versions: [], products: [product], product });
 
+  const totalBrands = new Set(products.map((p) => p.brand).filter(Boolean)).size;
+  const avgCooking = (() => {
+    const times = rows.map((r) => Number(r.active?.cooking_time_hours || 0)).filter((n) => n > 0);
+    return times.length ? (times.reduce((a, b) => a + b, 0) / times.length).toFixed(1) : "0.0";
+  })();
+
+  const exportRecipes = () => {
+    downloadCsv(`recipes-${todayStr()}.csv`, [
+      { label: "Recipe Name", value: (r) => r.name },
+      { label: "Items", value: (r) => r.products.map((p) => p.product_code).join(", ") },
+      { label: "Active Version", value: (r) => r.active?.version || "" },
+      { label: "Ingredients", value: (r) => (r.active?.ingredients || []).length },
+      { label: "Cartons / Batch", value: (r) => r.active?.batch_cartons || "" },
+      { label: "Std Yield %", value: (r) => r.active?.standard_yield_pct || "" },
+    ], rows);
+  };
+
   return (
     <div className="min-h-screen bg-[#0a0e17] p-4 md:p-6 space-y-4">
-      <div>
-        <h2 className="text-white text-lg font-semibold">Recipe Master</h2>
-        <p className="text-[#a0aec0] text-sm mt-1">One recipe per recipe name, shared by every item code that uses it. Every save creates a new version; older versions are kept.</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-white text-lg font-semibold">Recipe Master</h2>
+          <p className="text-[#a0aec0] text-sm mt-1">Production recipes — the basis for all batch calculations.</p>
+        </div>
+        <Button variant="outline" onClick={exportRecipes} className={subtleButton}>
+          <Download className="w-4 h-4 mr-1.5" /> Export
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="rounded-xl border border-[#1e2740] bg-[#0e131d] px-4 py-3 flex items-center justify-between">
+          <div>
+            <p className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Total Recipes</p>
+            <p className="text-2xl text-white font-semibold mt-1">{rows.length}</p>
+          </div>
+          <FlaskConical className="w-6 h-6 text-[#00e5ff]/70" />
+        </div>
+        <div className="rounded-xl border border-[#1e2740] bg-[#0e131d] px-4 py-3 flex items-center justify-between">
+          <div>
+            <p className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Brands</p>
+            <p className="text-2xl text-white font-semibold mt-1">{totalBrands}</p>
+          </div>
+          <Tag className="w-6 h-6 text-violet-400/70" />
+        </div>
+        <div className="rounded-xl border border-[#1e2740] bg-[#0e131d] px-4 py-3 flex items-center justify-between">
+          <div>
+            <p className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Avg Cooking (h)</p>
+            <p className="text-2xl text-white font-semibold mt-1">{avgCooking}</p>
+          </div>
+          <Clock className="w-6 h-6 text-[#ff9f43]/70" />
+        </div>
       </div>
 
       {!canEdit && (

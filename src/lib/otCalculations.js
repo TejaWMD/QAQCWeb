@@ -1,7 +1,15 @@
-// "HH:MM" out of either a plain time ("08:00") or a datetime/ISO value.
-function timeOfDay(value) {
+// "HH:MM" out of either a plain time ("08:00") or a datetime/ISO value in local time
+// so it always matches the local Start/End times shown in Operation & Overtime tables.
+export function timeOfDay(value) {
   if (!value) return "";
-  const text = String(value);
+  const text = String(value).trim();
+  if (/^\d{1,2}:\d{2}/.test(text)) return text.slice(0, 5).padStart(5, "0");
+  const d = new Date(text);
+  if (!isNaN(d.getTime())) {
+    const hh = String(d.getHours()).padStart(2, "0");
+    const mm = String(d.getMinutes()).padStart(2, "0");
+    return `${hh}:${mm}`;
+  }
   return text.length > 10 ? text.slice(11, 16) : text.slice(0, 5);
 }
 

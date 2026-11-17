@@ -5,7 +5,7 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { LayoutDashboard, Timer, DollarSign, Users } from "lucide-react";
 import { groupByDate, formatDateHeader } from "@/lib/logGrouping";
-import { otHoursAfterFive } from "@/lib/otCalculations";
+import { otHoursAfterFive, timeOfDay } from "@/lib/otCalculations";
 import OTSpendTrendChart from "@/components/otlog/OTSpendTrendChart";
 import OTSpendByLineChart from "@/components/overtime/OTSpendByLineChart";
 import WorkforceQuadrantChart from "@/components/overtime/WorkforceQuadrantChart";
@@ -21,20 +21,32 @@ export default function OvertimeRecord() {
     if (!silent) setLoading(true);
     try {
       const query = batchFilter ? { record_batch: batchFilter } : {};
-      // One row per session, read from the Overtime Record table alone.
-      const otRes = await base44.entities.OTLog.filter(query, { sort: "-created_date", limit: 200 });
-      const mapped = (otRes.items || otRes).map((l) => {
-        const start = l.ot_start ? l.ot_start.slice(11, 16) : l.start_time || "";
-        const end = l.ot_end ? l.ot_end.slice(11, 16) : l.end_time || "";
-        // Overtime is the hours worked after 5:00 PM — the same rule the shift log
-        // and the save service use: 08:00-20:00 is 3.00 hours, not 12.00.
+      // Read OTLog and also include any OperationLog with hours after 5 PM that wasn't mirrored yet.
+      const [otRes, opRes] = await Promise.all([
+        base44.entities.OTLog.filter(query, { sort: "-created_date", limit: 200 }),
+        base44.entities.OperationLog.filter(query, { sort: "-created_date", limit: 200 }),
+      ]);
+      const otRows = otRes.items || otRes || [];
+      const opRows = opRes.items || opRes || [];
+      const seenSessions = new Set(otRows.map((l) => l.session_id).filter(Boolean));
+      const seenOpIds = new Set(otRows.map((l) => l.operation_log_id).filter(Boolean));
+
+      const combined = [
+        ...otRows,
+        ...opRows.filter((op) => !seenOpIds.has(op.id) && (!op.session_id || !seenSessions.has(op.session_id))),
+      ];
+
+      const mapped = combined.map((l) => {
+        const start = l.ot_start ? timeOfDay(l.ot_start) : timeOfDay(l.start_time) || "";
+        const end = l.ot_end ? timeOfDay(l.ot_end) : timeOfDay(l.end_time) || "";
+        const calcOt = Number(otHoursAfterFive(start, end).toFixed(2));
         return {
           ...l,
           shift_date: l.ot_date,
           start_time: start,
           end_time: end,
           break_duration: 0,
-          ot_duration_hours: Number(otHoursAfterFive(start, end).toFixed(2)),
+          ot_duration_hours: calcOt > 0 ? calcOt : Number(l.ot_duration_hours || 0),
         };
       });
       setLogs(mapped.filter((l) => l.ot_duration_hours > 0));

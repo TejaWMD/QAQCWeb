@@ -3,27 +3,15 @@ import { useAuth } from "@/lib/AuthContext";
 import { statusChangeGuard } from "@/lib/permissions";
 import RecordsTable from "@/components/factoryops/RecordsTable";
 import EvidenceLink from "@/components/factoryops/EvidenceLink";
-import { productionLines } from "@/lib/shiftLogConstants";
+import { capaFormFields } from "@/lib/capaForm";
 
 const STATUSES = ["Open", "In Progress", "Overdue", "Completed", "Verified"];
 
-const fields = [
-  { key: "title", label: "CAPA Title", type: "text", required: true },
-  { key: "source_module", label: "Source", type: "select", options: ["Defect", "Failed HACCP Check", "Downtime Event", "Audit Finding", "Other"] },
-  { key: "production_line", label: "Production Line", type: "select", options: productionLines },
-  { key: "shift_date", label: "Date Raised", type: "date", required: true },
-  { key: "due_date", label: "Due Date", type: "date" },
-  { key: "description", label: "Problem", type: "textarea" },
-  { key: "root_cause", label: "Root Cause", type: "textarea" },
-  { key: "corrective_action", label: "Corrective Action", type: "textarea" },
-  { key: "preventive_action", label: "Preventive Action", type: "textarea" },
-  { key: "owner", label: "Owner", type: "text" },
-  { key: "evidence_file", label: "Evidence Attachment", type: "file" },
-  { key: "notes", label: "Notes", type: "textarea" },
-];
+const fields = capaFormFields;
 
 const columns = [
   { key: "title", label: "CAPA" },
+  { key: "issue_type", label: "Issue Type", render: (r) => (r.issue_type === "Others" ? `Others: ${r.issue_other || ""}` : r.issue_type || "-") },
   { key: "source_module", label: "Source" },
   { key: "production_line", label: "Line" },
   { key: "shift_date", label: "Raised" },

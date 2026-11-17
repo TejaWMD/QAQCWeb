@@ -116,11 +116,11 @@ export default function ProductionOrders() {
             <Input type="date" value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} className={inputClass} />
           </div>
           <div className="space-y-1">
-            <label className={labelClass}>Machine</label>
+            <label className={labelClass}>Machine (Tank)</label>
             <Select value={machineFilter} onValueChange={setMachineFilter}>
               <SelectTrigger className={selectClass}><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All machines</SelectItem>
+                <SelectItem value="all">All machines / tanks</SelectItem>
                 {machines.map((m) => <SelectItem key={m.id} value={m.name}>{m.name}</SelectItem>)}
               </SelectContent>
             </Select>
@@ -151,7 +151,7 @@ export default function ProductionOrders() {
                 <th className="text-left font-semibold px-3 py-2">Product</th>
                 <th className="text-right font-semibold px-3 py-2">Cartons</th>
                 <th className="text-right font-semibold px-3 py-2">Batches</th>
-                <th className="text-left font-semibold px-3 py-2">Machine</th>
+                <th className="text-left font-semibold px-3 py-2">Machine (Tank)</th>
                 <th className="text-left font-semibold px-3 py-2">Planned</th>
                 <th className="text-left font-semibold px-3 py-2">Status</th>
                 <th className="text-left font-semibold px-3 py-2">Stock</th>
@@ -227,6 +227,7 @@ export default function ProductionOrders() {
         onSaved={reload}
         products={products.filter((p) => p.active !== false && !p.hidden)}
         machines={machines}
+        recipes={recipes}
         orders={orders}
         settings={settings}
         user={user}

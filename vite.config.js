@@ -6,6 +6,9 @@ import { defineConfig } from 'vite';
 export default defineConfig({
   base: process.env.VITE_BASE_PATH || (process.env.NODE_ENV === 'production' ? '/QCWeb/' : '/'),
   plugins: [react()],
+  optimizeDeps: {
+    include: ['html2canvas'],
+  },
   resolve: {
     alias: {
       '@': path.resolve(import.meta.dirname, './src'),

@@ -62,17 +62,22 @@ export default function PackagingStock() {
   const [busy, setBusy] = useState(false);
 
   const load = async () => {
-    const [itemRows, rackPage, approvalPage, loadedSettings] = await Promise.all([
-      base44.entities.PackagingItem.list("-created_date", 500),
-      base44.entities.WarehouseRack.filter({ status: "Active" }, { sort: "rack_code", limit: 500 }),
-      base44.entities.PackagingApproval.filter({ status: "Pending" }, { limit: 500 }),
-      loadPackagingSettings(),
-    ]);
-    setItems(Array.isArray(itemRows) ? itemRows : []);
-    setRacks(rackPage.items || []);
-    setPendingIds(new Set((approvalPage.items || []).map((a) => a.item_id)));
-    setSettings(loadedSettings);
-    setLoading(false);
+    try {
+      const [itemRows, rackPage, approvalPage, loadedSettings] = await Promise.all([
+        base44.entities.PackagingItem.list("-created_date", 2000),
+        base44.entities.WarehouseRack.filter({ status: "Active" }, { sort: "rack_code", limit: 500 }),
+        base44.entities.PackagingApproval.filter({ status: "Pending" }, { limit: 500 }),
+        loadPackagingSettings(),
+      ]);
+      setItems(Array.isArray(itemRows) ? itemRows : itemRows?.items || []);
+      setRacks(rackPage.items || []);
+      setPendingIds(new Set((approvalPage.items || []).map((a) => a.item_id)));
+      setSettings(loadedSettings);
+    } catch (e) {
+      toast({ title: "Could not load packaging stock", description: e?.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -135,8 +140,8 @@ export default function PackagingStock() {
     <div className="min-h-screen bg-[#0a0e17] p-4 md:p-6 space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-white text-lg font-semibold">Packaging Stock</h2>
-          <p className="text-[#a0aec0] text-sm mt-1">Stock on hand for packaging materials, with every in, use and count recorded.</p>
+          <h2 className="text-white text-lg font-semibold">Stock Counter</h2>
+          <p className="text-[#a0aec0] text-sm mt-1">Track inventory, usage, and low-stock alerts.</p>
         </div>
         <div className="flex flex-wrap gap-2 w-full sm:w-auto">
           {isPackagingStaff(user) && (
@@ -249,7 +254,12 @@ export default function PackagingStock() {
         units={units}
         racks={racks}
         onClose={() => setItemDialog({ open: false, item: null })}
-        onSaved={load}
+        onSaved={(saved) => {
+          load();
+          if (saved?.item_code) {
+            toast({ title: itemDialog.item ? "Item updated" : "Item added", description: `${saved.item_code} saved to packaging stock.` });
+          }
+        }}
       />
       <StockInDialog open={!!inItem} item={inItem} items={items} racks={racks} user={user} onClose={() => setInItem(null)} onSaved={load} />
       <StockUseDialog

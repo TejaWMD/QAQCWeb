@@ -6,23 +6,24 @@ import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertTriangle, CheckCircle2, History, Printer, Settings, Star } from "lucide-react";
+import { AlertTriangle, ArrowLeft, CheckCircle2, Download, History, Printer, Settings, Star } from "lucide-react";
+import { jsPDF } from "jspdf";
+import html2canvas from "html2canvas";
 import ProductPicker from "@/components/labels/ProductPicker";
 import LayoutPicker from "@/components/labels/LayoutPicker";
 import LabelPreview from "@/components/labels/LabelPreview";
 import LabelPrintSheet from "@/components/labels/LabelPrintSheet";
 import LabelSettingsDialog from "@/components/labels/LabelSettingsDialog";
-import { loadMachines, loadProducts, loadRecipes, num } from "@/lib/planning";
+import { loadProducts, loadRecipes, num } from "@/lib/planning";
 import { recipeOf } from "@/lib/productLinks";
 import { labelBlock } from "@/lib/productMaster";
-import { fmtQty, loadOrders } from "@/lib/production";
+import { fmtQty } from "@/lib/production";
 import { todayStr } from "@/lib/warehouse";
 import { actingUserName, isAdminUser } from "@/lib/permissions";
 import {
-  canEditLabelSettings, duplicateOf, expiryFor, fmtDay, loadBatchRecords, loadLabelSettings, logLabelAudit, normalizeBatch,
-  resolveLayout, saveDefaultLayoutForProduct, scheduledBatches, traceUrlFor,
+  barcodeImageUrl, canEditLabelSettings, duplicateOf, expiryFor, fmtDay, loadBatchRecords, loadLabelSettings, logLabelAudit, normalizeBatch,
+  qrImageUrl, resolveLayout, saveDefaultLayoutForProduct, traceUrlFor,
 } from "@/lib/labels";
-import { recordBatchOnOrder } from "@/lib/batchTrace";
 import { inputClass, selectClass, primaryButton, subtleButton, panelClass, labelClass } from "@/components/planning/styles";
 
 const EMPTY_SETTINGS = { id: "", layouts: [], default_layout_id: "" };
@@ -34,20 +35,14 @@ export default function CreateBatch() {
 
   const [products, setProducts] = useState([]);
   const [recipes, setRecipes] = useState([]);
-  const [orders, setOrders] = useState([]);
-  const [machines, setMachines] = useState([]);
   const [records, setRecords] = useState([]);
   const [settings, setSettings] = useState(EMPTY_SETTINGS);
   const [loading, setLoading] = useState(true);
 
   const [productId, setProductId] = useState("");
-  const [batchSource, setBatchSource] = useState("scheduled");
-  const [batchNumber, setBatchNumber] = useState("");
+  const [alphabetSuffix, setAlphabetSuffix] = useState("");
   const [productionDate, setProductionDate] = useState(todayStr());
   const [quantity, setQuantity] = useState("");
-  const [machine, setMachine] = useState("");
-  const [orderId, setOrderId] = useState("");
-  const [orderNumber, setOrderNumber] = useState("");
   const [layoutId, setLayoutId] = useState("");
   const [custom, setCustom] = useState({ width_mm: 70, height_mm: 50, font_size: 7, qr_mm: 14, qr_ecc: "M" });
   const [copies, setCopies] = useState(1);
@@ -57,15 +52,16 @@ export default function CreateBatch() {
   const [saving, setSaving] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [job, setJob] = useState(null);
+  const [savedPrintView, setSavedPrintView] = useState(null);
+  const [retailEanQr, setRetailEanQr] = useState(true);
+  const [templateSize, setTemplateSize] = useState("60x40");
 
   const reload = useCallback(async () => {
-    const [productRows, orderRows, machineRows, recordRows, labelSettings, recipeRows] = await Promise.all([
-      loadProducts(), loadOrders(), loadMachines(), loadBatchRecords(), loadLabelSettings(), loadRecipes(),
+    const [productRows, recordRows, labelSettings, recipeRows] = await Promise.all([
+      loadProducts(), loadBatchRecords(), loadLabelSettings(), loadRecipes(),
     ]);
     setProducts(productRows.filter((p) => p.active !== false && !p.hidden));
     setRecipes(recipeRows);
-    setOrders(orderRows);
-    setMachines(machineRows);
     setRecords(recordRows);
     setSettings(labelSettings);
     setLayoutId((prev) => prev || labelSettings.default_layout_id);
@@ -79,26 +75,25 @@ export default function CreateBatch() {
 
   const selectProduct = (next) => {
     setProductId(next?.id || "");
-    setBatchNumber("");
-    setOrderId("");
-    setOrderNumber("");
     setLayoutId(next?.default_label_layout || settings.default_layout_id);
-    setMachine(next?.default_machine || "");
   };
 
-  const batches = useMemo(
-    () => scheduledBatches(orders, records.map((r) => `${r.product_id}|${normalizeBatch(r.batch_number)}`))
-      .filter((entry) => entry.order.product_id === productId),
-    [orders, records, productId]
-  );
+  // Auto-generate Batch Number: PREFIX + DDMMYY + Alphabet Suffix (e.g. MCL200626T)
+  const batchPrefix = useMemo(() => {
+    if (!product) return "";
+    if (product.batch_prefix) return String(product.batch_prefix).trim().toUpperCase();
+    const code = String(product.product_code || product.product_name || "").replace(/[^A-Za-z]/g, "");
+    return code.slice(0, 3).toUpperCase() || "BCH";
+  }, [product]);
 
-  const pickScheduled = (code) => {
-    const entry = batches.find((b) => b.code === code);
-    setBatchNumber(entry?.code || "");
-    setOrderId(entry?.order.id || "");
-    setOrderNumber(entry?.order.order_number || "");
-    setMachine((prev) => entry?.order.machine || prev);
-  };
+  const datePart = useMemo(() => {
+    if (!productionDate || !/^\d{4}-\d{2}-\d{2}$/.test(productionDate)) return "";
+    const [yyyy, mm, dd] = productionDate.split("-");
+    return `${dd}${mm}${yyyy.slice(2)}`;
+  }, [productionDate]);
+
+  const cleanSuffix = alphabetSuffix.replace(/[^A-Za-z]/g, "").toUpperCase();
+  const batchNumber = product && datePart ? `${batchPrefix}${datePart}${cleanSuffix}` : "";
 
   const computedExpiry = expiryFor(productionDate, product?.shelf_life_days);
   const expiryDate = overrideOpen && overrideDate ? overrideDate : computedExpiry;
@@ -141,7 +136,8 @@ export default function CreateBatch() {
     if (!product) return toast({ title: "Pick a product", description: "The batch must belong to a product.", variant: "destructive" });
     const blocked = labelBlock(product);
     if (blocked) return toast({ title: "Product cannot be labelled", description: `${product.product_name}: ${blocked}. Fix it in Product Master.`, variant: "destructive" });
-    if (!batch) return toast({ title: "Batch number missing", description: "Pick a scheduled batch or type one in.", variant: "destructive" });
+    if (!cleanSuffix) return toast({ title: "Alphabet suffix required", description: "Enter an Alphabet Suffix (e.g. A or T) to complete the batch number.", variant: "destructive" });
+    if (!batch) return toast({ title: "Batch number missing", description: "Choose a product and production date.", variant: "destructive" });
     if (duplicate) return toast({ title: "Duplicate batch number", description: `${batch} is already recorded for ${product.product_name}.`, variant: "destructive" });
     if (!expiryDate) return toast({ title: "Expiry date missing", description: "Set the product shelf life, or override the expiry date.", variant: "destructive" });
     if (overrideOpen && !overrideReason.trim()) return toast({ title: "Reason required", description: "Give a reason for overriding the expiry date.", variant: "destructive" });
@@ -161,9 +157,6 @@ export default function CreateBatch() {
         expiry_override_reason: overrideOpen ? overrideReason.trim() : "",
         expiry_override_by: overrideOpen ? actingUserName(user) : "",
         quantity_cartons: num(quantity),
-        machine,
-        order_id: orderId,
-        order_number: orderNumber,
         label_layout: layout.id,
         label_layout_name: layout.name,
         label_width_mm: layout.width_mm,
@@ -186,30 +179,19 @@ export default function CreateBatch() {
       });
       setRecords((list) => [created || payload, ...list]);
 
-      // Mark the batch on its production order and add its cartons to the produced total.
-      const linkedOrder = orders.find((o) => o.id === orderId) || null;
-      if (linkedOrder) {
-        const updatedOrder = await recordBatchOnOrder({
-          order: linkedOrder,
-          batchNumber: batch,
-          cartons: num(quantity),
-          recordId: created?.id || "",
-          user,
-        });
-        if (updatedOrder?.id) setOrders((list) => list.map((o) => (o.id === updatedOrder.id ? updatedOrder : o)));
-      }
-
-      setJob({ layout, copies: count, data: { ...labelData, batchNumber: batch } });
+      const printData = {
+        ...labelData,
+        batchNumber: batch,
+        cartonBarcode: product.carton_barcode || product.barcode || batch,
+        pcsPerCarton: product.pcs_per_carton || 24,
+      };
+      setSavedPrintView({ layout, copies: count, data: printData });
       toast({
-        title: "Batch saved",
-        description: linkedOrder
-          ? `${batch} · ${linkedOrder.order_number || "order"} updated · printing ${count} label(s)`
-          : `${batch} · printing ${count} label(s)`,
+        title: "Batch saved to Batch Records",
+        description: `${batch} · ready to print ${count} label(s).`,
       });
-      setBatchNumber("");
+      setAlphabetSuffix("");
       setQuantity("");
-      setOrderId("");
-      setOrderNumber("");
       setOverrideOpen(false);
       setOverrideDate("");
       setOverrideReason("");
@@ -220,10 +202,170 @@ export default function CreateBatch() {
     }
   };
 
+  const generatePdf = async () => {
+    const el = document.getElementById("saved-label-card");
+    if (!el) return;
+    const canvas = await html2canvas(el, { scale: 3, backgroundColor: "#ffffff", useCORS: true });
+    const imgData = canvas.toDataURL("image/png");
+    const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: [150, 100] });
+    pdf.addImage(imgData, "PNG", 5, 5, 60, 40);
+    pdf.save(`${savedPrintView?.data?.batchNumber || "batch-label"}.pdf`);
+  };
+
   if (loading) {
+    if (savedPrintView) {
+    const d = savedPrintView.data;
     return (
+      <div className="min-h-screen bg-[#0a0e17] p-4 md:p-6 space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Link to="/batch-records" className="inline-flex items-center gap-1.5 text-sm text-[#a0aec0] hover:text-white">
+            <ArrowLeft className="w-4 h-4" /> Back to Batches
+          </Link>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setSavedPrintView(null)} className={subtleButton}>
+              Create Another Batch
+            </Button>
+            <Button variant="outline" onClick={generatePdf} className={subtleButton}>
+              <Download className="w-4 h-4 mr-1.5" /> Generate PDF
+            </Button>
+            <Button onClick={() => setJob({ ...savedPrintView })} className={primaryButton}>
+              <Printer className="w-4 h-4 mr-1.5" /> Print Now
+            </Button>
+          </div>
+        </div>
+
+        <div className="max-w-3xl mx-auto space-y-4">
+          <div className="flex justify-center">
+            <div id="saved-label-card" className="bg-white text-black rounded-lg border border-slate-200 p-4 shadow-lg w-[360px] space-y-2">
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-0.5 text-xs">
+                  <p className="font-bold text-sm leading-tight">{d.productName}</p>
+                  <p className="text-slate-700 font-medium">{d.productCode}</p>
+                  <p className="font-bold text-slate-900">{d.batchNumber}</p>
+                  <p className="text-slate-600">Exp: {fmtDay(d.expiryDate)}</p>
+                  <p className="text-slate-600">{d.pcsPerCarton} pcs/carton</p>
+                </div>
+                <img src={qrImageUrl(traceUrlFor(d.batchNumber), savedPrintView.layout.qr_ecc)} alt="QR" className="w-20 h-20 shrink-0" />
+              </div>
+              <div className="pt-1 text-center">
+                <img src={barcodeImageUrl(d.cartonBarcode || d.batchNumber)} alt="Barcode" className="w-full h-12 object-contain" />
+                <p className="text-[11px] font-mono tracking-wider text-slate-700">{d.cartonBarcode || d.batchNumber}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className={`${panelClass} p-4 space-y-3`}>
+            <p className="text-sm font-semibold text-white">Print Settings</p>
+            <div className="space-y-1.5">
+              <p className={labelClass}>Label Template</p>
+              <button
+                type="button"
+                onClick={() => setTemplateSize("60x40")}
+                className={`w-full text-left rounded-lg border p-3 ${templateSize === "60x40" ? "border-[#00e5ff] bg-[#00e5ff]/10" : "border-[#1e2740] bg-[#0e131d]"}`}
+              >
+                <p className="text-sm font-semibold text-white">60 × 40 mm</p>
+                <p className="text-xs text-[#a0aec0]">60 × 40 mm label rotated to 90° in top-left corner of 100 × 150 mm (landscape) page</p>
+              </button>
+            </div>
+            <label className="flex items-start gap-2.5 rounded-lg border border-[#1e2740] bg-[#0e131d] p-3 cursor-pointer">
+              <input type="checkbox" checked={retailEanQr} onChange={(e) => setRetailEanQr(e.target.checked)} className="mt-0.5 accent-[#00e5ff]" />
+              <div>
+                <p className="text-sm font-medium text-white">Retail EAN-13 + QR Batch Template</p>
+                <p className="text-xs text-[#a0aec0]">Barcode shows only the batch number as EAN-13; the QR carries the batch number and full batch details.</p>
+              </div>
+            </label>
+            <div className="space-y-1.5">
+              <p className={labelClass}>Label Layout</p>
+              <div className="rounded-lg border border-[#00e5ff] bg-[#00e5ff]/10 p-3">
+                <p className="text-sm font-semibold text-white">{savedPrintView.layout.name}</p>
+                <p className="text-xs text-[#a0aec0]">{savedPrintView.layout.width_mm} × {savedPrintView.layout.height_mm} mm · ECC {savedPrintView.layout.qr_ecc}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <LabelPrintSheet job={job} />
+      </div>
+    );
+  }
+
+  return (
       <div className="min-h-screen bg-[#0a0e17] flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-[#1e2740] border-t-[#00e5ff] rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (savedPrintView) {
+    const d = savedPrintView.data;
+    return (
+      <div className="min-h-screen bg-[#0a0e17] p-4 md:p-6 space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Link to="/batch-records" className="inline-flex items-center gap-1.5 text-sm text-[#a0aec0] hover:text-white">
+            <ArrowLeft className="w-4 h-4" /> Back to Batches
+          </Link>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setSavedPrintView(null)} className={subtleButton}>
+              Create Another Batch
+            </Button>
+            <Button variant="outline" onClick={generatePdf} className={subtleButton}>
+              <Download className="w-4 h-4 mr-1.5" /> Generate PDF
+            </Button>
+            <Button onClick={() => setJob({ ...savedPrintView })} className={primaryButton}>
+              <Printer className="w-4 h-4 mr-1.5" /> Print Now
+            </Button>
+          </div>
+        </div>
+
+        <div className="max-w-3xl mx-auto space-y-4">
+          <div className="flex justify-center">
+            <div id="saved-label-card" className="bg-white text-black rounded-lg border border-slate-200 p-4 shadow-lg w-[360px] space-y-2">
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-0.5 text-xs">
+                  <p className="font-bold text-sm leading-tight">{d.productName}</p>
+                  <p className="text-slate-700 font-medium">{d.productCode}</p>
+                  <p className="font-bold text-slate-900">{d.batchNumber}</p>
+                  <p className="text-slate-600">Exp: {fmtDay(d.expiryDate)}</p>
+                  <p className="text-slate-600">{d.pcsPerCarton} pcs/carton</p>
+                </div>
+                <img src={qrImageUrl(traceUrlFor(d.batchNumber), savedPrintView.layout.qr_ecc)} alt="QR" className="w-20 h-20 shrink-0" />
+              </div>
+              <div className="pt-1 text-center">
+                <img src={barcodeImageUrl(d.cartonBarcode || d.batchNumber)} alt="Barcode" className="w-full h-12 object-contain" />
+                <p className="text-[11px] font-mono tracking-wider text-slate-700">{d.cartonBarcode || d.batchNumber}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className={`${panelClass} p-4 space-y-3`}>
+            <p className="text-sm font-semibold text-white">Print Settings</p>
+            <div className="space-y-1.5">
+              <p className={labelClass}>Label Template</p>
+              <button
+                type="button"
+                onClick={() => setTemplateSize("60x40")}
+                className={`w-full text-left rounded-lg border p-3 ${templateSize === "60x40" ? "border-[#00e5ff] bg-[#00e5ff]/10" : "border-[#1e2740] bg-[#0e131d]"}`}
+              >
+                <p className="text-sm font-semibold text-white">60 × 40 mm</p>
+                <p className="text-xs text-[#a0aec0]">60 × 40 mm label rotated to 90° in top-left corner of 100 × 150 mm (landscape) page</p>
+              </button>
+            </div>
+            <label className="flex items-start gap-2.5 rounded-lg border border-[#1e2740] bg-[#0e131d] p-3 cursor-pointer">
+              <input type="checkbox" checked={retailEanQr} onChange={(e) => setRetailEanQr(e.target.checked)} className="mt-0.5 accent-[#00e5ff]" />
+              <div>
+                <p className="text-sm font-medium text-white">Retail EAN-13 + QR Batch Template</p>
+                <p className="text-xs text-[#a0aec0]">Barcode shows only the batch number as EAN-13; the QR carries the batch number and full batch details.</p>
+              </div>
+            </label>
+            <div className="space-y-1.5">
+              <p className={labelClass}>Label Layout</p>
+              <div className="rounded-lg border border-[#00e5ff] bg-[#00e5ff]/10 p-3">
+                <p className="text-sm font-semibold text-white">{savedPrintView.layout.name}</p>
+                <p className="text-xs text-[#a0aec0]">{savedPrintView.layout.width_mm} × {savedPrintView.layout.height_mm} mm · ECC {savedPrintView.layout.qr_ecc}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <LabelPrintSheet job={job} />
       </div>
     );
   }
@@ -261,53 +403,35 @@ export default function CreateBatch() {
             </div>
 
             <div className="space-y-1">
-              <label className={labelClass}>Batch number</label>
-              <div className="flex gap-1 mb-1">
-                {[["scheduled", "From schedule"], ["manual", "Manual entry"]].map(([key, label]) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => { setBatchSource(key); setBatchNumber(""); setOrderId(""); setOrderNumber(""); }}
-                    className={`text-[11px] px-2 py-1 rounded border ${
-                      batchSource === key
-                        ? "border-[#00e5ff] bg-[#00e5ff]/10 text-[#00e5ff]"
-                        : "border-[#1e2740] text-[#a0aec0] hover:text-white"
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-              {batchSource === "scheduled" ? (
-                <Select value={batchNumber} onValueChange={pickScheduled}>
-                  <SelectTrigger className={selectClass}>
-                    <SelectValue placeholder={productId ? "Pick a scheduled batch" : "Select a product first"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {batches.length === 0 ? (
-                      <div className="px-2 py-2 text-xs text-[#5f6b7f]">No scheduled batches left for this product.</div>
-                    ) : (
-                      batches.map((entry) => (
-                        <SelectItem key={`${entry.order.id}-${entry.code}`} value={entry.code} disabled={entry.recorded}>
-                          {entry.code} · {entry.order.order_number}{entry.recorded ? " (recorded)" : ""}
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <Input value={batchNumber} onChange={(e) => setBatchNumber(e.target.value.toUpperCase())} placeholder="e.g. RCE28102026A" className={inputClass} />
-              )}
+              <label className={labelClass}>Batch number *</label>
+              <Input
+                value={batchNumber}
+                readOnly
+                placeholder="Select product & production date"
+                className={`${inputClass} opacity-90 font-semibold text-[#00e5ff]`}
+              />
+              <p className="text-[11px] text-[#5f6b7f]">
+                Auto-generated: {batchPrefix || "PREFIX"} + date (DDMMYY) + alphabet suffix
+              </p>
               {duplicate && (
                 <p className="text-[11px] text-[#ff4d4d] flex items-center gap-1">
                   <AlertTriangle className="w-3 h-3" /> Already recorded for this product.
                 </p>
               )}
-              {orderNumber && <p className="text-[11px] text-[#5f6b7f]">From order {orderNumber}</p>}
             </div>
 
             <div className="space-y-1">
-              <label className={labelClass}>Production date</label>
+              <label className={labelClass}>Alphabet Suffix *</label>
+              <Input
+                value={alphabetSuffix}
+                onChange={(e) => setAlphabetSuffix(e.target.value.replace(/[^A-Za-z]/g, "").toUpperCase().slice(0, 3))}
+                placeholder="e.g. A or T"
+                className={inputClass}
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className={labelClass}>Production date *</label>
               <Input type="date" value={productionDate} onChange={(e) => setProductionDate(e.target.value)} className={inputClass} />
             </div>
 
@@ -336,18 +460,7 @@ export default function CreateBatch() {
 
             <div className="space-y-1">
               <label className={labelClass}>Quantity produced (cartons)</label>
-              <Input type="number" min="0" step="1" value={quantity} onChange={(e) => setQuantity(e.target.value)} className={inputClass} />
-            </div>
-
-            <div className="space-y-1">
-              <label className={labelClass}>Machine</label>
-              <Select value={machine || "none"} onValueChange={(v) => setMachine(v === "none" ? "" : v)}>
-                <SelectTrigger className={selectClass}><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Not set</SelectItem>
-                  {machines.map((m) => <SelectItem key={m.id} value={m.name}>{m.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <Input type="number" min="0" step="1" value={quantity} onChange={(e) => setQuantity(e.target.value)} className={inputClass} placeholder="e.g. 500" />
             </div>
           </div>
 

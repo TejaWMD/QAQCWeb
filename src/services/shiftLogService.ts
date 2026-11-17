@@ -37,6 +37,33 @@ export function otHoursAfterFive(startTime?: string, endTime?: string): number {
   return Number(((e - otStart) / 60).toFixed(2));
 }
 
+const toMin = (t?: string) => {
+  if (!t) return null;
+  const [h, m] = t.split(':').map(Number);
+  return Number.isNaN(h) || Number.isNaN(m) ? null : h * 60 + m;
+};
+
+// Overtime starts at 17:00, or at the shift start when the shift begins later.
+export function otWindowStart(startTime?: string): string | undefined {
+  const s = toMin(startTime);
+  if (s === null) return startTime;
+  return s >= 17 * 60 ? startTime : '17:00';
+}
+
+// "HH:MM" on a shift date -> ISO timestamp in local time. An end time at or before the start
+// belongs to the next day (overnight shift).
+export function toTimestamp(date?: string, time?: string, startTime?: string): string | null {
+  if (!date || !time || toMin(time) === null) return null;
+  const day = String(date).slice(0, 10);
+  const [y, mo, da] = day.split('-').map(Number);
+  const [h, m] = time.split(':').map(Number);
+  const d = new Date(y, mo - 1, da, h, m, 0, 0);
+  if (Number.isNaN(d.getTime())) return null;
+  const start = toMin(startTime);
+  if (start !== null && (toMin(time) as number) <= start) d.setDate(d.getDate() + 1);
+  return d.toISOString();
+}
+
 function hasAnyWaste(s: Record<string, any>): boolean {
   if (Number(s.rejected_qty) > 0) return true;
   return WASTE_FIELDS.some((f) => Number(s[f]) > 0);
@@ -95,8 +122,8 @@ export async function recordShiftLog(args: {
     staff_count: Number(s.staff_count) || 1,
     staff_name: s.staff_name || '',
     ot_objective: s.downtime_remarks ? `Regular run (${s.downtime_remarks})` : 'Regular shift run',
-    ot_start: s.start_time || null,
-    ot_end: s.end_time || null,
+    ot_start: toTimestamp(s.shift_date, s.start_time),
+    ot_end: toTimestamp(s.shift_date, s.end_time, s.start_time),
     hourly_ot_rate: Number(s.hourly_ot_rate) || 12,
     planned_cartons: Number(s.planned_cartons) || 0,
     pcs_per_carton: Number(s.pcs_per_carton) || 0,
@@ -150,22 +177,28 @@ export async function recordShiftLog(args: {
       shift_type: s.shift_type || 'Morning',
       start_time: s.start_time || null,
       end_time: s.end_time || null,
+      // The overtime window itself: it starts at 5 PM (or later) and ends with the
+      // shift, so the stored duration always equals end minus start.
+      ot_start: toTimestamp(s.shift_date, otWindowStart(s.start_time)),
+      ot_end: toTimestamp(s.shift_date, s.end_time, otWindowStart(s.start_time)),
       ot_duration_hours: otHours,
     };
     if (existingOt?.id) {
-      const { data } = await supabase
+      const { data, error: otErr } = await supabase
         .from('otlogs')
         .update(otPayload)
         .eq('id', existingOt.id)
         .select()
         .single();
+      if (otErr) throw new Error(otErr.message);
       otLog = data;
     } else {
-      const { data } = await supabase
+      const { data, error: otErr } = await supabase
         .from('otlogs')
         .insert(otPayload)
         .select()
         .single();
+      if (otErr) throw new Error(otErr.message);
       otLog = data;
     }
   } else if (existingOt?.id) {
@@ -235,6 +268,97 @@ export async function recordShiftLog(args: {
     otLogId: otLog?.id,
     wastageLogId: wastageLog?.id,
   };
+}
+
+export async function recordOperationLog(args: {
+  operationLog: Record<string, any>;
+  operationLogId?: string;
+  actor?: { email?: string; full_name?: string; id?: string };
+}) {
+  const op = args.operationLog;
+  if (!op || !args.operationLogId) return null;
+
+  const { data: existing, error: fetchErr } = await supabase
+    .from('operation_logs')
+    .select('*')
+    .eq('id', args.operationLogId)
+    .single();
+  if (fetchErr) throw new Error(fetchErr.message);
+
+  const sessionId = existing.session_id || `sess_${args.operationLogId}`;
+  const updatedPayload: Record<string, any> = {
+    ...op,
+    session_id: sessionId,
+    updated_at: new Date().toISOString(),
+  };
+  delete updatedPayload.id;
+  delete updatedPayload.created_date;
+  delete updatedPayload.updated_date;
+
+  const { data: opLog, error: opErr } = await supabase
+    .from('operation_logs')
+    .update(updatedPayload)
+    .eq('id', args.operationLogId)
+    .select()
+    .single();
+  if (opErr) throw new Error(opErr.message);
+
+  const toHHMM = (val?: string) => {
+    if (!val) return '';
+    if (/^\d{1,2}:\d{2}/.test(val)) return val.slice(0, 5).padStart(5, '0');
+    const d = new Date(val);
+    if (Number.isNaN(d.getTime())) return '';
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  };
+
+  const startHHMM = toHHMM(opLog.ot_start);
+  const endHHMM = toHHMM(opLog.ot_end);
+  const otHours = otHoursAfterFive(startHHMM, endHHMM);
+
+  // Sync OTLog from the edited OperationLog
+  const { data: existingOt } = await supabase
+    .from('otlogs')
+    .select('id')
+    .eq('session_id', sessionId)
+    .maybeSingle();
+
+  if (otHours > 0) {
+    const day = String(opLog.ot_date || '').slice(0, 10);
+    const otPayload = {
+      ot_date: opLog.ot_date,
+      operation_log_id: opLog.id,
+      session_id: sessionId,
+      production_line: opLog.production_line,
+      product_sku: opLog.product_sku || '',
+      product_name: opLog.product_name || opLog.product_sku || '',
+      batch_number: opLog.batch_number || '',
+      staff_count: Number(opLog.staff_count) || 1,
+      staff_name: opLog.staff_name || '',
+      hourly_ot_rate: Number(opLog.hourly_ot_rate) || 12,
+      planned_cartons: Number(opLog.planned_cartons) || 0,
+      pcs_per_carton: Number(opLog.pcs_per_carton) || 0,
+      planned_ot_qty: Number(opLog.planned_ot_qty) || 0,
+      actual_good_output: Number(opLog.actual_good_output) || 0,
+      rejected_wasted_qty: Number(opLog.rejected_wasted_qty) || 0,
+      downtime_min: Number(opLog.downtime_min) || 0,
+      start_time: startHHMM || null,
+      end_time: endHHMM || null,
+      ot_start: toTimestamp(day, otWindowStart(startHHMM)) || opLog.ot_start,
+      ot_end: toTimestamp(day, endHHMM, otWindowStart(startHHMM)) || opLog.ot_end,
+      ot_duration_hours: otHours,
+      record_batch: opLog.record_batch || 'current',
+      updated_at: new Date().toISOString(),
+    };
+    if (existingOt?.id) {
+      await supabase.from('otlogs').update(otPayload).eq('id', existingOt.id);
+    } else {
+      await supabase.from('otlogs').insert(otPayload);
+    }
+  } else if (existingOt?.id) {
+    await supabase.from('otlogs').delete().eq('id', existingOt.id);
+  }
+
+  return { operationLog: opLog };
 }
 
 export async function deleteShiftSession(args: {

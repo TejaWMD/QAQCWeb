@@ -127,6 +127,7 @@ export default function RequestsStoppages() {
     const entity = row._type === DOWNTIME_TYPE ? "Downtime" : "Request";
     await base44.entities[entity].update(row.id, { status });
     await audit("Updated", row.id, `Status changed to "${status}"`, prev, status);
+    await load(true);
   };
 
   const remove = async (row) => {
@@ -134,6 +135,7 @@ export default function RequestsStoppages() {
     const entity = row._type === DOWNTIME_TYPE ? "Downtime" : "Request";
     await base44.entities[entity].delete(row.id);
     await audit("Deleted", row.id, "Record deleted");
+    await load(true);
   };
 
   const purgeDemo = async () => {
@@ -142,6 +144,7 @@ export default function RequestsStoppages() {
     try {
       await base44.entities.Downtime.deleteMany({ is_demo: true });
       await audit("Deleted", "", "All demo / test downtime records deleted");
+      await load(true);
     } finally {
       setPurgingDemo(false);
     }
@@ -235,7 +238,7 @@ export default function RequestsStoppages() {
         )}
       </Tabs>
 
-      <RequestFormDialog open={formOpen} onOpenChange={setFormOpen} user={user} config={config} />
+      <RequestFormDialog open={formOpen} onOpenChange={setFormOpen} user={user} config={config} onSaved={() => load(true)} />
       <FormSettingsDialog
         open={settingsOpen}
         onOpenChange={setSettingsOpen}
@@ -248,6 +251,7 @@ export default function RequestsStoppages() {
         onOpenChange={(o) => !o && setDeciding(null)}
         request={deciding}
         user={user}
+        onSaved={() => load(true)}
       />
     </div>
   );

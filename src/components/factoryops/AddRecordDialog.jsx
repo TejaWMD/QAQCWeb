@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import EvidenceUpload from "@/components/factoryops/EvidenceUpload";
 import ProductPicker from "@/components/labels/ProductPicker";
 import { batchesForProduct, loadProductLinkData } from "@/lib/productLinks";
@@ -74,7 +74,13 @@ export default function AddRecordDialog({ open, onOpenChange, title, fields, onS
     setSaving(true);
     setError("");
     try {
-      await onSubmit(values);
+      const cleaned = { ...values };
+      fields.forEach((f) => {
+        if (f.type === "number" && (cleaned[f.key] === "" || cleaned[f.key] === undefined)) {
+          cleaned[f.key] = null;
+        }
+      });
+      await onSubmit(cleaned);
       onOpenChange(false);
     } catch (err) {
       setError(err?.message || "Could not save the record. Please try again.");
@@ -131,6 +137,15 @@ export default function AddRecordDialog({ open, onOpenChange, title, fields, onS
                       </SelectTrigger>
                       <SelectContent>
                         {f.options.map((opt) => {
+                          // { group, options } renders a labelled group of choices.
+                          if (opt && typeof opt === "object" && Array.isArray(opt.options)) {
+                            return (
+                              <SelectGroup key={opt.group}>
+                                <SelectLabel className="text-[#00e5ff]">{opt.group}</SelectLabel>
+                                {opt.options.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                              </SelectGroup>
+                            );
+                          }
                           const value = typeof opt === "string" ? opt : opt.value;
                           const label = typeof opt === "string" ? opt : opt.label;
                           return <SelectItem key={value} value={value}>{label}</SelectItem>;

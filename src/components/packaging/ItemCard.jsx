@@ -34,7 +34,15 @@ export default function ItemCard({ item, status, canEdit, canDelete, onIn, onUse
             {fmtQty(item.quantity)} <span className="text-xs text-[#a0aec0] font-normal">{item.unit || ""}</span>
           </p>
           <p className="text-[11px] text-[#5f6b7f] mt-1">
-            Min {fmtQty(item.min_level)} · Rack {item.default_rack || "—"}
+            Min {fmtQty(item.min_level)} {item.unit || ""} · Rack {item.default_rack || "—"}
+          </p>
+          {status === "Low stock" && Number(item.min_level) > 0 && (
+            <p className="text-[11px] text-[#ff9f43] mt-1 font-medium">
+              Suggested restock: {fmtQty(Math.max(Number(item.min_level) * 2 - (Number(item.quantity) || 0), Number(item.min_level)))} {item.unit || ""}
+            </p>
+          )}
+          <p className="text-[10px] text-[#5f6b7f] mt-1">
+            {item.order_status && item.order_status !== "no_action" ? item.order_status.replace(/_/g, " ") : "No action yet"}
           </p>
         </div>
         <Button variant="ghost" size="sm" onClick={onDetail} className="text-[#a0aec0] hover:bg-white/5 hover:text-white" title="Batches & racks">

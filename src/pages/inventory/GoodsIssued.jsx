@@ -4,8 +4,11 @@ import { useAuth } from "@/lib/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Save } from "lucide-react";
+import { Plus, Save, QrCode } from "lucide-react";
 import OutLineRow from "@/components/packaging/OutLineRow";
+import { CameraQRScanner } from "@/components/warehouse/QRScanner";
+import { parseQRPayload } from "@/lib/qrParser";
+import { findProduct } from "@/lib/findProduct";
 import { fmtQty, loadPackagingSettings, loadProductionOrders, newGroupId, submitStockUse } from "@/lib/packaging";
 import { loadProducts } from "@/lib/planning";
 import { todayStr } from "@/lib/warehouse";
@@ -37,6 +40,55 @@ export default function GoodsIssued() {
   const [lines, setLines] = useState([blankLine()]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [qrInput, setQrInput] = useState("");
+
+  const handleQrScan = async (rawText) => {
+    const parsed = parseQRPayload(rawText);
+    if (!parsed.ok) {
+      toast({ title: "Could not read QR", description: parsed.error, variant: "destructive" });
+      return;
+    }
+    const q = parsed.data;
+    const candidates = [q.gtin, q.item_code, q.sku, q.item_name, q.description, ...(q.textTokens || [])]
+      .map((s) => String(s || "").trim())
+      .filter(Boolean);
+
+    let matchedItem = null;
+    for (const c of candidates) {
+      const low = c.toLowerCase();
+      matchedItem = items.find((i) =>
+        (i.item_code || "").toLowerCase() === low ||
+        (i.description || "").toLowerCase() === low ||
+        (i.linked_product || "").toLowerCase() === low
+      );
+      if (matchedItem) break;
+    }
+
+    let matchedProduct = null;
+    for (const c of candidates) {
+      matchedProduct = await findProduct(c).catch(() => null);
+      if (matchedProduct) break;
+    }
+
+    const patch = {
+      item_id: matchedItem?.id || "",
+      batch_number: q.batch_number || "",
+      product_id: matchedProduct?.id || "",
+      product_code: matchedProduct?.product_code || "",
+      product_name: matchedProduct?.product_name || "",
+    };
+
+    setLines((prev) => {
+      const idx = prev.findIndex((l) => !l.item_id && !l.batch_number);
+      if (idx >= 0) return prev.map((l, i) => (i === idx ? { ...l, ...patch } : l));
+      return [...prev, { ...blankLine(), ...patch }];
+    });
+    setQrInput("");
+    toast({
+      title: "QR scanned",
+      description: `${matchedItem?.item_code || matchedProduct?.product_name || q.item_name || "Scanned"} · Batch ${patch.batch_number || "—"}`,
+    });
+  };
 
   const load = async () => {
     const [itemPage, loadedSettings] = await Promise.all([
@@ -132,6 +184,27 @@ export default function GoodsIssued() {
             <label className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Issue Reference</label>
             <Input value={reference} onChange={(e) => setReference(e.target.value)} placeholder="Optional (used when a line has no order)" className="bg-[#0a0e17] border-[#1e2740] text-white" />
           </div>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-[#1e2740] bg-[#0e131d] p-3 space-y-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="text-xs font-semibold text-white flex items-center gap-1.5">
+            <QrCode className="w-4 h-4 text-[#00e5ff]" /> QR Code Scanner
+          </span>
+          <CameraQRScanner onDecode={handleQrScan} />
+        </div>
+        <div className="flex gap-2">
+          <Input
+            value={qrInput}
+            onChange={(e) => setQrInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter" && qrInput.trim()) { e.preventDefault(); handleQrScan(qrInput); } }}
+            placeholder="Scan with handheld scanner or paste QR payload and press Enter"
+            className="bg-[#0a0e17] border-[#1e2740] text-white"
+          />
+          <Button type="button" variant="outline" onClick={() => qrInput.trim() && handleQrScan(qrInput)} className="border-[#1e2740] bg-[#0a0e17] text-[#00e5ff] hover:bg-white/5">
+            Parse QR
+          </Button>
         </div>
       </div>
 

@@ -93,7 +93,7 @@ const fieldDefs = (config) => ({
 // New Request form: common fields for all three types, per-type fields that
 // change with the Request Type, required-field validation with asterisks,
 // and evidence upload. Hidden fields are never required and never saved.
-export default function RequestFormDialog({ open, onOpenChange, user, config = DEFAULT_FORM_CONFIG }) {
+export default function RequestFormDialog({ open, onOpenChange, user, config = DEFAULT_FORM_CONFIG, onSaved }) {
   const [type, setType] = useState(DOWNTIME_TYPE);
   const [values, setValues] = useState({});
   const [evidenceFiles, setEvidenceFiles] = useState([]);
@@ -240,14 +240,43 @@ export default function RequestFormDialog({ open, onOpenChange, user, config = D
       }
 
       // Only the visible fields of the selected type are saved.
+      // Empty strings for number/date fields are converted to null so Postgres never rejects them.
       const payload = { production_line: values.production_line, owners, evidence_files };
       visibleKeys.forEach((k) => {
-        payload[k] = values[k];
+        const def = defs[k];
+        const val = values[k];
+        if (def?.type === "number") {
+          payload[k] = val === "" || val === undefined || val === null ? null : Number(val);
+        } else if ((def?.type === "date" || def?.type === "datetime") && val === "") {
+          payload[k] = null;
+        } else {
+          payload[k] = val;
+        }
       });
 
       let created;
       if (type === DOWNTIME_TYPE) {
-        created = await base44.entities.Downtime.create({ ...payload, status: "Open" });
+        try {
+          created = await base44.entities.Downtime.create({ ...payload, status: "Open" });
+        } catch (firstErr) {
+          // Fallback if downtimes.start_time/end_time is still TIMESTAMPTZ in Supabase
+          const msg = String(firstErr?.message || "").toLowerCase();
+          if (msg.includes("timestamp") || msg.includes("time")) {
+            const baseDate = payload.shift_date || new Date().toISOString().slice(0, 10);
+            const fallbackPayload = {
+              ...payload,
+              start_time: /^\d{1,2}:\d{2}$/.test(String(payload.start_time || ""))
+                ? new Date(`${baseDate}T${String(payload.start_time).padStart(5, "0")}:00`).toISOString()
+                : payload.start_time || null,
+              end_time: /^\d{1,2}:\d{2}$/.test(String(payload.end_time || ""))
+                ? new Date(`${baseDate}T${String(payload.end_time).padStart(5, "0")}:00`).toISOString()
+                : payload.end_time || null,
+            };
+            created = await base44.entities.Downtime.create({ ...fallbackPayload, status: "Open" });
+          } else {
+            throw firstErr;
+          }
+        }
       } else {
         created = await base44.entities.Request.create({
           ...payload,
@@ -276,6 +305,7 @@ export default function RequestFormDialog({ open, onOpenChange, user, config = D
         await audit("Created", hold?.id, "Affected product automatically placed on Hold (Labelling / Packaging Error)");
       }
 
+      onSaved?.(created);
       onOpenChange(false);
     } catch (err) {
       setError(err?.message || "Could not submit the request. Please try again.");

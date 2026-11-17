@@ -3,20 +3,16 @@ import { Link, useLocation } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { MODULES, canAccess, isAdminUser } from "@/lib/permissions";
-import { Radar, Factory, Clock, ShieldCheck, ClipboardList, AlertTriangle, Gauge, ScrollText, LayoutDashboard, Recycle, Users, Upload, PackagePlus, Boxes, PackageMinus, Layers, ArrowLeftRight, ClipboardCheck, Package, FlaskConical, Cog, ListChecks, CalendarDays, Trash2, Tag, History, Scale } from "lucide-react";
+import { Radar, Clock, ShieldCheck, ClipboardList, AlertTriangle, ScrollText, LayoutDashboard, Users, Upload, PackagePlus, Boxes, PackageMinus, Layers, ArrowLeftRight, ClipboardCheck, Package, FlaskConical, ListChecks, CalendarDays, Trash2, Tag, History, Scale } from "lucide-react";
 
 // FactoryOps modules. "Production Line Logs" opens the existing packaging record module.
 const factoryItems = [
   { key: "attention_dashboard", label: "Attention Dashboard", icon: Radar },
-  { key: "shift_log", label: "Daily Packaging Entry", icon: Factory },
   { key: "downtime", label: "Requests & Stoppages", icon: Clock },
-  { key: "staffing", label: "Staffing", icon: Users },
   { key: "qa_haccp", label: "QA & HACCP Safety", icon: ShieldCheck },
   { key: "task_matrix", label: "Supervisor Task Matrix", icon: ClipboardList },
   { key: "capa_tracker", label: "Unified CAPA Tracker", icon: AlertTriangle, badge: "capa" },
-  { key: "kpi_scorecards", label: "Role KPI Scorecards", icon: Gauge },
   { key: "audit_trail", label: "Audit Trail Log", icon: ScrollText },
-  { key: "activity_history", label: "Activity History", icon: History },
 ];
 
 // Planning: the masters and machine list, then the orders and schedule built from them.
@@ -24,7 +20,6 @@ const planningItems = [
   { key: "pic_product_entry", label: "PIC Product Entry", icon: PackagePlus },
   { key: "product_master", label: "Product Master", icon: Package },
   { key: "recipe_master", label: "Recipe Master", icon: FlaskConical },
-  { key: "machines", label: "Machines", icon: Cog },
   { key: "production_orders", label: "Production Orders", icon: ListChecks },
   { key: "production_schedule", label: "Production Schedule", icon: CalendarDays },
 ];

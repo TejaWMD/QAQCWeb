@@ -8,7 +8,8 @@ export interface ParsedQR {
   sku?: string;
   manufacturing_date?: string;
   qr_quantity?: number;
-  format: 'legacy_5' | 'gtin_7_8' | 'json' | 'csv';
+  textTokens?: string[];
+  format: 'legacy_5' | 'gtin_7_8' | 'json' | 'csv' | 'smart';
 }
 
 function cleanScannerInput(raw: string): string {
@@ -71,46 +72,54 @@ export function parseQRPayload(rawInput: string): { ok: true; data: ParsedQR } |
     }
   }
 
-  // Pipe-delimited
+  // Pipe-delimited: smart token recognition (handles Old QR, New QR, and any field order)
   if (cleaned.includes('|')) {
-    const parts = cleaned.split('|').map((p) => p.trim());
+    const parts = cleaned.split('|').map((p) => p.trim()).filter(Boolean);
+    const dates: string[] = [];
+    let batchNumber = '';
+    let barcode = '';
+    const textTokens: string[] = [];
 
-    // GTIN 7 or 8 field format: GTIN | batch | product | SKU | desc | mfg | exp [| qty]
-    if (parts.length >= 7 && /^\d{8,14}$/.test(parts[0].replace(/^01/, ''))) {
-      const gtin = parts[0].replace(/^01/, '');
-      const exp = normalizeDate(parts[6]);
-      if (!exp) return { ok: false, error: `Invalid expiry date in GTIN QR: "${parts[6]}"` };
-      return {
-        ok: true,
-        data: {
-          gtin,
-          batch_number: parts[1],
-          item_name: parts[2],
-          item_code: parts[3] || gtin,
-          sku: parts[3],
-          description: parts[4] || '',
-          manufacturing_date: normalizeDate(parts[5]) || parts[5],
-          expiry_date: exp,
-          qr_quantity: parts[7] ? Number(parts[7]) : undefined,
-          format: 'gtin_7_8',
-        },
-      };
+    for (const part of parts) {
+      const asDate = normalizeDate(part);
+      if (asDate) {
+        dates.push(asDate);
+        continue;
+      }
+      if (!batchNumber && /^[A-Za-z]{3}\d{6}[A-Za-z]$/.test(part)) {
+        batchNumber = part.toUpperCase();
+        continue;
+      }
+      const digitsOnly = part.replace(/^01/, '');
+      if (!barcode && /^\d{8,14}$/.test(digitsOnly)) {
+        barcode = digitsOnly;
+        continue;
+      }
+      if (/^\d{1,7}$/.test(part)) {
+        // Short number such as 3 -> ignored for identification
+        continue;
+      }
+      textTokens.push(part);
     }
 
-    // Legacy 5-field format: product | batch | expiry | SKU | description
-    if (parts.length >= 4) {
-      const exp = normalizeDate(parts[2]);
-      if (!exp) return { ok: false, error: `Invalid expiry date in QR: "${parts[2]}"` };
+    dates.sort(); // ISO dates sort chronologically
+    const manufacturing_date = dates.length >= 2 ? dates[0] : undefined;
+    const expiry_date = dates.length >= 1 ? dates[dates.length - 1] : '';
+
+    if (batchNumber || barcode || expiry_date || textTokens.length > 0) {
       return {
         ok: true,
         data: {
-          item_name: parts[0],
-          batch_number: parts[1],
-          expiry_date: exp,
-          item_code: parts[3],
-          sku: parts[3],
-          description: parts[4] || '',
-          format: 'legacy_5',
+          gtin: barcode || undefined,
+          batch_number: batchNumber || (parts[1] || ''),
+          item_name: textTokens[0] || '',
+          item_code: textTokens[1] || barcode || '',
+          sku: textTokens[1] || '',
+          description: textTokens[2] || textTokens[0] || '',
+          manufacturing_date,
+          expiry_date,
+          textTokens,
+          format: 'smart',
         },
       };
     }

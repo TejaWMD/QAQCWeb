@@ -5,11 +5,13 @@ import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Save, List, Settings as SettingsIcon, AlertTriangle } from "lucide-react";
+import { Plus, Save, List, Settings as SettingsIcon, AlertTriangle, QrCode } from "lucide-react";
 import ReceiptLineEditor from "@/components/warehouse/ReceiptLineEditor";
 import ItemListDialog from "@/components/warehouse/ItemListDialog";
 import QuickAddItemDialog from "@/components/warehouse/QuickAddItemDialog";
 import WarehouseSettingsDialog from "@/components/warehouse/WarehouseSettingsDialog";
+import { CameraQRScanner } from "@/components/warehouse/QRScanner";
+import { parseQRPayload } from "@/lib/qrParser";
 import { actingUserName } from "@/lib/permissions";
 import { findProduct } from "@/lib/findProduct";
 import { loadRecipes } from "@/lib/planning";
@@ -60,6 +62,58 @@ export default function GoodsReceiving() {
   const [quickAdd, setQuickAdd] = useState(null);
   const [itemListOpen, setItemListOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [qrInput, setQrInput] = useState("");
+
+  const handleQrScan = async (rawText) => {
+    const parsed = parseQRPayload(rawText);
+    if (!parsed.ok) {
+      toast({ title: "Could not read QR", description: parsed.error, variant: "destructive" });
+      return;
+    }
+    const q = parsed.data;
+    const candidates = [q.gtin, q.item_code, q.sku, q.item_name, q.description, ...(q.textTokens || [])]
+      .map((s) => String(s || "").trim())
+      .filter(Boolean);
+
+    let matchedItem = null;
+    for (const c of candidates) {
+      const low = c.toLowerCase();
+      matchedItem = items.find((i) =>
+        (i.item_code || "").toLowerCase() === low ||
+        (i.description || "").toLowerCase() === low
+      );
+      if (matchedItem) break;
+    }
+
+    let matchedProduct = null;
+    for (const c of candidates) {
+      matchedProduct = await findProduct(c).catch(() => null);
+      if (matchedProduct) break;
+    }
+
+    const patch = {
+      item_code: matchedItem?.item_code || matchedProduct?.product_code || q.item_code || q.gtin || "",
+      product_id: matchedProduct?.id || "",
+      product_code: matchedProduct?.product_code || "",
+      product_name: matchedProduct?.product_name || "",
+      product_recipe: matchedProduct ? (recipeOf(recipes, matchedProduct)?.recipe_name || "") : "",
+      product_description: matchedItem?.description || matchedProduct?.product_name || q.description || q.item_name || "",
+      batch_number: q.batch_number || "",
+      expiry_date: q.expiry_date || "",
+      unit: matchedItem?.unit || (matchedProduct ? "carton" : units[0] || ""),
+    };
+
+    setLines((prev) => {
+      const idx = prev.findIndex((l) => !l.item_code && !l.batch_number);
+      if (idx >= 0) return prev.map((l, i) => (i === idx ? { ...l, ...patch } : l));
+      return [...prev, { ...blankLine(units[0]), ...patch }];
+    });
+    setQrInput("");
+    toast({
+      title: "QR scanned",
+      description: `${patch.product_description || patch.item_code || "Item"} · Batch ${patch.batch_number || "—"}`,
+    });
+  };
 
   const load = async () => {
     const [itemRows, rackPage, settingsPage, recipeRows] = await Promise.all([
@@ -277,6 +331,27 @@ export default function GoodsReceiving() {
               className={FIELD}
             />
           </div>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-[#1e2740] bg-[#0e131d] p-3 space-y-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="text-xs font-semibold text-white flex items-center gap-1.5">
+            <QrCode className="w-4 h-4 text-[#00e5ff]" /> QR Code Scanner
+          </span>
+          <CameraQRScanner onDecode={handleQrScan} />
+        </div>
+        <div className="flex gap-2">
+          <Input
+            value={qrInput}
+            onChange={(e) => setQrInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter" && qrInput.trim()) { e.preventDefault(); handleQrScan(qrInput); } }}
+            placeholder="Scan with handheld scanner or paste QR payload and press Enter"
+            className={FIELD}
+          />
+          <Button type="button" variant="outline" onClick={() => qrInput.trim() && handleQrScan(qrInput)} className="border-[#1e2740] bg-[#0a0e17] text-[#00e5ff] hover:bg-white/5">
+            Parse QR
+          </Button>
         </div>
       </div>
 

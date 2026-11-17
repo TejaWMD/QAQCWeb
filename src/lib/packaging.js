@@ -24,7 +24,7 @@ export const fmtQty = (v) => num(v).toLocaleString("en-US", { maximumFractionDig
 
 // Warehouse staff key stock in, out and counts; supervisors and admins approve.
 export const isPackagingStaff = (user) =>
-  isAdminUser(user) || ["warehouse_staff", "warehouse_supervisor"].includes(user?.app_role);
+  isAdminUser(user) || ["warehouse_staff", "warehouse_supervisor", "supervisor", "manager"].includes(user?.app_role);
 export const canApproveStock = (user) =>
   isAdminUser(user) || user?.app_role === "warehouse_supervisor";
 export const canManagePackaging = canApproveStock;
