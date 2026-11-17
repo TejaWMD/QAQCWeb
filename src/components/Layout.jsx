@@ -33,28 +33,11 @@ export default function Layout() {
             <img src={logoSrc} alt="WMD Logo" className="w-full h-full object-contain rounded-xl" />
           </div>
           <h1 className="text-white text-base sm:text-lg font-bold tracking-tight truncate">
-            WMG Factory
+            WMG QAQC
           </h1>
         </div>
 
         <div className="ml-auto flex items-center gap-2 sm:gap-3 shrink-0">
-          {isAdmin && (
-            <div className="flex items-center gap-1.5">
-              <Eye className="w-4 h-4 text-[#94a3b8] hidden sm:block shrink-0" />
-              <Select value={viewAsRole || "none"} onValueChange={(v) => setViewAsRole(v === "none" ? "" : v)}>
-                <SelectTrigger className="h-8 w-[125px] sm:w-[165px] rounded-full bg-[#131926] border-[#1e2740] text-white text-xs px-3">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">View as…</SelectItem>
-                  {VIEW_AS_ROLES.map((r) => (
-                    <SelectItem key={r.key} value={r.key}>{r.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
           {user && (
             <div className="flex items-center gap-2 pl-2 border-l border-[#1e2740]">
               <div className="w-8 h-8 rounded-full bg-[#00e5ff]/15 text-[#00e5ff] ring-1 ring-[#00e5ff]/30 text-xs font-bold flex items-center justify-center shrink-0">
