@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
+import { productService } from "@/services/productService";
 import { useAuth } from "@/lib/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -44,8 +45,13 @@ export default function MachineDialog({ open, onClose, machine, availableNames =
       notes: form.notes || "",
     };
     try {
-      if (machine) await base44.entities.Machine.update(machine.id, payload);
-      else await base44.entities.Machine.create(payload);
+      if (machine) {
+        try { await productService.updateMachine(machine.id, payload); } catch {}
+        await base44.entities.Machine.update(machine.id, payload);
+      } else {
+        try { await productService.createMachine(payload); } catch {}
+        await base44.entities.Machine.create(payload);
+      }
       await logPlanningAudit({
         user,
         module: "Machines",

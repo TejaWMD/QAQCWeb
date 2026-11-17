@@ -5,6 +5,17 @@ function timeOfDay(value) {
   return text.length > 10 ? text.slice(11, 16) : text.slice(0, 5);
 }
 
+function parseTimeToHours(val) {
+  if (!val) return null;
+  const d = new Date(val);
+  if (!isNaN(d.getTime())) return d.getTime() / 3600000;
+  const parts = String(val).slice(0, 5).split(":").map(Number);
+  if (parts.length >= 2 && Number.isFinite(parts[0]) && Number.isFinite(parts[1])) {
+    return parts[0] + parts[1] / 60;
+  }
+  return null;
+}
+
 export function calculateOTMetrics(data) {
   const staffCount = Number(data.staff_count) || 0;
   const hourlyRate = Number(data.hourly_ot_rate) || 12;
@@ -15,16 +26,19 @@ export function calculateOTMetrics(data) {
 
   // Shift span — carries the production-rate metrics (UPM, output per man-hour).
   let shiftHours = 0;
-  if (data.ot_start && data.ot_end) {
-    const start = new Date(data.ot_start);
-    const end = new Date(data.ot_end);
-    shiftHours = (end - start) / (1000 * 60 * 60);
-    if (shiftHours < 0 || isNaN(shiftHours)) shiftHours = 0;
+  const sStart = data.ot_start || data.start_time;
+  const sEnd = data.ot_end || data.end_time;
+  if (sStart && sEnd) {
+    const sH = parseTimeToHours(sStart);
+    const eH = parseTimeToHours(sEnd);
+    if (sH !== null && eH !== null) {
+      shiftHours = eH >= sH ? eH - sH : (24 - sH) + eH;
+      if (shiftHours < 0 || isNaN(shiftHours)) shiftHours = 0;
+    }
   }
   const shiftManHours = shiftHours * staffCount;
 
-  // Overtime — only the hours worked after 17:00, the same rule the shift log and
-  // both save services use: a 08:00-20:00 session is 3.00 hours, not 12.00.
+  // Overtime — hours worked after 17:00, including midnight crossover.
   const duration = otHoursAfterFive(
     timeOfDay(data.ot_start || data.start_time),
     timeOfDay(data.ot_end || data.end_time)
@@ -36,7 +50,7 @@ export function calculateOTMetrics(data) {
   const variance = goodOutput - planned;
   const achievementPct = planned > 0 ? (goodOutput / planned) * 100 : 0;
   const goodPerManHour = shiftManHours > 0 ? goodOutput / shiftManHours : 0;
-  const netProductive = shiftHours - downtime / 60;
+  const netProductive = Math.max(0, shiftHours - downtime / 60);
   const actualUpm = shiftHours > 0 ? goodOutput / shiftHours / 60 : 0;
 
   return {
@@ -55,8 +69,7 @@ export function calculateOTMetrics(data) {
 }
 
 // Overtime on a shift runs past 17:00, forward across midnight. Both arguments are
-// "HH:MM" times. This mirrors the rule used by the shift log form and by the save
-// service: a 08:00-20:00 shift is 3.00 overtime hours, not 12.00.
+// "HH:MM" times.
 export function otHoursAfterFive(start, end) {
   if (!start || !end) return 0;
   const [sh, sm] = String(start).split(":").map(Number);
@@ -64,7 +77,11 @@ export function otHoursAfterFive(start, end) {
   if (![sh, sm, eh, em].every((n) => Number.isFinite(n))) return 0;
   const sMin = sh * 60 + sm;
   const eMin = eh * 60 + em;
-  if (eMin <= sMin) return Math.max(0, 1440 - Math.max(sMin, 17 * 60)) / 60;
+  // Crosses midnight (e.g. 20:00 to 04:00)
+  if (eMin <= sMin) {
+    const beforeMidnight = Math.max(0, 1440 - Math.max(sMin, 17 * 60));
+    return (beforeMidnight + eMin) / 60;
+  }
   if (eMin <= 17 * 60) return 0;
   return (eMin - Math.max(sMin, 17 * 60)) / 60;
 }

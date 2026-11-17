@@ -7,9 +7,12 @@ export const MODULES = [
   { key: "dashboard", label: "Operations Overview", path: "/operations-overview", description: "Overview of output, waste, overtime and downtime" },
   { key: "production_line_logs", label: "Production Line Logs", path: "/production-line-logs", description: "Overview, operation, overtime, wastage, baseline and activity logs in one place" },
   { key: "production_orders", label: "Production Orders", path: "/production-orders", description: "Orders with batches, machine, run time and batch numbers" },
+  { key: "demand_planner", label: "Demand Planner", path: "/demand-planner", description: "Shortage calculation, priority scoring & sequence optimizer" },
+  { key: "procurement", label: "Procurement (PR / PO)", path: "/procurement", description: "Suppliers, purchase requests and purchase orders" },
   { key: "production_schedule", label: "Production Schedule", path: "/production-schedule", description: "Day timeline per machine with drag-and-drop planning" },
   { key: "create_batch", label: "Create Batch / Labels", path: "/create-batch", description: "Record a batch and print its labels with a traceability QR code" },
   { key: "batch_records", label: "Batch Records", path: "/batch-records", description: "All created batches with search, CSV export and reprints" },
+  { key: "batch_scan", label: "Carton Barcode Lookup", path: "/batch-scan", description: "Scan EAN-13 carton barcode to view product & batch history" },
   { key: "yield_loss", label: "Yield & Loss", path: "/yield-loss", description: "Batch yield, packaging waste, giveaway and rework" },
   { key: "recently_deleted", label: "Recently Deleted", path: "/recently-deleted", description: "Deleted production orders, restorable by Admin", adminOnly: true },
   { key: "shift_log", label: "Daily Packaging Entry", path: "/shift-log-draft", description: "Daily packaging line record entry" },
@@ -27,6 +30,7 @@ export const MODULES = [
   { key: "activity_history", label: "Activity History", path: "/activity-history", description: "Every user action, system action and data change in one timeline" },
   { key: "activity_logs", label: "Activity Logs", path: "/activity-logs", description: "All recorded shift log entries" },
   { key: "warehouse_receiving", label: "Goods Receiving", path: "/goods-receiving", description: "Record goods received against a delivery note" },
+  { key: "wms_warehouse", label: "Finished Goods WMS", path: "/wms", description: "QR scan-in, visual G/M/T rack floor, PL outbound picking & stock take" },
   { key: "goods_tracker", label: "Goods Tracker", path: "/goods-tracker", description: "Searchable log of everything received into the warehouse" },
   { key: "goods_issued", label: "Goods Issued", path: "/goods-issued", description: "Record packaging stock going out to production" },
   { key: "packaging_stock", label: "Packaging Stock", path: "/packaging-stock", description: "Packaging material stock with in, use and count movements" },
@@ -37,7 +41,9 @@ export const MODULES = [
   { key: "recipe_master", label: "Recipe Master", path: "/recipe-master", description: "Versioned recipes per product with ingredient lists" },
   { key: "machines", label: "Machines", path: "/machines", description: "Machine list with capacity and maintenance status" },
   { key: "user_management", label: "User Management", path: "/users", description: "Members, roles and invitations", adminOnly: true },
-  { key: "data_import", label: "Import CSV Data", path: "/data-import", description: "Bulk import legacy records from CSV files", adminOnly: true }
+  { key: "data_import", label: "Import CSV Data", path: "/data-import", description: "Bulk import legacy records from CSV files", adminOnly: true },
+  { key: "sheet_migration", label: "Excel / Sheet Migration", path: "/sheet-migration", description: "Transfer Excel/Google Sheets data into Supabase", adminOnly: true },
+  { key: "insert_data", label: "Insert New Data", path: "/insert-data", description: "Add new Products, Recipes, Forecasts, Packaging & Machines" }
 ];
 
 // Modules an invitation offers by default; they are only granted once the invitation is
@@ -48,7 +54,7 @@ export const ALL_MODULE_KEYS = MODULES.map((m) => m.key);
 // Modules an administrator can hand out (User Management itself is administrator only).
 export const ASSIGNABLE_MODULE_KEYS = MODULES.filter((m) => !m.adminOnly).map((m) => m.key);
 
-export const isAdminUser = (user) => user?.role === "admin";
+export const isAdminUser = (user) => user?.role === "admin" || user?.role === "super_admin";
 
 // FactoryOps roles. A role grants a fixed preset of modules; members without a
 // role keep whatever modules were assigned to them individually.

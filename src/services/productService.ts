@@ -377,45 +377,220 @@ export const productService = {
     }
   },
 
-  // Supporting entities
+  // Supporting entities: Machines
   async getMachines(): Promise<Machine[]> {
+    try {
+      const { data, error } = await supabase
+        .from('machines')
+        .select('*')
+        .order('name', { ascending: true });
+
+      if (error) {
+        console.warn('Could not load machines from Supabase:', error.message);
+        return [];
+      }
+      return (data || []) as Machine[];
+    } catch (err: any) {
+      console.warn('Network error loading machines:', err?.message || err);
+      return [];
+    }
+  },
+
+  async createMachine(payload: Partial<Machine>): Promise<Machine> {
+    const prepared = {
+      ...payload,
+      status: payload.status || 'Active',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
     const { data, error } = await supabase
       .from('machines')
-      .select('*')
-      .order('name', { ascending: true });
+      .insert(prepared)
+      .select()
+      .single();
 
     if (error) {
-      console.warn('Could not load machines from Supabase:', error.message);
-      return [];
+      console.error('Error creating machine in Supabase:', error);
+      throw error;
     }
-    return (data || []) as Machine[];
+    return data as Machine;
   },
 
+  async updateMachine(id: string, payload: Partial<Machine>): Promise<Machine> {
+    const prepared = {
+      ...payload,
+      updated_at: new Date().toISOString(),
+    };
+    const { data, error } = await supabase
+      .from('machines')
+      .update(prepared)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating machine in Supabase:', error);
+      throw error;
+    }
+    return data as Machine;
+  },
+
+  async deleteMachine(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('machines')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting machine in Supabase:', error);
+      throw error;
+    }
+  },
+
+  // Supporting entities: Recipes
   async getRecipes(): Promise<Recipe[]> {
+    try {
+      const { data, error } = await supabase
+        .from('recipes')
+        .select('*')
+        .order('recipe_name', { ascending: true });
+
+      if (error) {
+        console.warn('Could not load recipes from Supabase:', error.message);
+        return [];
+      }
+      return (data || []) as Recipe[];
+    } catch (err: any) {
+      console.warn('Network error loading recipes:', err?.message || err);
+      return [];
+    }
+  },
+
+  async createRecipe(payload: Partial<Recipe>): Promise<Recipe> {
+    const prepared = {
+      ...payload,
+      version: payload.version || 1,
+      status: payload.status || 'Active',
+      standard_yield_pct: payload.standard_yield_pct ?? 100,
+      ingredients: payload.ingredients || [],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
     const { data, error } = await supabase
       .from('recipes')
-      .select('*')
-      .order('recipe_name', { ascending: true });
+      .insert(prepared)
+      .select()
+      .single();
 
     if (error) {
-      console.warn('Could not load recipes from Supabase:', error.message);
-      return [];
+      console.error('Error creating recipe in Supabase:', error);
+      throw error;
     }
-    return (data || []) as Recipe[];
+    return data as Recipe;
   },
 
-  async getPackagingItems(): Promise<PackagingItem[]> {
+  async updateRecipe(id: string, payload: Partial<Recipe>): Promise<Recipe> {
+    const prepared = {
+      ...payload,
+      updated_at: new Date().toISOString(),
+    };
     const { data, error } = await supabase
-      .from('packaging_items')
-      .select('*')
-      .eq('active', true)
-      .order('item_code', { ascending: true });
+      .from('recipes')
+      .update(prepared)
+      .eq('id', id)
+      .select()
+      .single();
 
     if (error) {
-      console.warn('Could not load packaging items from Supabase:', error.message);
+      console.error('Error updating recipe in Supabase:', error);
+      throw error;
+    }
+    return data as Recipe;
+  },
+
+  async deleteRecipe(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('recipes')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting recipe in Supabase:', error);
+      throw error;
+    }
+  },
+
+  // Supporting entities: Packaging Items
+  async getPackagingItems(): Promise<PackagingItem[]> {
+    try {
+      const { data, error } = await supabase
+        .from('packaging_items')
+        .select('*')
+        .eq('active', true)
+        .order('item_code', { ascending: true });
+
+      if (error) {
+        console.warn('Could not load packaging items from Supabase:', error.message);
+        return [];
+      }
+      return (data || []) as PackagingItem[];
+    } catch (err: any) {
+      console.warn('Network error loading packaging items:', err?.message || err);
       return [];
     }
-    return (data || []) as PackagingItem[];
+  },
+
+  async createPackagingItem(payload: Partial<PackagingItem>): Promise<PackagingItem> {
+    const prepared = {
+      ...payload,
+      active: payload.active ?? true,
+      current_stock: num(payload.current_stock),
+      safety_stock: num(payload.safety_stock),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    const { data, error } = await supabase
+      .from('packaging_items')
+      .insert(prepared)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating packaging item in Supabase:', error);
+      throw error;
+    }
+    return data as PackagingItem;
+  },
+
+  async updatePackagingItem(id: string, payload: Partial<PackagingItem>): Promise<PackagingItem> {
+    const prepared = {
+      ...payload,
+      updated_at: new Date().toISOString(),
+    };
+    const { data, error } = await supabase
+      .from('packaging_items')
+      .update(prepared)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating packaging item in Supabase:', error);
+      throw error;
+    }
+    return data as PackagingItem;
+  },
+
+  async deletePackagingItem(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('packaging_items')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting packaging item in Supabase:', error);
+      throw error;
+    }
   },
 
   async ensureMachine(name: string): Promise<void> {

@@ -7,47 +7,69 @@ import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ScrollToTop from './components/ScrollToTop';
 import { ErrorBoundary } from './components/ErrorBoundary';
-// Add page imports here
-import Home from './pages/Home';
-import AttentionDashboard from './pages/AttentionDashboard';
-import RequestsStoppages from './pages/RequestsStoppages';
-import Staffing from './pages/Staffing';
-import QaHaccp from './pages/QaHaccp';
-import TaskMatrix from './pages/TaskMatrix';
-import CapaTracker from './pages/CapaTracker';
-import KpiScorecards from './pages/KpiScorecards';
-import AuditTrailLog from './pages/AuditTrailLog';
-import ActivityHistory from './pages/ActivityHistory';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import ForgotPassword from './pages/ForgotPassword';
-import ResetPassword from './pages/ResetPassword';
-import ActivityLogs from './pages/ActivityLogs';
-import UserManagement from './pages/UserManagement';
-import DataImport from './pages/DataImport';
-import OvertimeRecord from './pages/OvertimeRecord';
-import OperationLogs from './pages/OperationLogs';
-import WastageLogs from './pages/WastageLogs';
-import BaselineCapacity from './pages/BaselineCapacity';
-import ShiftLogDraft from './pages/ShiftLogDraft';
-import ProductionLineLogs from './pages/ProductionLineLogs';
-import YieldLoss from './pages/YieldLoss';
-import GoodsReceiving from './pages/GoodsReceiving';
-import GoodsTracker from './pages/GoodsTracker';
-import GoodsIssued from './pages/GoodsIssued';
-import PackagingStock from './pages/PackagingStock';
-import PackagingMovements from './pages/PackagingMovements';
-import PackagingApprovals from './pages/PackagingApprovals';
-import ProductMaster from './pages/ProductMaster';
-import PicProductEntry from './pages/PicProductEntry';
-import RecipeMaster from './pages/RecipeMaster';
-import Machines from './pages/Machines';
-import ProductionOrders from './pages/ProductionOrders';
-import ProductionSchedule from './pages/ProductionSchedule';
-import RecentlyDeletedOrders from './pages/RecentlyDeletedOrders';
-import CreateBatch from './pages/CreateBatch';
-import BatchRecords from './pages/BatchRecords';
-import Traceability from './pages/Traceability';
+// Operations
+import Home from './pages/operations/Home';
+import AttentionDashboard from './pages/operations/AttentionDashboard';
+import RequestsStoppages from './pages/operations/RequestsStoppages';
+import Staffing from './pages/operations/Staffing';
+import TaskMatrix from './pages/operations/TaskMatrix';
+import KpiScorecards from './pages/operations/KpiScorecards';
+import OvertimeRecord from './pages/operations/OvertimeRecord';
+import OperationLogs from './pages/operations/OperationLogs';
+import WastageLogs from './pages/operations/WastageLogs';
+import BaselineCapacity from './pages/operations/BaselineCapacity';
+import ShiftLogDraft from './pages/operations/ShiftLogDraft';
+import ProductionLineLogs from './pages/operations/ProductionLineLogs';
+
+// Planning & Procurement
+import DemandPlanner from './pages/planning/DemandPlanner';
+import ProductionOrders from './pages/planning/ProductionOrders';
+import ProductionSchedule from './pages/planning/ProductionSchedule';
+import Procurement from './pages/planning/Procurement';
+
+// Batches, Labels & Traceability
+import CreateBatch from './pages/batches/CreateBatch';
+import BatchRecords from './pages/batches/BatchRecords';
+import BarcodeLookup from './pages/batches/BarcodeLookup';
+import Traceability from './pages/batches/Traceability';
+
+// QA / QC & Loss Control
+import QaHaccp from './pages/qaqc/QaHaccp';
+import CapaTracker from './pages/qaqc/CapaTracker';
+import YieldLoss from './pages/qaqc/YieldLoss';
+
+// Raw & Packaging Inventory
+import GoodsReceiving from './pages/inventory/GoodsReceiving';
+import GoodsTracker from './pages/inventory/GoodsTracker';
+import GoodsIssued from './pages/inventory/GoodsIssued';
+import PackagingStock from './pages/inventory/PackagingStock';
+import PackagingMovements from './pages/inventory/PackagingMovements';
+import PackagingApprovals from './pages/inventory/PackagingApprovals';
+
+// Finished Goods WMS
+import WmsWarehouse from './pages/wms/WmsWarehouse';
+
+// Master Data & Entry
+import ProductMaster from './pages/masters/ProductMaster';
+import PicProductEntry from './pages/masters/PicProductEntry';
+import RecipeMaster from './pages/masters/RecipeMaster';
+import Machines from './pages/masters/Machines';
+import InsertData from './pages/masters/InsertData';
+
+// System Admin & Governance
+import UserManagement from './pages/admin/UserManagement';
+import DataImport from './pages/admin/DataImport';
+import SheetMigration from './pages/admin/SheetMigration';
+import AuditTrailLog from './pages/admin/AuditTrailLog';
+import ActivityHistory from './pages/admin/ActivityHistory';
+import ActivityLogs from './pages/admin/ActivityLogs';
+import RecentlyDeletedOrders from './pages/admin/RecentlyDeletedOrders';
+
+// Auth
+import Login from './pages/auth/Login';
+import Register from './pages/auth/Register';
+import ForgotPassword from './pages/auth/ForgotPassword';
+import ResetPassword from './pages/auth/ResetPassword';
 import Layout from './components/Layout';
 import ModuleGuard from './components/ModuleGuard';
 import AccessGate from './components/AccessGate';
@@ -116,6 +138,12 @@ const AuthenticatedApp = () => {
           <Route path="/create-batch" element={<CreateBatch />} />
           <Route path="/batch-records" element={<BatchRecords />} />
           <Route path="/traceability" element={<Traceability />} />
+          <Route path="/demand-planner" element={<DemandPlanner />} />
+          <Route path="/procurement" element={<Procurement />} />
+          <Route path="/batch-scan" element={<BarcodeLookup />} />
+          <Route path="/wms" element={<WmsWarehouse />} />
+          <Route path="/sheet-migration" element={<SheetMigration />} />
+          <Route path="/insert-data" element={<InsertData />} />
           <Route path="/recently-deleted" element={<RecentlyDeletedOrders />} />
         </Route>
       </Route>

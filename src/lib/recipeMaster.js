@@ -1,6 +1,7 @@
 // One Recipe Master record per unique recipe name. Products that share a recipe
 // link to the same record, so a recipe change lands in one place.
 import { base44 } from "@/api/base44Client";
+import { productService } from "@/services/productService";
 import { actingUserName } from "@/lib/permissions";
 
 const upper = (value) => (value || "").toString().trim().toUpperCase();
@@ -129,7 +130,7 @@ export const saveRecipeVersion = async ({ versions = [], products = [], recipeNa
   const name = (recipeName || "").trim();
   const linked = products.filter(Boolean);
   const version = (versions || []).reduce((max, row) => Math.max(max, num(row.version)), 0) + 1;
-  const created = await base44.entities.Recipe.create({
+  const payload = {
     recipe_name: name,
     product_ids: linked.map((p) => p.id),
     product_id: linked[0]?.id || "",
@@ -146,13 +147,31 @@ export const saveRecipeVersion = async ({ versions = [], products = [], recipeNa
     created_by: actingUserName(user),
     created_by_id: user?.id || "",
     notes: form.notes || "",
-  });
+  };
+
+  let created;
+  try {
+    created = await productService.createRecipe(payload);
+  } catch (err) {
+    created = await base44.entities.Recipe.create(payload);
+  }
+
   for (const old of (versions || []).filter((row) => row.status === "Active")) {
+    try {
+      await productService.updateRecipe(old.id, { status: "Superseded", superseded_by_version: version });
+    } catch {}
     await base44.entities.Recipe.update(old.id, { status: "Superseded", superseded_by_version: version });
   }
+
   const links = linked
     .filter((p) => p.recipe_id !== created.id || upper(p.recipe_name) !== upper(name))
     .map((p) => ({ id: p.id, recipe_id: created.id, recipe_name: name }));
+
+  for (const p of links) {
+    try {
+      await productService.updateProduct(p.id, { recipe_id: created.id, recipe_name: name });
+    } catch {}
+  }
   for (let i = 0; i < links.length; i += 100) {
     await base44.entities.Product.bulkUpdate(links.slice(i, i + 100));
   }
