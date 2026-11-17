@@ -1,14 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { Outlet, Link, useLocation } from "react-router-dom";
+import { Outlet, Link, Navigate, useLocation } from "react-router-dom";
 import { ShieldAlert } from "lucide-react";
-import SignInGate from "@/components/SignInGate";
 import { useAuth } from "@/lib/AuthContext";
 import { MODULES, canAccess, moduleForPath } from "@/lib/permissions";
 
 // Blocks the route when the signed-in member has not been assigned that module. The first
 // time the block is met, the account is re-read from the server, so a module an
-// administrator has just saved opens without signing in again. Anyone who is not signed in
-// gets the sign-in screen instead of this notice.
+// administrator has just saved opens without signing in again.
 export default function ModuleGuard() {
   const { user, checkUserAuth } = useAuth();
   const location = useLocation();
@@ -17,12 +15,18 @@ export default function ModuleGuard() {
   const blocked = !!moduleKey && !canAccess(user, moduleKey);
 
   useEffect(() => {
+    setRechecked(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
     if (!blocked || rechecked) return;
     setRechecked(true);
     checkUserAuth?.();
   }, [blocked, rechecked, checkUserAuth]);
 
-  if (!user?.id) return <SignInGate />;
+  if (!user?.id) {
+    return <Navigate to="/login" replace />;
+  }
 
   if (!blocked) return <Outlet />;
 

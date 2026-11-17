@@ -1,6 +1,6 @@
 import React from "react";
 import { Outlet } from "react-router-dom";
-import { Factory, Eye } from "lucide-react";
+import { Factory, Eye, LogOut } from "lucide-react";
 import FactorySidebar from "@/components/factoryops/FactorySidebar";
 import { useAuth } from "@/lib/AuthContext";
 import { VIEW_AS_ROLES } from "@/lib/permissions";
@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function Layout() {
-  const { user, viewAsRole, setViewAsRole } = useAuth();
+  const { user, viewAsRole, setViewAsRole, logout } = useAuth();
   const isAdmin = user?.role === "admin";
   const activeRole = VIEW_AS_ROLES.find((r) => r.key === viewAsRole);
 
@@ -25,22 +25,45 @@ export default function Layout() {
             </div>
             <p className="text-[#a0aec0] text-xs">Integrated Production, Quality &amp; Food Safety OS</p>
           </div>
-          {isAdmin && (
-            <div className="ml-auto flex items-center gap-2">
-              <Eye className="w-4 h-4 text-[#a0aec0] shrink-0" />
-              <Select value={viewAsRole || "none"} onValueChange={(v) => setViewAsRole(v === "none" ? "" : v)}>
-                <SelectTrigger className="h-8 w-[200px] bg-[#0e131d] border-[#1e2740] text-white text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">View as… (Admin)</SelectItem>
-                  {VIEW_AS_ROLES.map((r) => (
-                    <SelectItem key={r.key} value={r.key}>{r.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+          <div className="ml-auto flex items-center gap-3 flex-wrap">
+            {isAdmin && (
+              <div className="flex items-center gap-2">
+                <Eye className="w-4 h-4 text-[#a0aec0] shrink-0" />
+                <Select value={viewAsRole || "none"} onValueChange={(v) => setViewAsRole(v === "none" ? "" : v)}>
+                  <SelectTrigger className="h-8 w-[180px] bg-[#0e131d] border-[#1e2740] text-white text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">View as… (Admin)</SelectItem>
+                    {VIEW_AS_ROLES.map((r) => (
+                      <SelectItem key={r.key} value={r.key}>{r.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            {user && (
+              <div className="flex items-center gap-2.5 pl-2 border-l border-[#1e2740]">
+                <div className="w-7 h-7 rounded-full bg-[#00e5ff]/15 text-[#00e5ff] text-xs font-semibold flex items-center justify-center shrink-0">
+                  {user.avatar_initials || "U"}
+                </div>
+                <div className="hidden sm:block leading-tight">
+                  <p className="text-xs font-medium text-white">{user.name || user.full_name}</p>
+                  <p className="text-[10px] text-[#a0aec0]">{user.role_label || user.role}</p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => logout(true)}
+                  className="h-8 bg-[#0e131d] border-[#1e2740] text-[#e2e8f0] hover:bg-rose-500/15 hover:text-rose-300 hover:border-rose-500/40 text-xs"
+                >
+                  <LogOut className="w-3.5 h-3.5 mr-1.5" />
+                  Logout
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
       </header>
       {activeRole && (

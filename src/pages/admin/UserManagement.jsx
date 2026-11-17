@@ -1,456 +1,583 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { base44 } from "@/api/base44Client";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Users, Power, Trash2, Check, Pencil } from "lucide-react";
-import { format } from "date-fns";
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  listAllUsers,
+  updateUserPermissions,
+  updateUserDetails,
+  createUserRecord,
+  softDeleteUser,
+} from "@/services/authService";
 import { useAuth } from "@/lib/AuthContext";
-import { useToast } from "@/components/ui/use-toast";
-import InviteCard from "@/components/users/InviteCard";
-import StatusBadge from "@/components/users/StatusBadge";
-import MembersExport from "@/components/users/MembersExport";
-import UserRoleSelect from "@/components/users/UserRoleSelect";
-import MemberEditDialog from "@/components/users/MemberEditDialog";
-import MemberDeleteDialog from "@/components/users/MemberDeleteDialog";
-import MemberModules from "@/components/users/MemberModules";
-import { effectiveModuleKeys, hasAssignedModules, isAdminUser, USER_MODULE_KEYS } from "@/lib/permissions";
+import {
+  MODULES,
+  ASSIGNABLE_MODULE_KEYS,
+  isAdminUser,
+  effectiveModuleKeys,
+} from "@/lib/permissions";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Users,
+  Search,
+  ShieldCheck,
+  Save,
+  UserPlus,
+  CheckSquare,
+  Square,
+  Power,
+  Trash2,
+  RefreshCw,
+} from "lucide-react";
+import { toast } from "sonner";
+
+const ASSIGNABLE_MODULES = MODULES.filter((m) => !m.adminOnly);
 
 export default function UserManagement() {
-  const { user: currentUser } = useAuth();
-  const { toast } = useToast();
+  const { user: currentUser, checkUserAuth } = useAuth();
   const [users, setUsers] = useState([]);
-  const [invites, setInvites] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [roleFilter, setRoleFilter] = useState("all");
-  const [selected, setSelected] = useState(new Set());
-  const [busy, setBusy] = useState(false);
-  const [editUser, setEditUser] = useState(null);
-  const [deleteUser, setDeleteUser] = useState(null);
+  const [moduleSearch, setModuleSearch] = useState("");
+  const [selectedUserId, setSelectedUserId] = useState(null);
+  const [draftPermissions, setDraftPermissions] = useState([]);
+  const [saving, setSaving] = useState(false);
+
+  // Add User modal state
+  const [addOpen, setAddOpen] = useState(false);
+  const [newUser, setNewUser] = useState({
+    id: "",
+    name: "",
+    email: "",
+    password: "",
+    role: "staff",
+    role_label: "",
+    dept: "",
+    avatar_initials: "",
+  });
+  const [creating, setCreating] = useState(false);
 
   const loadUsers = async () => {
-    const data = await base44.entities.User.list("-created_date", 200);
-    setUsers(Array.isArray(data) ? data : data?.items || []);
-  };
-
-  const loadInvites = async () => {
-    const page = await base44.entities.UserInvite.filter({}, { sort: "-created_date", limit: 200 });
-    setInvites(page.items || []);
-  };
-
-  const loadAll = async () => {
     setLoading(true);
     try {
-      await Promise.all([loadUsers(), loadInvites()]);
+      const list = await listAllUsers();
+      setUsers(list);
+      if (list.length > 0 && !selectedUserId) {
+        const firstStaff = list.find((u) => u.role !== "admin") || list[0];
+        setSelectedUserId(firstStaff.id);
+        setDraftPermissions(Array.isArray(firstStaff.permissions) ? firstStaff.permissions : []);
+      }
+    } catch (err) {
+      toast.error(err?.message || "Failed to load users from Supabase");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadAll();
+    loadUsers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Keep the table live: a member row appears (Active) the moment an invited
-  // person signs in, and invite changes (approve/revoke) reflect immediately.
-  useEffect(() => {
-    const unsubUsers = base44.entities.User.subscribe(() => loadUsers());
-    const unsubInvites = base44.entities.UserInvite.subscribe(() => loadInvites());
-    return () => {
-      if (typeof unsubUsers === "function") unsubUsers();
-      if (typeof unsubInvites === "function") unsubInvites();
-    };
-  }, []);
-
-  const memberEmails = useMemo(
-    () => new Set(users.map((u) => (u.email || "").toLowerCase())),
-    [users]
+  const selectedUser = useMemo(
+    () => users.find((u) => u.id === selectedUserId) || null,
+    [users, selectedUserId]
   );
 
-  // Invitations whose email has not appeared as a signed-in member yet.
-  const openInvites = useMemo(
-    () => invites.filter((i) => !memberEmails.has((i.email || "").toLowerCase())),
-    [invites, memberEmails]
-  );
-
-  const query = search.trim().toLowerCase();
-  const matchesSearch = (text) => !query || (text || "").toLowerCase().includes(query);
-  const matchesRole = (role) => roleFilter === "all" || role === roleFilter;
-
-  const filteredUsers = users.filter(
-    (u) => matchesSearch(`${u.full_name || ""} ${u.email || ""}`) && matchesRole(u.role)
-  );
-  const filteredInvites = openInvites.filter((i) => matchesSearch(i.email) && matchesRole(i.role));
-
-  const rowKeys = [
-    ...filteredUsers.map((u) => `user:${u.id}`),
-    ...filteredInvites.map((i) => `invite:${i.id}`),
-  ];
-  const allSelected = rowKeys.length > 0 && rowKeys.every((k) => selected.has(k));
-
-  const toggleRow = (key) => {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
+  const handleSelectUser = (u) => {
+    setSelectedUserId(u.id);
+    setDraftPermissions(Array.isArray(u.permissions) ? u.permissions : []);
   };
 
-  const toggleAll = () => {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (allSelected) next.clear();
-      else rowKeys.forEach((k) => next.add(k));
-      return next;
-    });
+  const filteredUsers = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return users;
+    return users.filter(
+      (u) =>
+        (u.name || "").toLowerCase().includes(q) ||
+        (u.email || "").toLowerCase().includes(q) ||
+        (u.dept || "").toLowerCase().includes(q) ||
+        (u.role_label || "").toLowerCase().includes(q)
+    );
+  }, [users, search]);
+
+  const filteredModules = useMemo(() => {
+    const q = moduleSearch.trim().toLowerCase();
+    if (!q) return ASSIGNABLE_MODULES;
+    return ASSIGNABLE_MODULES.filter(
+      (m) =>
+        m.label.toLowerCase().includes(q) ||
+        m.description.toLowerCase().includes(q) ||
+        m.key.toLowerCase().includes(q)
+    );
+  }, [moduleSearch]);
+
+  const toggleModule = (key) => {
+    setDraftPermissions((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
+    );
   };
 
-  const selectedUserIds = [...selected].filter((k) => k.startsWith("user:")).map((k) => k.slice(5));
-  const selectedInviteIds = [...selected].filter((k) => k.startsWith("invite:")).map((k) => k.slice(7));
-  const selectedPendingInvites = openInvites.filter(
-    (i) => selectedInviteIds.includes(i.id) && i.status === "pending"
-  );
-  const selectedMembers = users.filter((u) => selectedUserIds.includes(u.id));
-  const canSuspendSelected = selectedMembers.some((u) => u.role !== "admin" && u.status !== "suspended");
-  const canActivateSelected = selectedMembers.some((u) => u.status === "suspended");
+  const selectAllModules = () => {
+    setDraftPermissions([...ASSIGNABLE_MODULE_KEYS]);
+  };
 
-  const approveInvite = async (invite) => {
-    setBusy(true);
+  const clearAllModules = () => {
+    setDraftPermissions([]);
+  };
+
+  const handleSavePermissions = async () => {
+    if (!selectedUser) return;
+    setSaving(true);
     try {
-      await base44.entities.UserInvite.update(invite.id, {
-        status: "accepted",
-        accepted_date: new Date().toISOString(),
-      });
-      toast({ title: "Invitation approved", description: `${invite.email} can now open the dashboard.` });
-      setSelected(new Set());
-      await loadAll();
-    } catch (e) {
-      toast({ title: "Approval failed", description: e?.message || "Please try again", variant: "destructive" });
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const revokeInvite = async (invite) => {
-    setBusy(true);
-    try {
-      await base44.entities.UserInvite.delete(invite.id);
-      toast({ title: "Invitation revoked", description: `${invite.email} was removed from the invitation list.` });
-      setSelected(new Set());
-      await loadInvites();
-    } catch (e) {
-      toast({ title: "Revoke failed", description: e?.message || "Please try again", variant: "destructive" });
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const setMemberStatus = async (user, status) => {
-    setBusy(true);
-    try {
-      await base44.functions.invoke("setUserStatus", { userId: user.id, status });
-      toast({
-        title: status === "suspended" ? "Member suspended" : "Member reactivated",
-        description: `${user.email} is now ${status === "suspended" ? "blocked from the app" : "able to sign in again"}.`,
-      });
-      await loadUsers();
-    } catch (e) {
-      const message = e?.response?.data?.error || e?.message || "Status change failed";
-      toast({ title: "Status change failed", description: message, variant: "destructive" });
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const runBulk = async (action) => {
-    setBusy(true);
-    try {
-      if (action === "approve") {
-        for (const invite of selectedPendingInvites) {
-          await base44.entities.UserInvite.update(invite.id, {
-            status: "accepted",
-            accepted_date: new Date().toISOString(),
-          });
-        }
-      } else {
-        const status = action === "suspend" ? "suspended" : "active";
-        for (const member of selectedMembers) {
-          if (member.role === "admin") continue;
-          await base44.functions.invoke("setUserStatus", { userId: member.id, status });
-        }
+      const updated = await updateUserPermissions(selectedUser.id, draftPermissions);
+      setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
+      if (updated.id === currentUser?.id) {
+        await checkUserAuth();
       }
-      setSelected(new Set());
-      await loadAll();
-      toast({ title: "Changes applied" });
-    } catch (e) {
-      const message = e?.response?.data?.error || e?.message || "Bulk action failed";
-      toast({ title: "Bulk action failed", description: message, variant: "destructive" });
+      toast.success(`Saved module access for ${updated.name} in Supabase.`);
+    } catch (err) {
+      toast.error(err?.message || "Failed to save permissions.");
     } finally {
-      setBusy(false);
+      setSaving(false);
     }
   };
 
-  const exportRows = [
-    ...users.map((u) => ({
-      name: u.full_name || "-",
-      email: u.email || "",
-      role: u.role || "",
-      status: u.status === "suspended" ? "Suspended" : "Active",
-      joined: u.created_date ? format(new Date(u.created_date), "d MMM yyyy") : "-",
-    })),
-    ...openInvites.map((i) => ({
-      name: "Invited — not signed in yet",
-      email: i.email,
-      role: i.role || "",
-      status: i.status === "pending" ? "Awaiting approval" : "Invited",
-      joined: "-",
-    })),
-  ];
+  const handleRoleChange = async (u, nextRole) => {
+    try {
+      const updated = await updateUserDetails(u.id, { role: nextRole });
+      setUsers((prev) => prev.map((x) => (x.id === updated.id ? updated : x)));
+      toast.success(`${updated.name} role updated to ${nextRole}.`);
+    } catch (err) {
+      toast.error(err?.message || "Failed to update role.");
+    }
+  };
 
-  if (loading) {
+  const handleToggleStatus = async (u) => {
+    const nextStatus = u.status === "suspended" ? "active" : "suspended";
+    try {
+      const updated = await updateUserDetails(u.id, { status: nextStatus });
+      setUsers((prev) => prev.map((x) => (x.id === updated.id ? updated : x)));
+      toast.success(`${updated.name} is now ${nextStatus}.`);
+    } catch (err) {
+      toast.error(err?.message || "Failed to update status.");
+    }
+  };
+
+  const handleDeleteUser = async (u) => {
+    if (u.id === currentUser?.id) {
+      return toast.error("You cannot delete your own active admin account.");
+    }
+    if (!window.confirm(`Remove user "${u.name}" (${u.email})?`)) return;
+    try {
+      await softDeleteUser(u.id);
+      const remaining = users.filter((x) => x.id !== u.id);
+      setUsers(remaining);
+      if (selectedUserId === u.id) {
+        const next = remaining[0] || null;
+        setSelectedUserId(next?.id || null);
+        setDraftPermissions(next?.permissions || []);
+      }
+      toast.success(`Removed ${u.name}.`);
+    } catch (err) {
+      toast.error(err?.message || "Failed to remove user.");
+    }
+  };
+
+  const handleCreateUser = async (e) => {
+    e.preventDefault();
+    if (!newUser.name.trim() || !newUser.email.trim() || !newUser.password.trim()) {
+      return toast.error("Name, email, and password are required.");
+    }
+    setCreating(true);
+    try {
+      const created = await createUserRecord({
+        ...newUser,
+        permissions: newUser.role === "admin" ? ["*"] : ["attention_dashboard"],
+      });
+      setUsers((prev) => [...prev, created]);
+      setSelectedUserId(created.id);
+      setDraftPermissions(created.permissions || []);
+      setNewUser({
+        id: "",
+        name: "",
+        email: "",
+        password: "",
+        role: "staff",
+        role_label: "",
+        dept: "",
+        avatar_initials: "",
+      });
+      setAddOpen(false);
+      toast.success(`User "${created.name}" created in Supabase.`);
+    } catch (err) {
+      toast.error(err?.message || "Failed to create user.");
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  if (!isAdminUser(currentUser)) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin" />
+      <div className="p-6 max-w-xl mx-auto">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Admin Access Required</CardTitle>
+            <CardDescription>
+              Only administrators can view and manage user module access.
+            </CardDescription>
+          </CardHeader>
+        </Card>
       </div>
     );
   }
 
-  // Modules an invitation carries onto the account: the ones chosen by the administrator,
-  // or the default operational pages when none were chosen.
-  const inviteModuleKeys = (invite) =>
-    Array.isArray(invite.permissions) && invite.permissions.length ? invite.permissions : USER_MODULE_KEYS;
-
-  const empty = filteredUsers.length === 0 && filteredInvites.length === 0;
-
   return (
-    <div className="p-6 bg-gray-50 min-h-full">
-      <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
+    <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900 mb-1">User Management</h2>
-          <p className="text-slate-500 text-sm">Manage members, roles, and access</p>
+          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+            <Users className="w-6 h-6 text-indigo-600" />
+            User &amp; Module Access Management
+          </h1>
+          <p className="text-sm text-slate-500">
+            Select a registered user to grant or revoke module access. Changes save directly to Supabase.
+          </p>
         </div>
-        <MembersExport rows={exportRows} />
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={loadUsers} disabled={loading}>
+            <RefreshCw className={`w-4 h-4 mr-1 ${loading ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
+          <Button size="sm" onClick={() => setAddOpen(true)}>
+            <UserPlus className="w-4 h-4 mr-1" />
+            Add User
+          </Button>
+        </div>
       </div>
 
-      <InviteCard onInvited={loadAll} />
-
-      <div className="bg-white rounded-xl border border-slate-200 mt-6">
-        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b border-slate-200">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center">
-              <Users className="w-5 h-5 text-emerald-600" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-slate-900">Members</h3>
-              <p className="text-xs text-slate-500">{users.length} total</p>
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-            <div className="relative flex-1 sm:w-72">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left: Registered Users List */}
+        <Card className="lg:col-span-5">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Registered Users ({users.length})</CardTitle>
+            <div className="relative mt-2">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search by name or email"
+                placeholder="Search name, email, dept..."
                 className="pl-9"
               />
             </div>
-            <Select value={roleFilter} onValueChange={setRoleFilter}>
-              <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Roles</SelectItem>
-                <SelectItem value="admin">Admin</SelectItem>
-                <SelectItem value="user">User</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        {selected.size > 0 && (
-          <div className="flex flex-wrap items-center gap-2 px-5 py-3 bg-sky-50 border-b border-sky-100">
-            <span className="text-sm text-slate-600 font-medium mr-1">{selected.size} selected</span>
-            {selectedPendingInvites.length > 0 && (
-              <Button size="sm" variant="outline" onClick={() => runBulk("approve")} disabled={busy}>
-                <Check className="w-3.5 h-3.5 mr-1" /> Approve
-              </Button>
-            )}
-            {canSuspendSelected && (
-              <Button size="sm" variant="outline" onClick={() => runBulk("suspend")} disabled={busy}>
-                <Power className="w-3.5 h-3.5 mr-1" /> Suspend
-              </Button>
-            )}
-            {canActivateSelected && (
-              <Button size="sm" variant="outline" onClick={() => runBulk("activate")} disabled={busy}>
-                <Power className="w-3.5 h-3.5 mr-1" /> Activate
-              </Button>
-            )}
-            <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>Clear</Button>
-          </div>
-        )}
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 border-b border-slate-200">
-              <tr className="text-slate-500 text-left">
-                <th className="px-4 py-3 w-10">
-                  <Checkbox checked={allSelected} onCheckedChange={toggleAll} aria-label="Select all" />
-                </th>
-                <th className="px-4 py-3 font-medium">User</th>
-                <th className="px-4 py-3 font-medium">Email</th>
-                <th className="px-4 py-3 font-medium">Role</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 font-medium">Modules</th>
-                <th className="px-4 py-3 font-medium">Sign-in Date</th>
-                <th className="px-4 py-3 font-medium text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {empty && (
-                <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-slate-400">No members found.</td>
-                </tr>
-              )}
-              {filteredUsers.map((user) => (
-                <tr key={user.id} className="hover:bg-slate-50">
-                  <td className="px-4 py-3">
-                    <Checkbox
-                      checked={selected.has(`user:${user.id}`)}
-                      onCheckedChange={() => toggleRow(`user:${user.id}`)}
-                      aria-label={`Select ${user.email}`}
-                    />
-                  </td>
-                  <td className="px-4 py-3 font-medium text-slate-900">{user.full_name || "—"}</td>
-                  <td className="px-4 py-3 text-slate-600">{user.email}</td>
-                  <td className="px-4 py-3">
-                    {user.role === "admin" ? (
-                      <span className="text-slate-600">Admin</span>
-                    ) : (
-                      <UserRoleSelect
-                        user={user}
-                        disabled={currentUser?.id === user.id}
-                        onChanged={loadUsers}
-                      />
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <StatusBadge label={user.status === "suspended" ? "Suspended" : "Active"} />
-                  </td>
-                  <td className="px-4 py-3">
-                    <MemberModules
-                      all={isAdminUser(user)}
-                      modules={effectiveModuleKeys(user)}
-                      note={!isAdminUser(user) && !hasAssignedModules(user) ? "default" : undefined}
-                    />
-                  </td>
-                  <td className="px-4 py-3 text-slate-600 whitespace-nowrap">
-                    {user.created_date ? format(new Date(user.created_date), "d MMM yyyy") : "—"}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center justify-end gap-1">
-                      {currentUser?.id !== user.id && (
-                        <button
-                          title="Edit role & permissions"
-                          onClick={() => setEditUser(user)}
-                          disabled={busy}
-                          className="text-slate-400 hover:text-slate-700 hover:bg-slate-100 p-1.5 rounded-md transition-colors"
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                      )}
-                      {user.role !== "admin" && (
-                        <button
-                          title={user.status === "suspended" ? "Reactivate" : "Suspend"}
-                          onClick={() => setMemberStatus(user, user.status === "suspended" ? "active" : "suspended")}
-                          disabled={busy}
-                          className="text-slate-400 hover:text-slate-700 hover:bg-slate-100 p-1.5 rounded-md transition-colors"
-                        >
-                          <Power className="w-4 h-4" />
-                        </button>
-                      )}
-                      {user.role !== "admin" && currentUser?.id !== user.id && (
-                        <button
-                          title="Remove member"
-                          onClick={() => setDeleteUser(user)}
-                          disabled={busy}
-                          className="text-rose-500 hover:bg-rose-50 p-1.5 rounded-md transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
+          </CardHeader>
+          <CardContent className="space-y-2 max-h-[600px] overflow-y-auto">
+            {loading ? (
+              <p className="text-sm text-slate-400 py-6 text-center">Loading users...</p>
+            ) : filteredUsers.length === 0 ? (
+              <p className="text-sm text-slate-400 py-6 text-center">No matching users found.</p>
+            ) : (
+              filteredUsers.map((u) => {
+                const isSelected = u.id === selectedUserId;
+                const modCount = isAdminUser(u)
+                  ? MODULES.length
+                  : effectiveModuleKeys(u).length;
+                return (
+                  <button
+                    key={u.id}
+                    type="button"
+                    onClick={() => handleSelectUser(u)}
+                    className={`w-full text-left p-3 rounded-lg border transition-colors flex items-center gap-3 ${
+                      isSelected
+                        ? "border-indigo-500 bg-indigo-50/70"
+                        : "border-slate-200 hover:bg-slate-50"
+                    }`}
+                  >
+                    <div className="w-10 h-10 rounded-full bg-slate-800 text-white font-semibold text-xs flex items-center justify-center shrink-0">
+                      {u.avatar_initials || "U"}
                     </div>
-                  </td>
-                </tr>
-              ))}
-              {filteredInvites.map((invite) => (
-                <tr key={invite.id} className="bg-amber-50/40 hover:bg-amber-50/70">
-                  <td className="px-4 py-3">
-                    <Checkbox
-                      checked={selected.has(`invite:${invite.id}`)}
-                      onCheckedChange={() => toggleRow(`invite:${invite.id}`)}
-                      aria-label={`Select ${invite.email}`}
-                    />
-                  </td>
-                  <td className="px-4 py-3 text-slate-400 italic">Invited — awaiting sign-in</td>
-                  <td className="px-4 py-3 text-slate-600">{invite.email}</td>
-                  <td className="px-4 py-3 text-slate-600 capitalize">{invite.role || "user"}</td>
-                  <td className="px-4 py-3">
-                    <StatusBadge label={invite.status === "pending" ? "Awaiting approval" : "Invited"} />
-                  </td>
-                  <td className="px-4 py-3">
-                    <MemberModules
-                      all={invite.role === "admin"}
-                      modules={inviteModuleKeys(invite)}
-                      note="applies on first sign-in"
-                    />
-                  </td>
-                  <td className="px-4 py-3 text-slate-400">—</td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center justify-end gap-1">
-                      {invite.status === "pending" && (
-                        <button
-                          title="Approve"
-                          onClick={() => approveInvite(invite)}
-                          disabled={busy}
-                          className="text-emerald-600 hover:bg-emerald-50 p-1.5 rounded-md transition-colors"
-                        >
-                          <Check className="w-4 h-4" />
-                        </button>
-                      )}
-                      <button
-                        title="Revoke invitation"
-                        onClick={() => revokeInvite(invite)}
-                        disabled={busy}
-                        className="text-rose-500 hover:bg-rose-50 p-1.5 rounded-md transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium text-sm text-slate-900 truncate">
+                          {u.name}
+                        </span>
+                        <Badge variant={u.role === "admin" ? "default" : "secondary"} className="text-[10px]">
+                          {u.role}
+                        </Badge>
+                        {u.status === "suspended" && (
+                          <Badge variant="destructive" className="text-[10px]">
+                            suspended
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-500 truncate">{u.email}</p>
+                      <p className="text-[11px] text-slate-400 truncate">
+                        {[u.role_label, u.dept].filter(Boolean).join(" · ") || "No dept"} ·{" "}
+                        {modCount} modules
+                      </p>
                     </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  </button>
+                );
+              })
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Right: Module Access Editor */}
+        <Card className="lg:col-span-7">
+          {!selectedUser ? (
+            <CardContent className="py-16 text-center text-sm text-slate-400">
+              Select a user from the list to manage their module access.
+            </CardContent>
+          ) : (
+            <>
+              <CardHeader className="border-b pb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-full bg-indigo-600 text-white font-semibold text-sm flex items-center justify-center shrink-0">
+                      {selectedUser.avatar_initials || "U"}
+                    </div>
+                    <div>
+                      <CardTitle className="text-base flex items-center gap-2">
+                        {selectedUser.name}
+                        <span className="text-xs font-normal text-slate-400">({selectedUser.id})</span>
+                      </CardTitle>
+                      <CardDescription>
+                        {selectedUser.email} · {selectedUser.role_label || selectedUser.role}
+                        {selectedUser.dept ? ` · ${selectedUser.dept}` : ""}
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Select
+                      value={selectedUser.role}
+                      onValueChange={(val) => handleRoleChange(selectedUser, val)}
+                      disabled={selectedUser.id === currentUser?.id}
+                    >
+                      <SelectTrigger className="w-28 h-8 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="staff">staff</SelectItem>
+                        <SelectItem value="admin">admin</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleToggleStatus(selectedUser)}
+                      disabled={selectedUser.id === currentUser?.id}
+                      title={selectedUser.status === "suspended" ? "Activate user" : "Suspend user"}
+                    >
+                      <Power className="w-3.5 h-3.5 mr-1" />
+                      {selectedUser.status === "suspended" ? "Activate" : "Suspend"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-rose-600 hover:text-rose-700"
+                      onClick={() => handleDeleteUser(selectedUser)}
+                      disabled={selectedUser.id === currentUser?.id}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+
+              <CardContent className="pt-4 space-y-4">
+                {isAdminUser(selectedUser) ? (
+                  <div className="p-4 rounded-lg bg-indigo-50 border border-indigo-200 flex items-start gap-3">
+                    <ShieldCheck className="w-5 h-5 text-indigo-600 shrink-0 mt-0.5" />
+                    <div className="text-sm text-indigo-900">
+                      <p className="font-medium">Administrator Account</p>
+                      <p className="text-xs text-indigo-700 mt-0.5">
+                        Admins automatically have access to all modules including User Management. Change role to <strong>staff</strong> above if you want to restrict them to specific modules.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div className="relative flex-1">
+                        <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <Input
+                          value={moduleSearch}
+                          onChange={(e) => setModuleSearch(e.target.value)}
+                          placeholder="Filter modules..."
+                          className="pl-9 h-9"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button type="button" variant="outline" size="sm" onClick={selectAllModules}>
+                          <CheckSquare className="w-3.5 h-3.5 mr-1" /> Select All
+                        </Button>
+                        <Button type="button" variant="outline" size="sm" onClick={clearAllModules}>
+                          <Square className="w-3.5 h-3.5 mr-1" /> Clear All
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[420px] overflow-y-auto pr-1">
+                      {filteredModules.map((mod) => {
+                        const checked = draftPermissions.includes(mod.key);
+                        return (
+                          <label
+                            key={mod.key}
+                            className={`flex items-start gap-2.5 p-2.5 rounded-lg border cursor-pointer transition-colors ${
+                              checked
+                                ? "border-indigo-400 bg-indigo-50/50"
+                                : "border-slate-200 hover:bg-slate-50"
+                            }`}
+                          >
+                            <Checkbox
+                              checked={checked}
+                              onCheckedChange={() => toggleModule(mod.key)}
+                              className="mt-0.5"
+                            />
+                            <div className="min-w-0">
+                              <p className="text-xs font-medium text-slate-800">{mod.label}</p>
+                              <p className="text-[11px] text-slate-500 line-clamp-2">
+                                {mod.description}
+                              </p>
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2 border-t">
+                      <span className="text-xs text-slate-500">
+                        {draftPermissions.length} module(s) selected (+ Attention Dashboard home)
+                      </span>
+                      <Button onClick={handleSavePermissions} disabled={saving}>
+                        <Save className="w-4 h-4 mr-1.5" />
+                        {saving ? "Saving..." : "Save Module Access"}
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </>
+          )}
+        </Card>
       </div>
 
-      {editUser && (
-        <MemberEditDialog
-          user={editUser}
-          disabled={currentUser?.id === editUser.id}
-          onClose={() => setEditUser(null)}
-          onChanged={loadUsers}
-        />
-      )}
-      {deleteUser && (
-        <MemberDeleteDialog
-          user={deleteUser}
-          onClose={() => setDeleteUser(null)}
-          onDeleted={loadAll}
-        />
-      )}
+      {/* Add User Dialog */}
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Registered User</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleCreateUser} className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">User ID (optional)</Label>
+                <Input
+                  value={newUser.id}
+                  onChange={(e) => setNewUser({ ...newUser, id: e.target.value })}
+                  placeholder="e.g. usr-staff-02"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Avatar Initials</Label>
+                <Input
+                  value={newUser.avatar_initials}
+                  onChange={(e) => setNewUser({ ...newUser, avatar_initials: e.target.value })}
+                  placeholder="e.g. JD"
+                  maxLength={4}
+                />
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs">Full Name *</Label>
+              <Input
+                value={newUser.name}
+                onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+                placeholder="John Doe"
+                required
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Email *</Label>
+              <Input
+                type="email"
+                value={newUser.email}
+                onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                placeholder="john@wmg.local"
+                required
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Password *</Label>
+              <Input
+                type="text"
+                value={newUser.password}
+                onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                placeholder="Enter password"
+                required
+              />
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <Label className="text-xs">Role</Label>
+                <Select
+                  value={newUser.role}
+                  onValueChange={(val) => setNewUser({ ...newUser, role: val })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="staff">staff</SelectItem>
+                    <SelectItem value="admin">admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Role Label</Label>
+                <Input
+                  value={newUser.role_label}
+                  onChange={(e) => setNewUser({ ...newUser, role_label: e.target.value })}
+                  placeholder="QA Officer"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Dept</Label>
+                <Input
+                  value={newUser.dept}
+                  onChange={(e) => setNewUser({ ...newUser, dept: e.target.value })}
+                  placeholder="QA/QC"
+                />
+              </div>
+            </div>
+            <DialogFooter className="pt-2">
+              <Button type="button" variant="outline" onClick={() => setAddOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={creating}>
+                {creating ? "Creating..." : "Create User"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -1,28 +1,26 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
-import { supabase } from '@/api/supabaseClient';
-import { getCurrentUserProfile } from '@/services/authService';
+import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
+import {
+  getCurrentUserProfile,
+  loginWithEmailPassword,
+  logoutUser,
+} from '@/services/authService';
 
 const AuthContext = createContext(null);
 
-export const DEV_USER = {
-  id: 'dev-admin-id',
-  email: 'admin@factoryops.local',
-  full_name: 'Admin',
-  role: 'admin',
-  status: 'approved',
-  permissions: ['*'],
-};
-
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(DEV_USER);
-  const [isAuthenticated, setIsAuthenticated] = useState(true);
+  const [user, setUser] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [isLoadingPublicSettings, setIsLoadingPublicSettings] = useState(false);
   const [authError, setAuthError] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
-  const [appPublicSettings, setAppPublicSettings] = useState({ id: 'wmg-qaqc-erp', public_settings: {} });
+  const [appPublicSettings] = useState({ id: 'wmg-qaqc-erp', public_settings: {} });
   const [viewAsRole, setViewAsRoleState] = useState(() => {
-    try { return localStorage.getItem('view_as_role') || ''; } catch { return ''; }
+    try {
+      return localStorage.getItem('view_as_role') || '';
+    } catch {
+      return '';
+    }
   });
 
   const setViewAsRole = (role) => {
@@ -30,45 +28,47 @@ export const AuthProvider = ({ children }) => {
     try {
       if (role) localStorage.setItem('view_as_role', role);
       else localStorage.removeItem('view_as_role');
-    } catch { /* storage unavailable */ }
+    } catch {
+      /* storage unavailable */
+    }
   };
 
-  const checkUserAuth = async () => {
+  const checkUserAuth = useCallback(async () => {
     try {
       setIsLoadingAuth(true);
+      setAuthError(null);
       const profile = await getCurrentUserProfile();
       if (profile) {
         setUser(profile);
         setIsAuthenticated(true);
       } else {
-        // Keep workspace accessible during open development until AccessGate is enabled
-        setUser(DEV_USER);
-        setIsAuthenticated(true);
+        setUser(null);
+        setIsAuthenticated(false);
       }
     } catch (error) {
-      console.warn('Supabase auth check fallback:', error);
-      setUser(DEV_USER);
-      setIsAuthenticated(true);
+      console.warn('Auth check failed:', error);
+      setUser(null);
+      setIsAuthenticated(false);
     } finally {
       setIsLoadingAuth(false);
       setAuthChecked(true);
     }
-  };
+  }, []);
 
   useEffect(() => {
     checkUserAuth();
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        checkUserAuth();
-      }
-    });
-    return () => {
-      listener?.subscription?.unsubscribe();
-    };
-  }, []);
+  }, [checkUserAuth]);
+
+  const login = async (email, password) => {
+    const profile = await loginWithEmailPassword(email, password);
+    setUser(profile);
+    setIsAuthenticated(true);
+    setAuthError(null);
+    return profile;
+  };
 
   const logout = async (shouldRedirect = true) => {
-    await supabase.auth.signOut();
+    logoutUser();
     setUser(null);
     setIsAuthenticated(false);
     setViewAsRole('');
@@ -82,14 +82,18 @@ export const AuthProvider = ({ children }) => {
   };
 
   const viewUser = user
-    ? { ...user, view_as_role: (user.role === 'admin' || user.role === 'super_admin') ? (viewAsRole || null) : null }
+    ? {
+        ...user,
+        view_as_role:
+          user.role === 'admin' || user.role === 'super_admin' ? viewAsRole || null : null,
+      }
     : null;
 
   return (
     <AuthContext.Provider
       value={{
         user: viewUser,
-        viewAsRole: (user?.role === 'admin' || user?.role === 'super_admin') ? viewAsRole : '',
+        viewAsRole: user?.role === 'admin' || user?.role === 'super_admin' ? viewAsRole : '',
         setViewAsRole,
         isAuthenticated,
         isLoadingAuth,
@@ -97,6 +101,7 @@ export const AuthProvider = ({ children }) => {
         authError,
         appPublicSettings,
         authChecked,
+        login,
         logout,
         navigateToLogin,
         checkUserAuth,

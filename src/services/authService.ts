@@ -1,41 +1,223 @@
 import { supabase } from '@/api/supabaseClient';
 
+const AUTH_STORAGE_KEY = 'qaqc_auth_user_id';
+
 export interface UserProfile {
   id: string;
+  name: string;
+  full_name: string;
   email: string;
-  full_name?: string;
-  role: 'super_admin' | 'admin' | 'user';
+  role: 'admin' | 'staff' | 'super_admin' | 'user';
+  role_label?: string;
+  dept?: string;
+  avatar_initials?: string;
   app_role?: string;
   line?: string;
   permissions: string[];
-  status: 'pending' | 'approved' | 'suspended';
+  status: 'active' | 'pending' | 'approved' | 'suspended';
+}
+
+function normalizeUser(row: any): UserProfile {
+  const name = row.name || row.full_name || row.email || 'User';
+  const initials =
+    row.avatar_initials ||
+    name
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((w: string) => w[0]?.toUpperCase() || '')
+      .join('') ||
+    'U';
+
+  return {
+    id: row.id,
+    name,
+    full_name: name,
+    email: row.email || '',
+    role: row.role || 'staff',
+    role_label: row.role_label || (row.role === 'admin' ? 'Administrator' : 'Staff'),
+    dept: row.dept || '',
+    avatar_initials: initials,
+    app_role: row.app_role || undefined,
+    line: row.line || undefined,
+    permissions: Array.isArray(row.permissions) ? row.permissions : [],
+    status: row.status || 'active',
+  };
+}
+
+export async function loginWithEmailPassword(email: string, password: string): Promise<UserProfile> {
+  const cleanEmail = email.trim().toLowerCase();
+  if (!cleanEmail || !password) {
+    throw new Error('Please enter both email and password.');
+  }
+
+  const { data: row, error } = await supabase
+    .from('users')
+    .select('*')
+    .ilike('email', cleanEmail)
+    .eq('deleted', false)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message || 'Unable to verify credentials.');
+  }
+
+  if (!row || row.password !== password) {
+    throw new Error('Invalid email or password.');
+  }
+
+  if (row.status === 'suspended') {
+    throw new Error('Your account has been suspended. Please contact an administrator.');
+  }
+
+  try {
+    localStorage.setItem(AUTH_STORAGE_KEY, row.id);
+  } catch {
+    // ignore storage errors
+  }
+
+  return normalizeUser(row);
+}
+
+export function logoutUser(): void {
+  try {
+    localStorage.removeItem(AUTH_STORAGE_KEY);
+  } catch {
+    // ignore storage errors
+  }
 }
 
 export async function getCurrentUserProfile(): Promise<UserProfile | null> {
-  const { data: sessionData } = await supabase.auth.getSession();
-  const user = sessionData?.session?.user;
-  if (!user) return null;
+  let storedId: string | null = null;
+  try {
+    storedId = localStorage.getItem(AUTH_STORAGE_KEY);
+  } catch {
+    storedId = null;
+  }
+  if (!storedId) return null;
 
-  const { data: profile, error } = await supabase
-    .from('profiles')
+  const { data: row, error } = await supabase
+    .from('users')
     .select('*')
-    .eq('id', user.id)
+    .eq('id', storedId)
+    .eq('deleted', false)
     .maybeSingle();
 
-  if (error || !profile) {
-    return {
-      id: user.id,
-      email: user.email || '',
-      full_name: user.user_metadata?.full_name || user.email || 'User',
-      role: 'user',
-      permissions: [],
-      status: 'pending',
-    };
+  if (error || !row || row.status === 'suspended') {
+    logoutUser();
+    return null;
   }
 
-  return profile as UserProfile;
+  return normalizeUser(row);
 }
 
+export async function listAllUsers(): Promise<UserProfile[]> {
+  const { data, error } = await supabase
+    .from('users')
+    .select('*')
+    .eq('deleted', false)
+    .order('created_at', { ascending: true });
+
+  if (error) throw new Error(error.message);
+  return (data || []).map(normalizeUser);
+}
+
+export async function updateUserPermissions(userId: string, permissions: string[]): Promise<UserProfile> {
+  const { data, error } = await supabase
+    .from('users')
+    .update({
+      permissions,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', userId)
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return normalizeUser(data);
+}
+
+export async function updateUserDetails(
+  userId: string,
+  patch: Partial<{
+    name: string;
+    email: string;
+    password: string;
+    role: 'admin' | 'staff';
+    role_label: string;
+    dept: string;
+    avatar_initials: string;
+    status: string;
+    permissions: string[];
+  }>
+): Promise<UserProfile> {
+  const payload: Record<string, any> = {
+    ...patch,
+    updated_at: new Date().toISOString(),
+  };
+  if (payload.email) payload.email = payload.email.trim().toLowerCase();
+
+  const { data, error } = await supabase
+    .from('users')
+    .update(payload)
+    .eq('id', userId)
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return normalizeUser(data);
+}
+
+export async function createUserRecord(input: {
+  id?: string;
+  name: string;
+  email: string;
+  password: string;
+  role: 'admin' | 'staff';
+  role_label?: string;
+  dept?: string;
+  avatar_initials?: string;
+  permissions?: string[];
+}): Promise<UserProfile> {
+  const cleanEmail = input.email.trim().toLowerCase();
+  const initials =
+    input.avatar_initials?.trim() ||
+    input.name
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((w) => w[0]?.toUpperCase() || '')
+      .join('') ||
+    'U';
+
+  const row: Record<string, any> = {
+    name: input.name.trim(),
+    email: cleanEmail,
+    password: input.password,
+    role: input.role,
+    role_label: input.role_label?.trim() || (input.role === 'admin' ? 'Administrator' : 'Staff'),
+    dept: input.dept?.trim() || '',
+    avatar_initials: initials,
+    permissions: input.permissions ?? [],
+    status: 'active',
+    deleted: false,
+  };
+  if (input.id?.trim()) row.id = input.id.trim();
+
+  const { data, error } = await supabase.from('users').insert(row).select().single();
+  if (error) throw new Error(error.message);
+  return normalizeUser(data);
+}
+
+export async function softDeleteUser(userId: string): Promise<void> {
+  const { error } = await supabase
+    .from('users')
+    .update({ deleted: true, updated_at: new Date().toISOString() })
+    .eq('id', userId);
+  if (error) throw new Error(error.message);
+}
+
+// Compatibility exports for legacy base44Client wrappers
 export async function getUserAccessState() {
   const profile = await getCurrentUserProfile();
   if (!profile) return { state: 'not_registered', profile: null };
@@ -46,36 +228,22 @@ export async function getUserAccessState() {
 
 export async function setUserRoleAndPermissions(args: {
   userId: string;
-  role?: string;
+  role?: 'admin' | 'staff';
   app_role?: string;
   line?: string;
   permissions?: string[];
 }) {
-  const patch: Record<string, any> = { updated_at: new Date().toISOString() };
-  if (args.role !== undefined) patch.role = args.role;
-  if (args.app_role !== undefined) patch.app_role = args.app_role;
-  if (args.line !== undefined) patch.line = args.line;
-  if (args.permissions !== undefined) patch.permissions = args.permissions;
-
-  const { data, error } = await supabase
-    .from('profiles')
-    .update(patch)
-    .eq('id', args.userId)
-    .select()
-    .single();
-  if (error) throw new Error(error.message);
-  return data;
+  return updateUserDetails(args.userId, {
+    ...(args.role !== undefined ? { role: args.role } : {}),
+    ...(args.permissions !== undefined ? { permissions: args.permissions } : {}),
+  });
 }
 
-export async function setUserStatus(args: { userId: string; status: 'approved' | 'suspended' | 'pending' }) {
-  const { data, error } = await supabase
-    .from('profiles')
-    .update({ status: args.status, updated_at: new Date().toISOString() })
-    .eq('id', args.userId)
-    .select()
-    .single();
-  if (error) throw new Error(error.message);
-  return data;
+export async function setUserStatus(args: {
+  userId: string;
+  status: 'active' | 'approved' | 'suspended' | 'pending';
+}) {
+  return updateUserDetails(args.userId, { status: args.status });
 }
 
 export async function submitRegistrationRequest(args: {
@@ -85,29 +253,15 @@ export async function submitRegistrationRequest(args: {
   note?: string;
 }) {
   const email = args.email.trim().toLowerCase();
-  const { data: existing } = await supabase
-    .from('registration_requests')
-    .select('id, status')
-    .eq('email', email)
-    .eq('status', 'pending')
-    .maybeSingle();
-
-  if (existing) {
-    return { status: 'already_exists', request: existing };
-  }
-
   const { data, error } = await supabase
-    .from('registration_requests')
+    .from('user_invites')
     .insert({
       email,
-      full_name: args.full_name || '',
-      requested_role: args.requested_role || 'user',
-      note: args.note || '',
+      role: args.requested_role || 'staff',
       status: 'pending',
     })
     .select()
     .single();
-
   if (error) throw new Error(error.message);
   return { status: 'created', request: data };
 }

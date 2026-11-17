@@ -1295,15 +1295,25 @@ CREATE TABLE IF NOT EXISTS public.users (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
-  role TEXT,
+  name TEXT,
+  email TEXT,
+  password TEXT,
+  role TEXT DEFAULT 'staff',
+  role_label TEXT,
+  dept TEXT,
+  avatar_initials TEXT,
   app_role TEXT,
   line TEXT,
-  permissions JSONB,
+  permissions JSONB DEFAULT '[]'::jsonb,
   status TEXT DEFAULT 'active',
   created_by TEXT,
   updated_by TEXT,
   deleted BOOLEAN DEFAULT FALSE
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS users_email_unique_idx
+  ON public.users (lower(email))
+  WHERE email IS NOT NULL AND deleted = FALSE;
 
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Allow all for authenticated and anon" ON public.users;

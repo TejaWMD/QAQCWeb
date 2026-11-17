@@ -26,25 +26,60 @@ export function CameraQRScanner({ onDecode }: { onDecode: (decodedText: string) 
 
   const startScanner = async () => {
     setErrMsg('');
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+      setErrMsg('Camera API unavailable. Please open this app over HTTPS and allow camera access.');
+      return;
+    }
+
     setActive(true);
     setTimeout(async () => {
       try {
         const html5Qr = new Html5Qrcode(regionId);
         scannerRef.current = html5Qr;
-        await html5Qr.start(
-          { facingMode: 'environment' },
-          { fps: 10, qrbox: { width: 220, height: 220 } },
-          (decodedText) => {
-            onDecode(decodedText);
-            stopScanner();
-          },
-          () => {}
-        );
+        const config = {
+          fps: 10,
+          qrbox: { width: 220, height: 220 },
+          aspectRatio: 1.0,
+        };
+
+        const handleSuccess = (decodedText: string) => {
+          onDecode(decodedText);
+          stopScanner();
+        };
+
+        try {
+          await html5Qr.start({ facingMode: 'environment' }, config, handleSuccess, () => {});
+        } catch (primaryErr) {
+          // Fallback for devices where facingMode: 'environment' is overconstrained
+          const cameras = await Html5Qrcode.getCameras();
+          if (!cameras || cameras.length === 0) {
+            throw primaryErr;
+          }
+          const backCam =
+            cameras.find((c) => /back|rear|environment/i.test(c.label)) ||
+            cameras[cameras.length - 1];
+          await html5Qr.start(backCam.id, config, handleSuccess, () => {});
+        }
+
+        // Ensure iOS Safari / PWA plays video inline without going fullscreen
+        const container = document.getElementById(regionId);
+        const video = container?.querySelector('video');
+        if (video) {
+          video.setAttribute('playsinline', 'true');
+          video.muted = true;
+        }
       } catch (err: any) {
-        setErrMsg(err?.message || 'Camera unavailable or permission denied.');
+        const msg = err?.message || String(err || '');
+        if (/NotAllowedError|Permission/i.test(msg)) {
+          setErrMsg('Camera permission denied. Please allow camera access in your browser/app settings.');
+        } else if (/NotFoundError|Requested device not found/i.test(msg)) {
+          setErrMsg('No camera found on this device.');
+        } else {
+          setErrMsg(msg || 'Camera unavailable or permission denied.');
+        }
         setActive(false);
       }
-    }, 100);
+    }, 120);
   };
 
   useEffect(() => {
