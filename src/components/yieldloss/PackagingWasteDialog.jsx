@@ -112,7 +112,7 @@ export default function PackagingWasteDialog({ open, onClose, settings, movement
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className={dialogClass}>
         <DialogHeader>
-          <DialogTitle className="text-white">New Packaging Waste Entry</DialogTitle>
+          <DialogTitle className="text-[#0F294A]">New Packaging Waste Entry</DialogTitle>
         </DialogHeader>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -134,9 +134,9 @@ export default function PackagingWasteDialog({ open, onClose, settings, movement
         </div>
 
         {pulled?.hasWaste && (
-          <div className="rounded-lg border border-[#00ff9d]/30 bg-[#00ff9d]/5 px-3 py-2">
-            <p className="text-[11px] text-[#00ff9d] font-semibold">Pulled from the Daily Packaging Entry — no need to enter it twice.</p>
-            <p className="text-[11px] text-[#a0aec0] mt-0.5">Adjust a figure only if the entry is wrong.</p>
+          <div className="rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2">
+            <p className="text-[11px] text-emerald-700 font-semibold">Pulled from the Daily Packaging Entry — no need to enter it twice.</p>
+            <p className="text-[11px] text-[#64748B] mt-0.5">Adjust a figure only if the entry is wrong.</p>
           </div>
         )}
 
@@ -161,14 +161,14 @@ export default function PackagingWasteDialog({ open, onClose, settings, movement
         </div>
 
         <div className={`${panelClass} p-3 grid grid-cols-3 gap-2`}>
-          <div><p className={labelClass}>Issued pieces</p><p className="text-white text-sm font-semibold">{usedUnits.toLocaleString("en-US")}</p></div>
-          <div><p className={labelClass}>Waste pieces</p><p className="text-white text-sm font-semibold">{summary.waste_units.toLocaleString("en-US")}</p></div>
-          <div><p className={labelClass}>Waste %</p><p className={`text-sm font-semibold ${summary.exceeded ? "text-[#ff4d4d]" : "text-[#00ff9d]"}`}>{summary.waste_pct}%</p></div>
+          <div><p className={labelClass}>Issued pieces</p><p className="text-[#0F294A] text-sm font-semibold">{usedUnits.toLocaleString("en-US")}</p></div>
+          <div><p className={labelClass}>Waste pieces</p><p className="text-[#0F294A] text-sm font-semibold">{summary.waste_units.toLocaleString("en-US")}</p></div>
+          <div><p className={labelClass}>Waste %</p><p className={`text-sm font-semibold ${summary.exceeded ? "text-rose-600" : "text-emerald-700"}`}>{summary.waste_pct}%</p></div>
         </div>
-        <p className="text-[11px] text-[#5f6b7f]">
+        <p className="text-[11px] text-[#64748B]">
           Threshold {settings.packaging_waste_threshold_pct}% · used pieces come from Packaging Stock and the Daily Packaging Entry issued quantities.
         </p>
-        {error && <p className="text-sm text-[#ff4d4d]">{error}</p>}
+        {error && <p className="text-sm text-rose-600">{error}</p>}
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose} className={subtleButton}>Cancel</Button>

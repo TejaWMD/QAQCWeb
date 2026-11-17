@@ -129,7 +129,7 @@ export default function BatchYieldDialog({ open, onClose, settings, records = []
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className={dialogClass}>
         <DialogHeader>
-          <DialogTitle className="text-white">New Yield Entry</DialogTitle>
+          <DialogTitle className="text-[#0F294A]">New Yield Entry</DialogTitle>
         </DialogHeader>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -177,18 +177,18 @@ export default function BatchYieldDialog({ open, onClose, settings, records = []
 
         {record && (
           <div className={`${panelClass} p-3 grid grid-cols-2 sm:grid-cols-4 gap-2`}>
-            <div><p className={labelClass}>Yield</p><p className="text-white text-sm font-semibold">{fmtPct(yieldNow)}</p></div>
-            <div><p className={labelClass}>Standard</p><p className="text-white text-sm font-semibold">{recipe?.standard_yield_pct ? fmtPct(recipe.standard_yield_pct) : "not set"}</p></div>
-            <div><p className={labelClass}>Variance</p><p className={`text-sm font-semibold ${variance.within_tolerance ? "text-[#00ff9d]" : "text-[#ff4d4d]"}`}>{variance.variance_pct > 0 ? "+" : ""}{variance.variance_pct}%</p></div>
-            <div><p className={labelClass}>Flag</p><p className={`text-sm font-semibold ${variance.within_tolerance ? "text-[#00ff9d]" : "text-[#ff4d4d]"}`}>{variance.within_tolerance ? "Within tolerance" : "Below tolerance"}</p></div>
+            <div><p className={labelClass}>Yield</p><p className="text-[#0F294A] text-sm font-semibold">{fmtPct(yieldNow)}</p></div>
+            <div><p className={labelClass}>Standard</p><p className="text-[#0F294A] text-sm font-semibold">{recipe?.standard_yield_pct ? fmtPct(recipe.standard_yield_pct) : "not set"}</p></div>
+            <div><p className={labelClass}>Variance</p><p className={`text-sm font-semibold ${variance.within_tolerance ? "text-emerald-700" : "text-rose-600"}`}>{variance.variance_pct > 0 ? "+" : ""}{variance.variance_pct}%</p></div>
+            <div><p className={labelClass}>Flag</p><p className={`text-sm font-semibold ${variance.within_tolerance ? "text-emerald-700" : "text-rose-600"}`}>{variance.within_tolerance ? "Within tolerance" : "Below tolerance"}</p></div>
           </div>
         )}
 
         {record && !product?.target_net_weight_g && (
-          <p className="text-xs text-[#ff9f43]">Set the target net weight on the product in Product Master so the output kg can be calculated.</p>
+          <p className="text-xs text-amber-700">Set the target net weight on the product in Product Master so the output kg can be calculated.</p>
         )}
-        {record && !recipe && <p className="text-xs text-[#ff9f43]">This product has no active recipe, so there is no standard yield to compare against.</p>}
-        {error && <p className="text-sm text-[#ff4d4d]">{error}</p>}
+        {record && !recipe && <p className="text-xs text-amber-700">This product has no active recipe, so there is no standard yield to compare against.</p>}
+        {error && <p className="text-sm text-rose-600">{error}</p>}
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose} className={subtleButton}>Cancel</Button>

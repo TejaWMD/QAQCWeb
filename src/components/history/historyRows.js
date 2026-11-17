@@ -5,10 +5,10 @@
 export const ACTIONS = ["Created", "Updated", "Deleted", "Verified"];
 
 export const ACTION_TONES = {
-  Created: "text-[#00e5ff] border-[#00e5ff]/40 bg-[#00e5ff]/10",
-  Updated: "text-[#e2e8f0] border-[#3b4a68] bg-[#1e2740]",
-  Deleted: "text-[#ff4d4d] border-[#ff4d4d]/40 bg-[#ff4d4d]/10",
-  Verified: "text-[#00ff9d] border-[#00ff9d]/40 bg-[#00ff9d]/10",
+  Created: "text-[#1D4ED8] border-[#BFD7FF] bg-[#EBF3FF]",
+  Updated: "text-[#334155] border-[#3b4a68] bg-[#F1F5F9]",
+  Deleted: "text-rose-600 border-rose-300 bg-rose-600/10",
+  Verified: "text-emerald-700 border-emerald-300 bg-emerald-50",
 };
 
 const pad = (n) => String(n).padStart(2, "0");

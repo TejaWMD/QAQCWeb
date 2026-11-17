@@ -26,7 +26,7 @@ import {
   todayStr,
 } from "@/lib/warehouse";
 
-const FIELD = "bg-[#0e131d] border-[#1e2740] text-white";
+const FIELD = "bg-white border-[#E2E8F0] text-[#0F294A]";
 let seq = 0;
 
 const blankLine = (unit = "") => ({
@@ -280,18 +280,18 @@ export default function GoodsReceiving() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0e17] p-4 md:p-6 space-y-4">
+    <div className="min-h-screen bg-[#F6F8FC] p-4 md:p-6 space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-white text-lg font-semibold">Goods Receiving</h2>
-          <p className="text-[#a0aec0] text-sm mt-1">Record goods received against a delivery note — one delivery can hold several items.</p>
+          <h2 className="text-[#0F294A] text-lg font-semibold">Goods Receiving</h2>
+          <p className="text-[#64748B] text-sm mt-1">Record goods received against a delivery note — one delivery can hold several items.</p>
         </div>
         <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-          <Button variant="outline" onClick={() => setItemListOpen(true)} className="flex-1 sm:flex-none border-[#1e2740] bg-[#0e131d] text-[#a0aec0] hover:bg-white/5 hover:text-white">
+          <Button variant="outline" onClick={() => setItemListOpen(true)} className="flex-1 sm:flex-none border-[#E2E8F0] bg-white text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F294A]">
             <List className="w-4 h-4" /> Item list
           </Button>
           {isWarehouseSupervisor(user) && (
-            <Button variant="outline" onClick={() => setSettingsOpen(true)} className="flex-1 sm:flex-none border-[#1e2740] bg-[#0e131d] text-[#a0aec0] hover:bg-white/5 hover:text-white">
+            <Button variant="outline" onClick={() => setSettingsOpen(true)} className="flex-1 sm:flex-none border-[#E2E8F0] bg-white text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F294A]">
               <SettingsIcon className="w-4 h-4" /> Settings
             </Button>
           )}
@@ -302,10 +302,10 @@ export default function GoodsReceiving() {
         {items.map((i) => <option key={i.id} value={i.item_code}>{i.description}</option>)}
       </datalist>
 
-      <div className="rounded-xl border border-[#1e2740] bg-[#0e131d] p-3 space-y-3">
+      <div className="rounded-xl border border-[#E2E8F0] bg-white p-3 space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="space-y-1">
-            <label className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Date Received *</label>
+            <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Date Received *</label>
             <Input
               type="date"
               value={header.date_received}
@@ -314,7 +314,7 @@ export default function GoodsReceiving() {
             />
           </div>
           <div className="space-y-1">
-            <label className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Supplier</label>
+            <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Supplier</label>
             <Input
               value={header.supplier}
               onChange={(e) => setHeader((h) => ({ ...h, supplier: e.target.value }))}
@@ -323,7 +323,7 @@ export default function GoodsReceiving() {
             />
           </div>
           <div className="space-y-1">
-            <label className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Delivery Note No.</label>
+            <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Delivery Note No.</label>
             <Input
               value={header.delivery_note}
               onChange={(e) => setHeader((h) => ({ ...h, delivery_note: e.target.value }))}
@@ -334,10 +334,10 @@ export default function GoodsReceiving() {
         </div>
       </div>
 
-      <div className="rounded-xl border border-[#1e2740] bg-[#0e131d] p-3 space-y-2">
+      <div className="rounded-xl border border-[#E2E8F0] bg-white p-3 space-y-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="text-xs font-semibold text-white flex items-center gap-1.5">
-            <QrCode className="w-4 h-4 text-[#00e5ff]" /> QR Code Scanner
+          <span className="text-xs font-semibold text-[#0F294A] flex items-center gap-1.5">
+            <QrCode className="w-4 h-4 text-[#1D4ED8]" /> QR Code Scanner
           </span>
           <CameraQRScanner onDecode={handleQrScan} />
         </div>
@@ -349,7 +349,7 @@ export default function GoodsReceiving() {
             placeholder="Scan with handheld scanner or paste QR payload and press Enter"
             className={FIELD}
           />
-          <Button type="button" variant="outline" onClick={() => qrInput.trim() && handleQrScan(qrInput)} className="border-[#1e2740] bg-[#0a0e17] text-[#00e5ff] hover:bg-white/5">
+          <Button type="button" variant="outline" onClick={() => qrInput.trim() && handleQrScan(qrInput)} className="border-[#E2E8F0] bg-[#F6F8FC] text-[#1D4ED8] hover:bg-[#F1F5F9]">
             Parse QR
           </Button>
         </div>
@@ -376,21 +376,21 @@ export default function GoodsReceiving() {
       <Button
         variant="outline"
         onClick={() => setLines((prev) => [...prev, blankLine(units[0])])}
-        className="w-full border-dashed border-[#1e2740] bg-transparent text-[#a0aec0] hover:bg-white/5 hover:text-white"
+        className="w-full border-dashed border-[#E2E8F0] bg-transparent text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F294A]"
       >
         <Plus className="w-4 h-4" /> Add item line
       </Button>
 
-      {error && <p className="text-sm text-[#ff4d4d]">{error}</p>}
+      {error && <p className="text-sm text-rose-600">{error}</p>}
 
-      <div className="sticky bottom-0 -mx-4 md:-mx-6 px-4 md:px-6 py-3 bg-[#0a0e17] border-t border-[#1e2740] flex flex-wrap items-center gap-3">
-        <p className="text-xs text-[#5f6b7f]">
+      <div className="sticky bottom-0 -mx-4 md:-mx-6 px-4 md:px-6 py-3 bg-[#F6F8FC] border-t border-[#E2E8F0] flex flex-wrap items-center gap-3">
+        <p className="text-xs text-[#64748B]">
           {lines.length} item line{lines.length === 1 ? "" : "s"} · keyed in by {actingUserName(user) || "—"}
         </p>
         <Button
           onClick={() => save()}
           disabled={saving}
-          className="w-full sm:w-auto sm:ml-auto bg-[#00e5ff] hover:bg-[#00c3d7] text-[#0a0e17] font-semibold h-11"
+          className="w-full sm:w-auto sm:ml-auto bg-[#0F294A] hover:bg-[#193B68] text-white font-semibold h-11"
         >
           <Save className="w-4 h-4" /> {saving ? "Saving..." : "Save receipt"}
         </Button>
@@ -398,27 +398,27 @@ export default function GoodsReceiving() {
 
       {duplicates && (
         <Dialog open onOpenChange={(o) => !o && setDuplicates(null)}>
-          <DialogContent className="bg-[#131926] border-[#1e2740] text-white sm:max-w-md">
+          <DialogContent className="bg-white border-[#E2E8F0] text-[#0F294A] sm:max-w-md">
             <DialogHeader>
-              <DialogTitle className="text-white flex items-center gap-2">
-                <AlertTriangle className="w-5 h-5 text-[#ff9f43]" /> Possible duplicate
+              <DialogTitle className="text-[#0F294A] flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-amber-700" /> Possible duplicate
               </DialogTitle>
-              <DialogDescription className="text-[#a0aec0] text-sm">
+              <DialogDescription className="text-[#64748B] text-sm">
                 These items were already received today with the same batch number.
               </DialogDescription>
             </DialogHeader>
-            <ul className="space-y-1 text-sm text-[#a0aec0]">
+            <ul className="space-y-1 text-sm text-[#64748B]">
               {duplicates.map((d) => (
-                <li key={d.id} className="rounded-md border border-[#1e2740] bg-[#0e131d] px-3 py-2">
-                  <span className="text-white">{d.item_code}</span> · batch {d.batch_number}
+                <li key={d.id} className="rounded-md border border-[#E2E8F0] bg-white px-3 py-2">
+                  <span className="text-[#0F294A]">{d.item_code}</span> · batch {d.batch_number}
                 </li>
               ))}
             </ul>
             <DialogFooter>
-              <Button variant="ghost" onClick={() => setDuplicates(null)} className="text-[#a0aec0] hover:bg-white/5 hover:text-white">
+              <Button variant="ghost" onClick={() => setDuplicates(null)} className="text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F294A]">
                 Go back and check
               </Button>
-              <Button onClick={() => save(true)} disabled={saving} className="bg-[#ff9f43] hover:bg-[#f58a1f] text-[#0a0e17]">
+              <Button onClick={() => save(true)} disabled={saving} className="bg-amber-500 hover:bg-[#f58a1f] text-[#0F294A]">
                 Save anyway
               </Button>
             </DialogFooter>

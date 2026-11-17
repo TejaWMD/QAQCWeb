@@ -20,12 +20,12 @@ export default function LayoutPicker({ layouts = DEFAULT_LAYOUTS, value, custom,
               onClick={() => onSelect(layout.id)}
               className={`text-left rounded-lg border px-2.5 py-2 transition-colors ${
                 active
-                  ? "border-[#00e5ff] bg-[#00e5ff]/10 text-white"
-                  : "border-[#1e2740] bg-[#0a0e17] text-[#a0aec0] hover:border-[#2a3654] hover:text-white"
+                  ? "border-[#BFD7FF] bg-[#EBF3FF] text-[#0F294A]"
+                  : "border-[#E2E8F0] bg-[#F6F8FC] text-[#64748B] hover:border-[#2a3654] hover:text-[#0F294A]"
               }`}
             >
               <span className="block text-xs font-semibold">{layout.name}</span>
-              <span className="block text-[10px] text-[#5f6b7f] mt-0.5">{sizeText(layout)}</span>
+              <span className="block text-[10px] text-[#64748B] mt-0.5">{sizeText(layout)}</span>
             </button>
           );
         })}
@@ -59,8 +59,8 @@ export default function LayoutPicker({ layouts = DEFAULT_LAYOUTS, value, custom,
                   onClick={() => onCustomChange({ ...custom, qr_ecc: level })}
                   className={`flex-1 rounded-md border px-1 py-1.5 text-xs font-semibold ${
                     custom.qr_ecc === level
-                      ? "border-[#00e5ff] bg-[#00e5ff]/10 text-[#00e5ff]"
-                      : "border-[#1e2740] text-[#a0aec0] hover:text-white"
+                      ? "border-[#BFD7FF] bg-[#EBF3FF] text-[#1D4ED8]"
+                      : "border-[#E2E8F0] text-[#64748B] hover:text-[#0F294A]"
                   }`}
                 >
                   {level}

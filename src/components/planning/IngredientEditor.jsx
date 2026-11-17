@@ -21,7 +21,7 @@ export default function IngredientEditor({ value = [], onChange, materials = [] 
 
   return (
     <div className="space-y-2">
-      {value.length === 0 && <p className="text-xs text-[#5f6b7f]">No ingredients yet.</p>}
+      {value.length === 0 && <p className="text-xs text-[#64748B]">No ingredients yet.</p>}
       {value.map((row, idx) => (
         <div key={idx} className="grid grid-cols-[1fr_96px_68px_36px] gap-2 items-center">
           {materials.length > 0 ? (
@@ -51,12 +51,12 @@ export default function IngredientEditor({ value = [], onChange, materials = [] 
             placeholder="Qty / batch"
           />
           <Input value={row.unit} onChange={(e) => update(idx, { unit: e.target.value })} className={inputClass} placeholder="Unit" />
-          <Button variant="ghost" size="icon" onClick={() => remove(idx)} className="text-[#5f6b7f] hover:text-[#ff4d4d] hover:bg-[#ff4d4d]/10">
+          <Button variant="ghost" size="icon" onClick={() => remove(idx)} className="text-[#64748B] hover:text-rose-600 hover:bg-rose-600/10">
             <Trash2 className="w-4 h-4" />
           </Button>
         </div>
       ))}
-      <Button variant="outline" onClick={add} className="w-full border-dashed border-[#1e2740] bg-transparent text-[#a0aec0] hover:bg-white/5 hover:text-white">
+      <Button variant="outline" onClick={add} className="w-full border-dashed border-[#E2E8F0] bg-transparent text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F294A]">
         <Plus className="w-4 h-4" /> Add ingredient
       </Button>
     </div>

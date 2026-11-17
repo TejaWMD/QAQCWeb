@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ITEM_CATEGORIES } from "@/lib/warehouse";
 
-const FIELD = "bg-[#0e131d] border-[#1e2740] text-white";
+const FIELD = "bg-white border-[#E2E8F0] text-[#0F294A]";
 
 // Adds an item to the warehouse item list. Used both from the item list and from
 // the "add new item" shortcut on the receiving form.
@@ -46,15 +46,15 @@ export default function ItemForm({ initial = {}, units, onSaved, onCancel }) {
     <form onSubmit={submit} className="space-y-3">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="space-y-1">
-          <label className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Item Code *</label>
+          <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Item Code *</label>
           <Input value={code} onChange={(e) => setCode(e.target.value)} placeholder="e.g. RM-1001" className={FIELD} />
         </div>
         <div className="space-y-1">
-          <label className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Description</label>
+          <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Description</label>
           <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Product description" className={FIELD} />
         </div>
         <div className="space-y-1">
-          <label className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Unit</label>
+          <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Unit</label>
           <Select value={unit} onValueChange={setUnit}>
             <SelectTrigger className={FIELD}><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -63,7 +63,7 @@ export default function ItemForm({ initial = {}, units, onSaved, onCancel }) {
           </Select>
         </div>
         <div className="space-y-1">
-          <label className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Category</label>
+          <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Category</label>
           <Select value={category} onValueChange={setCategory}>
             <SelectTrigger className={FIELD}><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -72,14 +72,14 @@ export default function ItemForm({ initial = {}, units, onSaved, onCancel }) {
           </Select>
         </div>
       </div>
-      {error && <p className="text-xs text-[#ff4d4d]">{error}</p>}
+      {error && <p className="text-xs text-rose-600">{error}</p>}
       <div className="flex justify-end gap-2">
         {onCancel && (
-          <Button type="button" variant="ghost" onClick={onCancel} className="text-[#a0aec0] hover:bg-white/5 hover:text-white">
+          <Button type="button" variant="ghost" onClick={onCancel} className="text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F294A]">
             Cancel
           </Button>
         )}
-        <Button type="submit" disabled={saving} className="bg-[#00e5ff] hover:bg-[#00c3d7] text-[#0a0e17]">
+        <Button type="submit" disabled={saving} className="bg-[#0F294A] hover:bg-[#193B68] text-white">
           {saving ? "Saving..." : "Save item"}
         </Button>
       </div>

@@ -10,52 +10,90 @@ const STATUS_STYLES = {
   "Verified": "bg-[#00ff9d]/15 text-[#00ff9d]",
 };
 
-// Every overdue or unverified item across all modules, one row each with an Open button.
 export default function CriticalAttentionTable({ items, onOpen }) {
   return (
-    <div className="bg-[#131926] rounded-xl border border-[#1e2740]">
-      <div className="px-4 py-3 border-b border-[#1e2740] flex items-center justify-between">
+    <div className="bg-[#131926] rounded-2xl border border-[#1e2740] overflow-hidden shadow-sm">
+      <div className="px-4 py-3.5 border-b border-[#1e2740] flex items-center justify-between gap-2">
         <h3 className="flex items-center gap-2 text-white text-sm font-semibold">
-          <AlertTriangle className="w-4 h-4 text-[#ff4d4d]" />
-          Critical Attention Required (Overdue &amp; Pending Verification)
+          <span className="w-7 h-7 rounded-xl bg-[#ff4d4d]/15 flex items-center justify-center shrink-0">
+            <AlertTriangle className="w-4 h-4 text-[#ff4d4d]" />
+          </span>
+          Attention Required
         </h3>
-        <span className="text-[11px] text-[#ff4d4d] bg-[#ff4d4d]/15 rounded-full px-2.5 py-1 font-medium">
-          {items.length} Items
+        <span className="text-xs text-[#ff4d4d] bg-[#ff4d4d]/15 rounded-full px-3 py-1 font-semibold">
+          {items.length}
         </span>
       </div>
-      <div className="overflow-x-auto">
+
+      {/* Mobile card list */}
+      <div className="md:hidden divide-y divide-[#1e2740]">
+        {items.length === 0 && (
+          <p className="text-center text-[#94a3b8] text-sm py-8 px-4">
+            All clear for this filter.
+          </p>
+        )}
+        {items.map((item, i) => (
+          <div key={i} className="p-4 space-y-2.5">
+            <div className="flex items-start justify-between gap-2">
+              <p className="text-white text-sm font-medium leading-snug">{item.item}</p>
+              <span className={`text-[11px] font-semibold rounded-full px-2.5 py-0.5 shrink-0 ${STATUS_STYLES[item.status] || STATUS_STYLES["Open"]}`}>
+                {item.status}
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[#94a3b8]">
+              <span>{item.module} · {item.owner || "—"} · {item.due || "—"}</span>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => onOpen(item)}
+                className="h-7 rounded-full bg-transparent border-[#00e5ff]/40 text-[#00e5ff] hover:bg-[#00e5ff]/10 hover:text-[#00e5ff] text-xs"
+              >
+                <FolderOpen className="w-3.5 h-3.5 mr-1" /> Open
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop table */}
+      <div className="hidden md:block overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow className="border-[#1e2740] hover:bg-transparent">
-              <TableHead className="text-[#a0aec0]">Item</TableHead>
-              <TableHead className="text-[#a0aec0]">Module</TableHead>
-              <TableHead className="text-[#a0aec0]">Owner</TableHead>
-              <TableHead className="text-[#a0aec0]">Due Date</TableHead>
-              <TableHead className="text-[#a0aec0]">Status</TableHead>
-              <TableHead className="text-[#a0aec0] w-[90px]"></TableHead>
+              <TableHead className="text-[#94a3b8]">Item</TableHead>
+              <TableHead className="text-[#94a3b8]">Module</TableHead>
+              <TableHead className="text-[#94a3b8]">Owner</TableHead>
+              <TableHead className="text-[#94a3b8]">Due Date</TableHead>
+              <TableHead className="text-[#94a3b8]">Status</TableHead>
+              <TableHead className="text-[#94a3b8] w-[90px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {items.length === 0 && (
               <TableRow className="border-[#1e2740]">
-                <TableCell colSpan={6} className="text-center text-[#a0aec0] py-8">
-                  No overdue or unverified items for this filter. Everything is on track.
+                <TableCell colSpan={6} className="text-center text-[#94a3b8] py-8">
+                  All clear for this filter.
                 </TableCell>
               </TableRow>
             )}
             {items.map((item, i) => (
-              <TableRow key={i} className="border-[#1e2740]">
-                <TableCell className="text-white text-sm">{item.item}</TableCell>
-                <TableCell className="text-[#a0aec0] text-sm">{item.module}</TableCell>
-                <TableCell className="text-[#a0aec0] text-sm">{item.owner || "—"}</TableCell>
-                <TableCell className="text-[#a0aec0] text-sm">{item.due || "—"}</TableCell>
+              <TableRow key={i} className="border-[#1e2740] hover:bg-white/[0.02]">
+                <TableCell className="text-white text-sm font-medium">{item.item}</TableCell>
+                <TableCell className="text-[#cbd5e1] text-sm">{item.module}</TableCell>
+                <TableCell className="text-[#cbd5e1] text-sm">{item.owner || "—"}</TableCell>
+                <TableCell className="text-[#cbd5e1] text-sm">{item.due || "—"}</TableCell>
                 <TableCell>
-                  <span className={`text-[11px] font-medium rounded-full px-2.5 py-1 ${STATUS_STYLES[item.status] || STATUS_STYLES["Open"]}`}>
+                  <span className={`text-[11px] font-semibold rounded-full px-2.5 py-1 ${STATUS_STYLES[item.status] || STATUS_STYLES["Open"]}`}>
                     {item.status}
                   </span>
                 </TableCell>
                 <TableCell>
-                  <Button size="sm" variant="outline" onClick={() => onOpen(item)} className="bg-transparent border-[#00e5ff]/40 text-[#00e5ff] hover:bg-[#00e5ff]/10 hover:text-[#00e5ff]">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => onOpen(item)}
+                    className="rounded-full bg-transparent border-[#00e5ff]/40 text-[#00e5ff] hover:bg-[#00e5ff]/10 hover:text-[#00e5ff]"
+                  >
                     <FolderOpen className="w-3.5 h-3.5 mr-1" /> Open
                   </Button>
                 </TableCell>

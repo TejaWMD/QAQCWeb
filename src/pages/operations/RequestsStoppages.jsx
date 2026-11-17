@@ -151,11 +151,11 @@ export default function RequestsStoppages() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0e17] p-4 md:p-6 space-y-4">
+    <div className="min-h-screen bg-[#F6F8FC] p-4 md:p-6 space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-white text-lg font-semibold">Requests &amp; Stoppages</h2>
-          <p className="text-[#a0aec0] text-sm mt-1">Downtime stoppages, item / material and approval requests in one place.</p>
+          <h2 className="text-[#0F294A] text-lg font-semibold">Requests &amp; Stoppages</h2>
+          <p className="text-[#64748B] text-sm mt-1">Downtime stoppages, item / material and approval requests in one place.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {isAdminUser(user) && (
@@ -163,7 +163,7 @@ export default function RequestsStoppages() {
               variant="outline"
               disabled={purgingDemo}
               onClick={purgeDemo}
-              className="bg-[#0e131d] border-[#ff9f43]/40 text-[#ff9f43] hover:bg-[#ff9f43]/10 hover:text-[#ff9f43]"
+              className="bg-white border-amber-300 text-amber-700 hover:bg-amber-50 hover:text-amber-700"
             >
               <Trash2 className="w-4 h-4 mr-1.5" /> Delete all demo records
             </Button>
@@ -172,24 +172,24 @@ export default function RequestsStoppages() {
             <Button
               variant="outline"
               onClick={() => setSettingsOpen(true)}
-              className="bg-[#0e131d] border-[#1e2740] text-[#e2e8f0] hover:bg-white/5"
+              className="bg-white border-[#E2E8F0] text-[#334155] hover:bg-[#F1F5F9]"
             >
               <Settings2 className="w-4 h-4 mr-1.5" /> Form Settings
             </Button>
           )}
-          <Button onClick={() => setFormOpen(true)} className="bg-[#00e5ff] hover:bg-[#00c3d7] text-[#0a0e17]">
+          <Button onClick={() => setFormOpen(true)} className="bg-[#0F294A] hover:bg-[#193B68] text-white">
             <Plus className="w-4 h-4 mr-1.5" /> New Request
           </Button>
         </div>
       </div>
 
       <Tabs defaultValue="all">
-        <TabsList className="bg-[#0e131d] border border-[#1e2740]">
-          <TabsTrigger value="all" className="data-[state=active]:bg-[#00e5ff]/10 data-[state=active]:text-[#00e5ff] text-[#a0aec0]">
+        <TabsList className="bg-white border border-[#E2E8F0]">
+          <TabsTrigger value="all" className="data-[state=active]:bg-[#EBF3FF] data-[state=active]:text-[#1D4ED8] text-[#64748B]">
             All Requests ({rows.length})
           </TabsTrigger>
           {reviewer && (
-            <TabsTrigger value="incoming" className="data-[state=active]:bg-[#00e5ff]/10 data-[state=active]:text-[#00e5ff] text-[#a0aec0]">
+            <TabsTrigger value="incoming" className="data-[state=active]:bg-[#EBF3FF] data-[state=active]:text-[#1D4ED8] text-[#64748B]">
               Incoming Requests ({incoming.length})
             </TabsTrigger>
           )}
@@ -197,7 +197,7 @@ export default function RequestsStoppages() {
         <TabsContent value="all" className="space-y-3 mt-3">
           <div className="flex flex-wrap items-center gap-2">
             <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="h-8 w-[190px] bg-[#0e131d] border-[#1e2740] text-white text-xs">
+              <SelectTrigger className="h-8 w-[190px] bg-white border-[#E2E8F0] text-[#0F294A] text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -208,7 +208,7 @@ export default function RequestsStoppages() {
               </SelectContent>
             </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="h-8 w-[170px] bg-[#0e131d] border-[#1e2740] text-white text-xs">
+              <SelectTrigger className="h-8 w-[170px] bg-white border-[#E2E8F0] text-[#0F294A] text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -219,7 +219,7 @@ export default function RequestsStoppages() {
               </SelectContent>
             </Select>
             <Select value={evidenceFilter} onValueChange={setEvidenceFilter}>
-              <SelectTrigger className="h-8 w-[160px] bg-[#0e131d] border-[#1e2740] text-white text-xs">
+              <SelectTrigger className="h-8 w-[160px] bg-white border-[#E2E8F0] text-[#0F294A] text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

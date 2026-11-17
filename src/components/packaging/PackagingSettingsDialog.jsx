@@ -8,7 +8,7 @@ import { Plus, X } from "lucide-react";
 import RackSettingsCard from "@/components/warehouse/RackSettingsCard";
 import { PACKAGING_SETTINGS_KEY, USE_THRESHOLD_DEFAULT, loadPackagingSettings } from "@/lib/packaging";
 
-const FIELD = "bg-[#0e131d] border-[#1e2740] text-white";
+const FIELD = "bg-white border-[#E2E8F0] text-[#0F294A]";
 
 // Categories, racks and the issue-approval threshold for Packaging Stock.
 export default function PackagingSettingsDialog({ open, initialTab = "categories", updatedBy, onClose, onSaved }) {
@@ -57,16 +57,16 @@ export default function PackagingSettingsDialog({ open, initialTab = "categories
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose?.()}>
-      <DialogContent className="bg-[#131926] border-[#1e2740] text-white max-h-[88vh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent className="bg-white border-[#E2E8F0] text-[#0F294A] max-h-[88vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="text-white">Packaging stock settings</DialogTitle>
-          <DialogDescription className="text-[#a0aec0] text-sm">
+          <DialogTitle className="text-[#0F294A]">Packaging stock settings</DialogTitle>
+          <DialogDescription className="text-[#64748B] text-sm">
             Categories offered on the item form, the rack list, and the quantity above which an issue needs approval.
           </DialogDescription>
         </DialogHeader>
 
         <Tabs defaultValue={initialTab}>
-          <TabsList className="bg-[#0e131d] border border-[#1e2740]">
+          <TabsList className="bg-white border border-[#E2E8F0]">
             <TabsTrigger value="categories">Categories</TabsTrigger>
             <TabsTrigger value="racks">Racks</TabsTrigger>
             <TabsTrigger value="thresholds">Thresholds</TabsTrigger>
@@ -95,16 +95,16 @@ export default function PackagingSettingsDialog({ open, initialTab = "categories
                   setCategories((prev) => [...prev, value]);
                   setNewCategory("");
                 }}
-                className="bg-[#00e5ff] hover:bg-[#00c3d7] text-[#0a0e17]"
+                className="bg-[#0F294A] hover:bg-[#193B68] text-white"
               >
                 <Plus className="w-4 h-4" /> Add
               </Button>
             </div>
             <div className="flex flex-wrap gap-2">
               {categories.map((c) => (
-                <span key={c} className="flex items-center gap-1 rounded-full border border-[#1e2740] bg-[#0e131d] px-2.5 py-1 text-xs text-[#a0aec0]">
+                <span key={c} className="flex items-center gap-1 rounded-full border border-[#E2E8F0] bg-white px-2.5 py-1 text-xs text-[#64748B]">
                   {c}
-                  <button type="button" onClick={() => setCategories((prev) => prev.filter((x) => x !== c))} className="text-[#5f6b7f] hover:text-[#ff4d4d]">
+                  <button type="button" onClick={() => setCategories((prev) => prev.filter((x) => x !== c))} className="text-[#64748B] hover:text-rose-600">
                     <X className="w-3 h-3" />
                   </button>
                 </span>
@@ -118,18 +118,18 @@ export default function PackagingSettingsDialog({ open, initialTab = "categories
 
           <TabsContent value="thresholds" className="mt-3 space-y-2">
             <div className="space-y-1">
-              <label className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Use Approval Threshold</label>
+              <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Use Approval Threshold</label>
               <Input type="number" min="0" value={threshold} onChange={(e) => setThreshold(e.target.value)} className={FIELD} />
-              <p className="text-[11px] text-[#5f6b7f]">A stock issue above this quantity goes to approvals instead of being deducted. Set 0 to never require approval.</p>
+              <p className="text-[11px] text-[#64748B]">A stock issue above this quantity goes to approvals instead of being deducted. Set 0 to never require approval.</p>
             </div>
           </TabsContent>
         </Tabs>
 
-        {error && <p className="text-xs text-[#ff4d4d]">{error}</p>}
+        {error && <p className="text-xs text-rose-600">{error}</p>}
 
         <div className="flex justify-end gap-2">
-          <Button variant="ghost" onClick={onClose} className="text-[#a0aec0] hover:bg-white/5 hover:text-white">Close</Button>
-          <Button onClick={save} disabled={saving} className="bg-[#00e5ff] hover:bg-[#00c3d7] text-[#0a0e17] font-semibold">
+          <Button variant="ghost" onClick={onClose} className="text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F294A]">Close</Button>
+          <Button onClick={save} disabled={saving} className="bg-[#0F294A] hover:bg-[#193B68] text-white font-semibold">
             {saving ? "Saving..." : "Save settings"}
           </Button>
         </div>

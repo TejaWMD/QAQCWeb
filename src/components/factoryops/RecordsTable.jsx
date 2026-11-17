@@ -127,16 +127,16 @@ export default function RecordsTable({
   const visible = statusFilter === "all" ? records : records.filter((r) => r.status === statusFilter);
 
   return (
-    <div className="bg-[#131926] rounded-xl border border-[#1e2740]">
-      <div className="px-4 py-3 border-b border-[#1e2740] flex flex-wrap items-center justify-between gap-2">
+    <div className="bg-white rounded-xl border border-[#E2E8F0]">
+      <div className="px-4 py-3 border-b border-[#E2E8F0] flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h3 className="text-white text-sm font-semibold">{title}</h3>
-          {subtitle && <p className="text-xs text-[#a0aec0] mt-0.5">{subtitle}</p>}
+          <h3 className="text-[#0F294A] text-sm font-semibold">{title}</h3>
+          {subtitle && <p className="text-xs text-[#64748B] mt-0.5">{subtitle}</p>}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {statuses && (
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="h-8 w-[140px] bg-[#0e131d] border-[#1e2740] text-white text-xs">
+              <SelectTrigger className="h-8 w-[140px] bg-white border-[#E2E8F0] text-[#0F294A] text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -148,7 +148,7 @@ export default function RecordsTable({
             </Select>
           )}
           {canAdd && (
-            <Button size="sm" onClick={() => setOpen(true)} className="bg-[#00e5ff] hover:bg-[#00c3d7] text-[#0a0e17]">
+            <Button size="sm" onClick={() => setOpen(true)} className="bg-[#0F294A] hover:bg-[#193B68] text-white">
               <Plus className="w-3.5 h-3.5 mr-1" /> {addLabel || "Add Record"}
             </Button>
           )}
@@ -157,40 +157,40 @@ export default function RecordsTable({
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>
-            <TableRow className="border-[#1e2740] hover:bg-transparent">
+            <TableRow className="border-[#E2E8F0] hover:bg-transparent">
               {columns.map((c) => (
-                <TableHead key={c.key} className="text-[#a0aec0]">{c.label}</TableHead>
+                <TableHead key={c.key} className="text-[#64748B]">{c.label}</TableHead>
               ))}
-              <TableHead className="text-[#a0aec0]">Status</TableHead>
-              <TableHead className="text-[#a0aec0] w-[60px]"></TableHead>
+              <TableHead className="text-[#64748B]">Status</TableHead>
+              <TableHead className="text-[#64748B] w-[60px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading && (
-              <TableRow className="border-[#1e2740]">
-                <TableCell colSpan={columns.length + 2} className="text-center text-[#a0aec0] py-8">
-                  <span className="inline-block w-5 h-5 border-2 border-[#1e2740] border-t-[#00e5ff] rounded-full animate-spin" />
+              <TableRow className="border-[#E2E8F0]">
+                <TableCell colSpan={columns.length + 2} className="text-center text-[#64748B] py-8">
+                  <span className="inline-block w-5 h-5 border-2 border-[#E2E8F0] border-t-[#0F294A] rounded-full animate-spin" />
                 </TableCell>
               </TableRow>
             )}
             {!loading && visible.length === 0 && (
-              <TableRow className="border-[#1e2740]">
-                <TableCell colSpan={columns.length + 2} className="text-center text-[#a0aec0] py-8">
+              <TableRow className="border-[#E2E8F0]">
+                <TableCell colSpan={columns.length + 2} className="text-center text-[#64748B] py-8">
                   No records yet.
                 </TableCell>
               </TableRow>
             )}
             {!loading && visible.map((record) => (
-              <TableRow key={record.id} className="border-[#1e2740]">
+              <TableRow key={record.id} className="border-[#E2E8F0]">
                 {columns.map((c) => (
-                  <TableCell key={c.key} className="text-sm text-[#e2e8f0]">
+                  <TableCell key={c.key} className="text-sm text-[#334155]">
                     {c.render ? c.render(record) : (record[c.key] ?? "—")}
                   </TableCell>
                 ))}
                 <TableCell>
                   {statuses && canEdit && canChangeRecord(user, record) ? (
                     <Select value={record.status || statuses[0]} onValueChange={(v) => changeStatus(record, v)}>
-                      <SelectTrigger className="h-8 w-[140px] bg-[#0e131d] border-[#1e2740] text-white text-xs">
+                      <SelectTrigger className="h-8 w-[140px] bg-white border-[#E2E8F0] text-[#0F294A] text-xs">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -205,7 +205,7 @@ export default function RecordsTable({
                 </TableCell>
                 <TableCell>
                   {canDelete && canChangeRecord(user, record) && (
-                    <Button size="sm" variant="ghost" onClick={() => remove(record)} className="text-[#ff4d4d] hover:text-[#ff4d4d] hover:bg-[#ff4d4d]/10 h-8 w-8 p-0">
+                    <Button size="sm" variant="ghost" onClick={() => remove(record)} className="text-rose-600 hover:text-rose-600 hover:bg-rose-600/10 h-8 w-8 p-0">
                       <Trash2 className="w-3.5 h-3.5" />
                     </Button>
                   )}

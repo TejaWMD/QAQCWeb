@@ -4,7 +4,6 @@ import { ArrowRight, TrendingDown } from "lucide-react";
 import { todayStr } from "@/lib/warehouse";
 import { loadBatchYields, loadReworks } from "@/lib/yieldLoss";
 
-// Small dashboard tile: today's loss in kg from batch yield shortfall plus rework.
 export default function LossTodayTile() {
   const [state, setState] = useState({ loading: true, yieldLoss: 0, rework: 0 });
 
@@ -23,20 +22,27 @@ export default function LossTodayTile() {
   const total = Math.round((state.yieldLoss + state.rework) * 10) / 10;
 
   return (
-    <Link to="/yield-loss" className="block rounded-xl border border-[#1e2740] bg-[#0e131d] px-4 py-3 hover:border-[#00e5ff]/40">
+    <Link
+      to="/yield-loss"
+      className="block rounded-2xl border border-[#1e2740] bg-[#131926] px-4 py-3.5 hover:border-[#00e5ff]/60 transition-all duration-200 hover:-translate-y-0.5 shadow-sm"
+    >
       <div className="flex items-center justify-between gap-2">
-        <p className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Loss today</p>
-        <TrendingDown className="w-4 h-4 text-[#ff9f43]" />
+        <p className="text-xs font-medium text-[#cbd5e1]">Loss Today</p>
+        <div className="w-7 h-7 rounded-xl bg-[#ff9f43]/15 flex items-center justify-center">
+          <TrendingDown className="w-4 h-4 text-[#ff9f43]" />
+        </div>
       </div>
-      <p className="text-xl font-bold text-white leading-tight mt-0.5">
+      <p className="text-xl font-bold text-white leading-tight mt-1">
         {state.loading ? "…" : `${total.toLocaleString("en-US")} kg`}
       </p>
-      <p className="text-[10px] text-[#5f6b7f] mt-0.5">
-        {state.loading ? "" : `${state.yieldLoss} kg yield · ${state.rework} kg rework`}
-      </p>
-      <span className="inline-flex items-center gap-1 text-[11px] text-[#00e5ff] mt-1">
-        Open Yield &amp; Loss <ArrowRight className="w-3 h-3" />
-      </span>
+      <div className="flex items-center justify-between gap-2 mt-1.5">
+        <p className="text-xs text-[#94a3b8]">
+          {state.loading ? "" : `${state.yieldLoss} kg yield · ${state.rework} kg rework`}
+        </p>
+        <span className="inline-flex items-center gap-1 text-xs text-[#00e5ff] font-medium shrink-0">
+          Yield &amp; Loss <ArrowRight className="w-3.5 h-3.5" />
+        </span>
+      </div>
     </Link>
   );
 }

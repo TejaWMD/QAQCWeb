@@ -85,26 +85,26 @@ export default function StockInDialog({ open, item, items, racks, user, onClose,
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose?.()}>
-      <DialogContent className="bg-[#131926] border-[#1e2740] text-white max-h-[88vh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent className="bg-white border-[#E2E8F0] text-[#0F294A] max-h-[88vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="text-white">Stock in</DialogTitle>
-          <DialogDescription className="text-[#a0aec0] text-sm">
+          <DialogTitle className="text-[#0F294A]">Stock in</DialogTitle>
+          <DialogDescription className="text-[#64748B] text-sm">
             Adds to stock on hand and logs an In movement. Several lines can share one delivery note.
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           <div className="space-y-1">
-            <label className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Date</label>
-            <Input type="date" value={header.date} onChange={(e) => setHeader((h) => ({ ...h, date: e.target.value }))} className="bg-[#0e131d] border-[#1e2740] text-white" />
+            <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Date</label>
+            <Input type="date" value={header.date} onChange={(e) => setHeader((h) => ({ ...h, date: e.target.value }))} className="bg-white border-[#E2E8F0] text-[#0F294A]" />
           </div>
           <div className="space-y-1">
-            <label className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Supplier</label>
-            <Input value={header.supplier} onChange={(e) => setHeader((h) => ({ ...h, supplier: e.target.value }))} placeholder="Optional" className="bg-[#0e131d] border-[#1e2740] text-white" />
+            <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Supplier</label>
+            <Input value={header.supplier} onChange={(e) => setHeader((h) => ({ ...h, supplier: e.target.value }))} placeholder="Optional" className="bg-white border-[#E2E8F0] text-[#0F294A]" />
           </div>
           <div className="space-y-1">
-            <label className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Delivery Note</label>
-            <Input value={header.delivery_note} onChange={(e) => setHeader((h) => ({ ...h, delivery_note: e.target.value }))} placeholder="Optional" className="bg-[#0e131d] border-[#1e2740] text-white" />
+            <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Delivery Note</label>
+            <Input value={header.delivery_note} onChange={(e) => setHeader((h) => ({ ...h, delivery_note: e.target.value }))} placeholder="Optional" className="bg-white border-[#E2E8F0] text-[#0F294A]" />
           </div>
         </div>
 
@@ -125,16 +125,16 @@ export default function StockInDialog({ open, item, items, racks, user, onClose,
         <Button
           variant="outline"
           onClick={() => setLines((prev) => [...prev, blankLine(null)])}
-          className="border-dashed border-[#1e2740] bg-transparent text-[#a0aec0] hover:bg-white/5 hover:text-white"
+          className="border-dashed border-[#E2E8F0] bg-transparent text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F294A]"
         >
           <Plus className="w-4 h-4" /> Add line
         </Button>
 
-        {error && <p className="text-xs text-[#ff4d4d]">{error}</p>}
+        {error && <p className="text-xs text-rose-600">{error}</p>}
 
         <DialogFooter>
-          <Button variant="ghost" onClick={onClose} className="text-[#a0aec0] hover:bg-white/5 hover:text-white">Cancel</Button>
-          <Button onClick={save} disabled={saving} className="bg-[#00ff9d] hover:bg-[#00e08a] text-[#0a0e17] font-semibold">
+          <Button variant="ghost" onClick={onClose} className="text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F294A]">Cancel</Button>
+          <Button onClick={save} disabled={saving} className="bg-emerald-500 hover:bg-[#00e08a] text-[#0F294A] font-semibold">
             {saving ? "Saving..." : "Record stock in"}
           </Button>
         </DialogFooter>

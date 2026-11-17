@@ -7,10 +7,10 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@
 import { Download, Lock } from "lucide-react";
 
 const ACTION_TONES = {
-  Created: "text-[#00e5ff]",
-  Updated: "text-[#e2e8f0]",
-  Deleted: "text-[#ff4d4d]",
-  Verified: "text-[#00ff9d]",
+  Created: "text-[#1D4ED8]",
+  Updated: "text-[#334155]",
+  Deleted: "text-rose-600",
+  Verified: "text-emerald-700",
 };
 
 const ACTIONS = ["all", "Created", "Updated", "Deleted", "Verified"];
@@ -65,40 +65,40 @@ export default function AuditTrailLog() {
   const set = (key, value) => setFilters((f) => ({ ...f, [key]: value }));
 
   return (
-    <div className="min-h-screen bg-[#0a0e17] p-4 md:p-6 space-y-4">
+    <div className="min-h-screen bg-[#F6F8FC] p-4 md:p-6 space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-white text-lg font-semibold">Audit Trail Log</h2>
-          <p className="text-[#a0aec0] text-sm mt-1 flex items-center gap-1.5">
-            <Lock className="w-3.5 h-3.5 text-[#00e5ff]" /> Read-only: every create, edit, delete, status change and verification is logged automatically.
+          <h2 className="text-[#0F294A] text-lg font-semibold">Audit Trail Log</h2>
+          <p className="text-[#64748B] text-sm mt-1 flex items-center gap-1.5">
+            <Lock className="w-3.5 h-3.5 text-[#1D4ED8]" /> Read-only: every create, edit, delete, status change and verification is logged automatically.
           </p>
         </div>
-        <Button onClick={exportCsv} disabled={filtered.length === 0} className="bg-[#00e5ff] hover:bg-[#00c3d7] text-[#0a0e17]">
+        <Button onClick={exportCsv} disabled={filtered.length === 0} className="bg-[#0F294A] hover:bg-[#193B68] text-white">
           <Download className="w-4 h-4 mr-1" /> Export CSV ({filtered.length})
         </Button>
       </div>
 
-      <div className="bg-[#131926] rounded-xl border border-[#1e2740] px-4 py-3 flex flex-wrap items-end gap-3">
+      <div className="bg-white rounded-xl border border-[#E2E8F0] px-4 py-3 flex flex-wrap items-end gap-3">
         <div className="space-y-1">
-          <span className="text-[11px] text-[#a0aec0]">From</span>
-          <Input type="date" value={filters.from} onChange={(e) => set("from", e.target.value)} className="bg-[#0e131d] border-[#1e2740] text-white h-9 w-[150px]" />
+          <span className="text-[11px] text-[#64748B]">From</span>
+          <Input type="date" value={filters.from} onChange={(e) => set("from", e.target.value)} className="bg-white border-[#E2E8F0] text-[#0F294A] h-9 w-[150px]" />
         </div>
         <div className="space-y-1">
-          <span className="text-[11px] text-[#a0aec0]">To</span>
-          <Input type="date" value={filters.to} onChange={(e) => set("to", e.target.value)} className="bg-[#0e131d] border-[#1e2740] text-white h-9 w-[150px]" />
+          <span className="text-[11px] text-[#64748B]">To</span>
+          <Input type="date" value={filters.to} onChange={(e) => set("to", e.target.value)} className="bg-white border-[#E2E8F0] text-[#0F294A] h-9 w-[150px]" />
         </div>
         <div className="space-y-1">
-          <span className="text-[11px] text-[#a0aec0]">Module</span>
-          <Input placeholder="Filter by module" value={filters.module} onChange={(e) => set("module", e.target.value)} className="bg-[#0e131d] border-[#1e2740] text-white h-9 w-[170px]" />
+          <span className="text-[11px] text-[#64748B]">Module</span>
+          <Input placeholder="Filter by module" value={filters.module} onChange={(e) => set("module", e.target.value)} className="bg-white border-[#E2E8F0] text-[#0F294A] h-9 w-[170px]" />
         </div>
         <div className="space-y-1">
-          <span className="text-[11px] text-[#a0aec0]">User</span>
-          <Input placeholder="Filter by user" value={filters.user} onChange={(e) => set("user", e.target.value)} className="bg-[#0e131d] border-[#1e2740] text-white h-9 w-[170px]" />
+          <span className="text-[11px] text-[#64748B]">User</span>
+          <Input placeholder="Filter by user" value={filters.user} onChange={(e) => set("user", e.target.value)} className="bg-white border-[#E2E8F0] text-[#0F294A] h-9 w-[170px]" />
         </div>
         <div className="space-y-1">
-          <span className="text-[11px] text-[#a0aec0]">Action</span>
+          <span className="text-[11px] text-[#64748B]">Action</span>
           <Select value={filters.action} onValueChange={(v) => set("action", v)}>
-            <SelectTrigger className="bg-[#0e131d] border-[#1e2740] text-white h-9 w-[140px]">
+            <SelectTrigger className="bg-white border-[#E2E8F0] text-[#0F294A] h-9 w-[140px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -110,43 +110,43 @@ export default function AuditTrailLog() {
         </div>
       </div>
 
-      <div className="bg-[#131926] rounded-xl border border-[#1e2740] overflow-x-auto">
+      <div className="bg-white rounded-xl border border-[#E2E8F0] overflow-x-auto">
         <Table>
           <TableHeader>
-            <TableRow className="border-[#1e2740] hover:bg-transparent">
-              <TableHead className="text-[#a0aec0] whitespace-nowrap">Timestamp</TableHead>
-              <TableHead className="text-[#a0aec0]">User</TableHead>
-              <TableHead className="text-[#a0aec0]">Module</TableHead>
-              <TableHead className="text-[#a0aec0]">Action</TableHead>
-              <TableHead className="text-[#a0aec0]">Record</TableHead>
-              <TableHead className="text-[#a0aec0]">Details</TableHead>
-              <TableHead className="text-[#a0aec0]">Old Value</TableHead>
-              <TableHead className="text-[#a0aec0]">New Value</TableHead>
+            <TableRow className="border-[#E2E8F0] hover:bg-transparent">
+              <TableHead className="text-[#64748B] whitespace-nowrap">Timestamp</TableHead>
+              <TableHead className="text-[#64748B]">User</TableHead>
+              <TableHead className="text-[#64748B]">Module</TableHead>
+              <TableHead className="text-[#64748B]">Action</TableHead>
+              <TableHead className="text-[#64748B]">Record</TableHead>
+              <TableHead className="text-[#64748B]">Details</TableHead>
+              <TableHead className="text-[#64748B]">Old Value</TableHead>
+              <TableHead className="text-[#64748B]">New Value</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading && (
-              <TableRow className="border-[#1e2740]">
+              <TableRow className="border-[#E2E8F0]">
                 <TableCell colSpan={8} className="text-center py-8">
-                  <span className="inline-block w-5 h-5 border-2 border-[#1e2740] border-t-[#00e5ff] rounded-full animate-spin" />
+                  <span className="inline-block w-5 h-5 border-2 border-[#E2E8F0] border-t-[#0F294A] rounded-full animate-spin" />
                 </TableCell>
               </TableRow>
             )}
             {!loading && filtered.length === 0 && (
-              <TableRow className="border-[#1e2740]">
-                <TableCell colSpan={8} className="text-center text-[#a0aec0] py-8">No audit entries match the filters.</TableCell>
+              <TableRow className="border-[#E2E8F0]">
+                <TableCell colSpan={8} className="text-center text-[#64748B] py-8">No audit entries match the filters.</TableCell>
               </TableRow>
             )}
             {!loading && filtered.map((l) => (
-              <TableRow key={l.id} className="border-[#1e2740]">
-                <TableCell className="text-xs text-[#a0aec0] whitespace-nowrap">{l.event_stamp || l.event_time}</TableCell>
-                <TableCell className="text-sm text-white">{l.user_name || "—"}</TableCell>
-                <TableCell className="text-sm text-[#e2e8f0]">{l.module || "—"}</TableCell>
-                <TableCell className={`text-sm font-medium ${ACTION_TONES[l.action] || "text-[#a0aec0]"}`}>{l.action}</TableCell>
-                <TableCell className="text-xs text-[#a0aec0] max-w-[120px] truncate">{l.record_id || "—"}</TableCell>
-                <TableCell className="text-sm text-[#e2e8f0] max-w-[260px]">{l.details || "—"}</TableCell>
-                <TableCell className="text-xs text-[#ff9f43] max-w-[120px] truncate">{l.old_value || "—"}</TableCell>
-                <TableCell className="text-xs text-[#00ff9d] max-w-[120px] truncate">{l.new_value || "—"}</TableCell>
+              <TableRow key={l.id} className="border-[#E2E8F0]">
+                <TableCell className="text-xs text-[#64748B] whitespace-nowrap">{l.event_stamp || l.event_time}</TableCell>
+                <TableCell className="text-sm text-[#0F294A]">{l.user_name || "—"}</TableCell>
+                <TableCell className="text-sm text-[#334155]">{l.module || "—"}</TableCell>
+                <TableCell className={`text-sm font-medium ${ACTION_TONES[l.action] || "text-[#64748B]"}`}>{l.action}</TableCell>
+                <TableCell className="text-xs text-[#64748B] max-w-[120px] truncate">{l.record_id || "—"}</TableCell>
+                <TableCell className="text-sm text-[#334155] max-w-[260px]">{l.details || "—"}</TableCell>
+                <TableCell className="text-xs text-amber-700 max-w-[120px] truncate">{l.old_value || "—"}</TableCell>
+                <TableCell className="text-xs text-emerald-700 max-w-[120px] truncate">{l.new_value || "—"}</TableCell>
               </TableRow>
             ))}
           </TableBody>

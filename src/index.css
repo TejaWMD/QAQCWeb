@@ -57,43 +57,44 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
-    --primary: 0 0% 9%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
-    --accent: 0 0% 96.1%;
-    --accent-foreground: 0 0% 9%;
-    --destructive: 0 84.2% 60.2%;
+    color-scheme: dark;
+    --background: 220 40% 7%;
+    --foreground: 210 40% 98%;
+    --card: 221 33% 11%;
+    --card-foreground: 210 40% 98%;
+    --popover: 221 33% 11%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 187 100% 50%;
+    --primary-foreground: 220 40% 7%;
+    --secondary: 222 33% 15%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 222 33% 15%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 222 33% 18%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 0 0% 3.9%;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-    --radius: 0.5rem;
-    --font-heading: ui-sans-serif, system-ui, sans-serif;
-    --font-body: ui-sans-serif, system-ui, sans-serif;
-    --font-display: ui-sans-serif, system-ui, sans-serif;
+    --border: 224 36% 18%;
+    --input: 224 36% 18%;
+    --ring: 187 100% 50%;
+    --chart-1: 187 100% 50%;
+    --chart-2: 157 100% 50%;
+    --chart-3: 30 100% 63%;
+    --chart-4: 280 65% 65%;
+    --chart-5: 0 100% 65%;
+    --radius: 0.875rem;
+    --font-heading: 'Comfortaa', ui-sans-serif, system-ui, sans-serif;
+    --font-body: 'Cabin', ui-sans-serif, system-ui, sans-serif;
+    --font-display: 'Comfortaa', ui-sans-serif, system-ui, sans-serif;
     --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-background: 220 35% 9%;
+    --sidebar-foreground: 214 32% 85%;
+    --sidebar-primary: 187 100% 50%;
+    --sidebar-primary-foreground: 220 40% 7%;
+    --sidebar-accent: 222 33% 15%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 224 36% 18%;
+    --sidebar-ring: 187 100% 50%;
   }
 
   .dark {
@@ -139,7 +140,112 @@
     @apply border-border outline-ring/50;
   }
 
+  html,
   body {
-    @apply bg-background text-foreground font-body;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
   }
+
+  body {
+    @apply bg-background text-foreground font-body antialiased;
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-heading;
+  }
+}
+
+/* Standardized dark navy surfaces & high-contrast light typography across all modules */
+@layer utilities {
+  .bg-gray-50,
+  .bg-slate-50,
+  .bg-\[\#F6F8FC\],
+  .bg-\[\#F8FAFC\] {
+    background-color: #0a0e17 !important;
+  }
+
+  .bg-slate-100,
+  .bg-\[\#F1F5F9\] {
+    background-color: #0e131d !important;
+  }
+
+  .bg-white:not([data-logo-badge="true"]) {
+    background-color: #131926 !important;
+  }
+
+  .bg-\[\#EBF3FF\] {
+    background-color: rgba(0, 229, 255, 0.14) !important;
+  }
+
+  .bg-\[\#0F294A\] {
+    background-color: #00e5ff !important;
+    color: #0a0e17 !important;
+  }
+
+  .hover\:bg-\[\#193B68\]:hover {
+    background-color: #00c3d7 !important;
+  }
+
+  .hover\:bg-slate-50:hover,
+  .hover\:bg-\[\#F1F5F9\]:hover,
+  .hover\:bg-gray-50:hover {
+    background-color: rgba(255, 255, 255, 0.04) !important;
+  }
+
+  /* Crisp light text on dark backgrounds */
+  .text-\[\#0F294A\],
+  .text-slate-900,
+  .text-slate-800,
+  .text-gray-900,
+  .text-gray-800 {
+    color: #f8fafc !important;
+  }
+
+  .text-\[\#334155\],
+  .text-slate-700,
+  .text-gray-700 {
+    color: #e2e8f0 !important;
+  }
+
+  .text-\[\#64748B\],
+  .text-slate-600,
+  .text-slate-500,
+  .text-slate-400,
+  .text-gray-600,
+  .text-gray-500 {
+    color: #94a3b8 !important;
+  }
+
+  .text-\[\#1D4ED8\] {
+    color: #00e5ff !important;
+  }
+
+  /* Standardized dark borders */
+  .border-\[\#E2E8F0\],
+  .border-\[\#BFD7FF\],
+  .border-slate-200,
+  .border-slate-100,
+  .border-gray-200,
+  .border-gray-100,
+  .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
+  .divide-slate-200 > :not([hidden]) ~ :not([hidden]) {
+    border-color: #1e2740 !important;
+  }
+
+  /* Translucent status badges & alerts for dark mode */
+  .bg-amber-50 { background-color: rgba(255, 159, 67, 0.14) !important; }
+  .text-amber-700, .text-amber-800, .text-amber-600 { color: #ffbe76 !important; }
+  .border-amber-300, .border-amber-200 { border-color: rgba(255, 159, 67, 0.35) !important; }
+
+  .bg-emerald-50, .bg-green-50 { background-color: rgba(0, 255, 157, 0.12) !important; }
+  .text-emerald-700, .text-green-700, .text-green-600 { color: #00ff9d !important; }
+  .border-emerald-300, .border-green-200 { border-color: rgba(0, 255, 157, 0.3) !important; }
+
+  .bg-rose-50, .bg-red-50 { background-color: rgba(255, 77, 77, 0.14) !important; }
+  .text-rose-600, .text-rose-700, .text-red-700, .text-red-600, .text-red-500 { color: #ff6b6b !important; }
+  .border-rose-300, .border-red-200 { border-color: rgba(255, 77, 77, 0.35) !important; }
+
+  .bg-sky-50, .bg-blue-50 { background-color: rgba(0, 229, 255, 0.12) !important; }
+  .text-sky-700, .text-sky-600, .text-blue-700, .text-blue-600 { color: #00e5ff !important; }
+  .border-sky-200, .border-blue-200 { border-color: rgba(0, 229, 255, 0.3) !important; }
 }

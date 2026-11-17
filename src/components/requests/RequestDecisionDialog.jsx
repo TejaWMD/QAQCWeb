@@ -85,51 +85,51 @@ export default function RequestDecisionDialog({ open, onOpenChange, request, use
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-[#131926] border-[#1e2740] text-white max-h-[85vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="bg-white border-[#E2E8F0] text-[#0F294A] max-h-[85vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle className="text-white">Review Request</DialogTitle>
+          <DialogTitle className="text-[#0F294A]">Review Request</DialogTitle>
         </DialogHeader>
-        <div className="space-y-2 rounded-lg bg-[#0e131d] border border-[#1e2740] p-3 text-sm">
+        <div className="space-y-2 rounded-lg bg-white border border-[#E2E8F0] p-3 text-sm">
           <div className="flex flex-wrap items-center gap-2">
             <span className={`inline-block text-[10px] font-semibold border rounded px-1.5 py-0.5 ${TYPE_STYLES[request.request_type] || ""}`}>
               {request.request_type}
             </span>
-            <span className="text-[#a0aec0] text-xs">
+            <span className="text-[#64748B] text-xs">
               from {request.requester_name || "—"} · {request.production_line || "—"} · {request.shift_date || "—"}
             </span>
           </div>
-          <p className="text-white font-medium">{requestSummary(request)}</p>
-          {request.reason && <p className="text-[#a0aec0] text-xs">Reason: {request.reason}</p>}
+          <p className="text-[#0F294A] font-medium">{requestSummary(request)}</p>
+          {request.reason && <p className="text-[#64748B] text-xs">Reason: {request.reason}</p>}
           {request.decision_comment && (
-            <p className="text-[#a0aec0] text-xs">Previous decision comment: {request.decision_comment}</p>
+            <p className="text-[#64748B] text-xs">Previous decision comment: {request.decision_comment}</p>
           )}
-          <p className="text-[#a0aec0] text-xs">Current status: {request.status}</p>
+          <p className="text-[#64748B] text-xs">Current status: {request.status}</p>
         </div>
         <div className="space-y-1.5">
-          <Label className="text-xs text-[#a0aec0]">Comment (required to Reject or Return)</Label>
+          <Label className="text-xs text-[#64748B]">Comment (required to Reject or Return)</Label>
           <Textarea
             value={comment}
             onChange={(e) => setComment(e.target.value)}
-            className="bg-[#0e131d] border-[#1e2740] text-white min-h-[70px]"
+            className="bg-white border-[#E2E8F0] text-[#0F294A] min-h-[70px]"
           />
         </div>
-        {error && <p className="text-xs text-[#ff4d4d]">{error}</p>}
+        {error && <p className="text-xs text-rose-600">{error}</p>}
         <DialogFooter className="sm:flex-wrap gap-2">
           {request.status === "Submitted" && (
-            <Button type="button" disabled={saving} onClick={() => decide("Start Review")} className="bg-[#0e131d] border border-[#1e2740] text-[#a0aec0] hover:text-white">
+            <Button type="button" disabled={saving} onClick={() => decide("Start Review")} className="bg-white border border-[#E2E8F0] text-[#64748B] hover:text-[#0F294A]">
               <Clock className="w-4 h-4 mr-1" /> Start Review
             </Button>
           )}
-          <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="text-[#a0aec0] hover:text-white hover:bg-white/5">
+          <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="text-[#64748B] hover:text-[#0F294A] hover:bg-[#F1F5F9]">
             Cancel
           </Button>
-          <Button type="button" disabled={saving} onClick={() => decide("Approve")} className="bg-[#00ff9d] hover:bg-[#00e58f] text-[#0a0e17]">
+          <Button type="button" disabled={saving} onClick={() => decide("Approve")} className="bg-emerald-500 hover:bg-[#00e58f] text-[#0F294A]">
             <CheckCircle2 className="w-4 h-4 mr-1" /> Approve
           </Button>
-          <Button type="button" disabled={saving} onClick={() => decide("Return")} className="bg-[#ff9f43] hover:bg-[#f58a1f] text-[#0a0e17]">
+          <Button type="button" disabled={saving} onClick={() => decide("Return")} className="bg-amber-500 hover:bg-[#f58a1f] text-[#0F294A]">
             <Undo2 className="w-4 h-4 mr-1" /> Return
           </Button>
-          <Button type="button" disabled={saving} onClick={() => decide("Reject")} className="bg-[#ff4d4d] hover:bg-[#e53939] text-white">
+          <Button type="button" disabled={saving} onClick={() => decide("Reject")} className="bg-rose-600 hover:bg-[#e53939] text-white">
             <XCircle className="w-4 h-4 mr-1" /> Reject
           </Button>
         </DialogFooter>

@@ -28,7 +28,7 @@ export default function PackagingPerCartonEditor({ value = [], onChange, items =
   return (
     <div className="space-y-2">
       {value.length === 0 && (
-        <p className="text-xs text-[#5f6b7f]">No packaging items yet. Stock warnings for this product use these quantities.</p>
+        <p className="text-xs text-[#64748B]">No packaging items yet. Stock warnings for this product use these quantities.</p>
       )}
       {value.map((row, idx) => (
         <div key={idx} className="grid grid-cols-[1fr_88px_56px_36px] gap-2 items-center">
@@ -51,13 +51,13 @@ export default function PackagingPerCartonEditor({ value = [], onChange, items =
             className={inputClass}
             placeholder="Qty"
           />
-          <span className="text-[11px] text-[#5f6b7f] truncate">{row.unit || "—"}</span>
-          <Button variant="ghost" size="icon" onClick={() => remove(idx)} className="text-[#5f6b7f] hover:text-[#ff4d4d] hover:bg-[#ff4d4d]/10">
+          <span className="text-[11px] text-[#64748B] truncate">{row.unit || "—"}</span>
+          <Button variant="ghost" size="icon" onClick={() => remove(idx)} className="text-[#64748B] hover:text-rose-600 hover:bg-rose-600/10">
             <Trash2 className="w-4 h-4" />
           </Button>
         </div>
       ))}
-      <Button variant="outline" onClick={add} className="w-full border-dashed border-[#1e2740] bg-transparent text-[#a0aec0] hover:bg-white/5 hover:text-white">
+      <Button variant="outline" onClick={add} className="w-full border-dashed border-[#E2E8F0] bg-transparent text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F294A]">
         <Plus className="w-4 h-4" /> Add packaging item
       </Button>
     </div>

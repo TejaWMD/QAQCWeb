@@ -80,8 +80,8 @@ export default function ProductDatasheetDialog({
     <Dialog open={open} onOpenChange={(v) => !v && !saving && onClose()}>
       <DialogContent className={cn(dialogClass, "max-w-4xl")}>
         <DialogHeader>
-          <DialogTitle className="text-white">{product ? `Edit ${product.product_code}` : "Add Product"}</DialogTitle>
-          <p className="text-xs text-[#5f6b7f]">Item Code is the key every module uses. Net filling and cartons per batch are calculated.</p>
+          <DialogTitle className="text-[#0F294A]">{product ? `Edit ${product.product_code}` : "Add Product"}</DialogTitle>
+          <p className="text-xs text-[#64748B]">Item Code is the key every module uses. Net filling and cartons per batch are calculated.</p>
         </DialogHeader>
 
         <DatasheetFields
@@ -102,7 +102,7 @@ export default function ProductDatasheetDialog({
           <Input value={form.notes} onChange={(e) => set("notes", e.target.value)} className={inputClass} placeholder="Optional internal note" />
         </Field>
 
-        {error && <p className="text-sm text-[#ff4d4d]">{error}</p>}
+        {error && <p className="text-sm text-rose-600">{error}</p>}
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose} className={subtleButton} disabled={saving}>Cancel</Button>

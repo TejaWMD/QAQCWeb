@@ -21,27 +21,27 @@ const NameList = ({ title, hint, rows, setRows, placeholder }) => {
   return (
     <div className="space-y-2">
       <p className={labelClass}>{title}</p>
-      <p className="text-[11px] text-[#5f6b7f]">{hint}</p>
+      <p className="text-[11px] text-[#64748B]">{hint}</p>
       <div className="flex gap-2">
         <Input value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }} placeholder={placeholder} className={inputClass} />
         <Button variant="outline" onClick={add} disabled={!draft.trim()} className={subtleButton}><Plus className="w-4 h-4" /></Button>
       </div>
-      <div className="rounded-lg border border-[#1e2740] divide-y divide-[#131926] max-h-52 overflow-y-auto">
+      <div className="rounded-lg border border-[#E2E8F0] divide-y divide-[#131926] max-h-52 overflow-y-auto">
         {rows.length === 0 ? (
-          <p className="px-3 py-3 text-xs text-[#5f6b7f]">Nothing on the list yet.</p>
+          <p className="px-3 py-3 text-xs text-[#64748B]">Nothing on the list yet.</p>
         ) : (
           rows.map((row, index) => (
             <div key={`${row.name}-${index}`} className="flex items-center gap-2 px-3 py-1.5">
-              <span className="flex-1 text-sm text-white truncate">{row.name}</span>
+              <span className="flex-1 text-sm text-[#0F294A] truncate">{row.name}</span>
               <select
                 value={row.status || "Active"}
                 onChange={(e) => setRows(rows.map((entry, i) => (i === index ? { ...entry, status: e.target.value } : entry)))}
-                className="bg-[#0a0e17] border border-[#1e2740] rounded text-xs text-[#a0aec0] px-1.5 py-1"
+                className="bg-[#F6F8FC] border border-[#E2E8F0] rounded text-xs text-[#64748B] px-1.5 py-1"
               >
                 <option value="Active">Active</option>
                 <option value="Inactive">Inactive</option>
               </select>
-              <button type="button" onClick={() => setRows(rows.filter((_, i) => i !== index))} className="text-[#5f6b7f] hover:text-[#ff4d4d]">
+              <button type="button" onClick={() => setRows(rows.filter((_, i) => i !== index))} className="text-[#64748B] hover:text-rose-600">
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -84,8 +84,8 @@ export default function MasterSettingsDialog({ open, onClose, settings, onSaved 
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className={dialogClass}>
         <DialogHeader>
-          <DialogTitle className="text-white">Product Master Settings</DialogTitle>
-          <p className="text-xs text-[#5f6b7f]">Brands and customers / channels offered on the datasheet. Imports add to these lists automatically.</p>
+          <DialogTitle className="text-[#0F294A]">Product Master Settings</DialogTitle>
+          <p className="text-xs text-[#64748B]">Brands and customers / channels offered on the datasheet. Imports add to these lists automatically.</p>
         </DialogHeader>
 
         <NameList title="Brands" hint="One row per brand; inactive brands stay in history but leave the dropdown." rows={brands} setRows={setBrands} placeholder="Add a brand" />

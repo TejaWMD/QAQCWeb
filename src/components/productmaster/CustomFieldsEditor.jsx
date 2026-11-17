@@ -13,14 +13,14 @@ export default function CustomFieldsEditor({ value = [], onChange, disabled }) {
   return (
     <div className="space-y-2">
       {rows.length === 0 ? (
-        <p className="text-xs text-[#5f6b7f]">No custom fields.</p>
+        <p className="text-xs text-[#64748B]">No custom fields.</p>
       ) : (
         rows.map((row, index) => (
           <div key={index} className="grid grid-cols-1 sm:grid-cols-[1fr_1.4fr_32px] gap-2 items-center">
             <Input value={row.label || ""} disabled={disabled} onChange={(e) => update(index, { label: e.target.value })} placeholder="Field name" className={inputClass} />
             <Input value={row.value || ""} disabled={disabled} onChange={(e) => update(index, { value: e.target.value })} placeholder="Value" className={inputClass} />
             {!disabled && (
-              <Button variant="ghost" size="icon" onClick={() => remove(index)} className="text-[#5f6b7f] hover:text-[#ff4d4d] hover:bg-[#ff4d4d]/10">
+              <Button variant="ghost" size="icon" onClick={() => remove(index)} className="text-[#64748B] hover:text-rose-600 hover:bg-rose-600/10">
                 <Trash2 className="w-4 h-4" />
               </Button>
             )}

@@ -9,9 +9,9 @@ import {
 import { inputClass, selectClass, subtleButton, panelClass } from "@/components/planning/styles";
 
 const STATUS_STYLE = {
-  Active: "bg-[#00ff9d]/10 text-[#00ff9d] border-[#00ff9d]/30",
-  Pending: "bg-[#ff9f43]/15 text-[#ff9f43] border-[#ff9f43]/40",
-  Inactive: "bg-[#3a4560]/20 text-[#a0aec0] border-[#3a4560]",
+  Active: "bg-emerald-50 text-emerald-700 border-emerald-300",
+  Pending: "bg-amber-50 text-amber-700 border-amber-300",
+  Inactive: "bg-[#3a4560]/20 text-[#64748B] border-[#3a4560]",
 };
 
 const dash = (value) => (value === 0 || value ? value : "—");
@@ -78,7 +78,7 @@ export default function ProductTable({ products = [], brands = [], customers = [
       <div className={`${panelClass} overflow-x-auto`}>
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-[10px] uppercase tracking-widest text-[#5f6b7f] border-b border-[#1e2740]">
+            <tr className="text-[10px] uppercase tracking-widest text-[#64748B] border-b border-[#E2E8F0]">
               <th className="text-left font-semibold px-3 py-2">Brand</th>
               <th className="text-left font-semibold px-3 py-2">Item Code</th>
               <th className="text-left font-semibold px-3 py-2">Carton Description</th>
@@ -96,23 +96,23 @@ export default function ProductTable({ products = [], brands = [], customers = [
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={12} className="px-3 py-8 text-center text-[#a0aec0]">
+                <td colSpan={12} className="px-3 py-8 text-center text-[#64748B]">
                   {products.length === 0 ? "No products yet. Add one, or import the datasheet." : "No products match these filters."}
                 </td>
               </tr>
             ) : (
               filtered.map((p) => (
-                <tr key={p.id} className="border-b border-[#131926] hover:bg-white/5">
-                  <td className="px-3 py-2 text-[#a0aec0] whitespace-nowrap">{p.brand || "—"}</td>
-                  <td className="px-3 py-2 text-white font-semibold whitespace-nowrap">{p.product_code}</td>
-                  <td className="px-3 py-2 text-white max-w-[280px] truncate" title={p.product_name}>{p.product_name}</td>
-                  <td className="px-3 py-2 text-right text-[#a0aec0]">{dash(num(p.carton_size))}</td>
-                  <td className="px-3 py-2 text-right text-[#a0aec0]">{dash(num(p.net_weight_kg))}</td>
-                  <td className="px-3 py-2 text-right text-[#a0aec0]">{dash(num(p.net_filling_kg))}</td>
-                  <td className="px-3 py-2 text-right text-[#a0aec0]">{dash(num(p.cartons_per_batch))}</td>
-                  <td className="px-3 py-2 text-[#a0aec0] whitespace-nowrap">{p.batch_prefix || "—"}</td>
-                  <td className="px-3 py-2 text-[#a0aec0] whitespace-nowrap">{num(p.shelf_life_months) ? `${num(p.shelf_life_months)} mo` : "—"}</td>
-                  <td className="px-3 py-2 text-[#a0aec0] whitespace-nowrap">{p.customer || "—"}</td>
+                <tr key={p.id} className="border-b border-[#E2E8F0] hover:bg-[#F1F5F9]">
+                  <td className="px-3 py-2 text-[#64748B] whitespace-nowrap">{p.brand || "—"}</td>
+                  <td className="px-3 py-2 text-[#0F294A] font-semibold whitespace-nowrap">{p.product_code}</td>
+                  <td className="px-3 py-2 text-[#0F294A] max-w-[280px] truncate" title={p.product_name}>{p.product_name}</td>
+                  <td className="px-3 py-2 text-right text-[#64748B]">{dash(num(p.carton_size))}</td>
+                  <td className="px-3 py-2 text-right text-[#64748B]">{dash(num(p.net_weight_kg))}</td>
+                  <td className="px-3 py-2 text-right text-[#64748B]">{dash(num(p.net_filling_kg))}</td>
+                  <td className="px-3 py-2 text-right text-[#64748B]">{dash(num(p.cartons_per_batch))}</td>
+                  <td className="px-3 py-2 text-[#64748B] whitespace-nowrap">{p.batch_prefix || "—"}</td>
+                  <td className="px-3 py-2 text-[#64748B] whitespace-nowrap">{num(p.shelf_life_months) ? `${num(p.shelf_life_months)} mo` : "—"}</td>
+                  <td className="px-3 py-2 text-[#64748B] whitespace-nowrap">{p.customer || "—"}</td>
                   <td className="px-3 py-2">
                     <button
                       type="button"
@@ -127,10 +127,10 @@ export default function ProductTable({ products = [], brands = [], customers = [
                   <td className="px-3 py-2 text-right whitespace-nowrap">
                     {canEdit && (
                       <>
-                        <Button variant="ghost" size="icon" onClick={() => onEdit?.(p)} className="text-[#5f6b7f] hover:text-[#00e5ff] hover:bg-[#00e5ff]/10" title="Edit">
+                        <Button variant="ghost" size="icon" onClick={() => onEdit?.(p)} className="text-[#64748B] hover:text-[#1D4ED8] hover:bg-[#EBF3FF]" title="Edit">
                           <Pencil className="w-4 h-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => onDelete?.(p)} className="text-[#5f6b7f] hover:text-[#ff4d4d] hover:bg-[#ff4d4d]/10" title="Delete (moves to Recently Deleted)">
+                        <Button variant="ghost" size="icon" onClick={() => onDelete?.(p)} className="text-[#64748B] hover:text-rose-600 hover:bg-rose-600/10" title="Delete (moves to Recently Deleted)">
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </>
@@ -143,7 +143,7 @@ export default function ProductTable({ products = [], brands = [], customers = [
         </table>
       </div>
 
-      <p className="text-xs text-[#5f6b7f]">{filtered.length} of {products.length} product(s).</p>
+      <p className="text-xs text-[#64748B]">{filtered.length} of {products.length} product(s).</p>
     </div>
   );
 }

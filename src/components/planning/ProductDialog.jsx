@@ -80,7 +80,7 @@ export default function ProductDialog({ open, onClose, product, products = [], m
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className={dialogClass}>
         <DialogHeader>
-          <DialogTitle className="text-white">{product ? `Edit ${product.product_code}` : "Add Product"}</DialogTitle>
+          <DialogTitle className="text-[#0F294A]">{product ? `Edit ${product.product_code}` : "Add Product"}</DialogTitle>
         </DialogHeader>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -125,7 +125,7 @@ export default function ProductDialog({ open, onClose, product, products = [], m
             <Input type="number" min="0" value={form.standard_batch_cartons} onChange={(e) => set("standard_batch_cartons", e.target.value)} className={inputClass} placeholder="100" />
           </Field>
           <Field label="Status" className="sm:col-span-2">
-            <label className="flex items-center gap-2 text-sm text-[#a0aec0] pt-1">
+            <label className="flex items-center gap-2 text-sm text-[#64748B] pt-1">
               <Checkbox checked={form.active !== false} onCheckedChange={(v) => set("active", !!v)} />
               Active product
             </label>
@@ -140,7 +140,7 @@ export default function ProductDialog({ open, onClose, product, products = [], m
           <Textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} className={`${inputClass} min-h-[70px]`} placeholder="Optional" />
         </Field>
 
-        {error && <p className="text-sm text-[#ff4d4d]">{error}</p>}
+        {error && <p className="text-sm text-rose-600">{error}</p>}
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose} className={subtleButton}>Cancel</Button>

@@ -108,30 +108,30 @@ export default function FormSettingsDialog({ open, onOpenChange, config = DEFAUL
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-[#131926] border-[#1e2740] text-white max-h-[85vh] overflow-y-auto sm:max-w-xl">
+      <DialogContent className="bg-white border-[#E2E8F0] text-[#0F294A] max-h-[85vh] overflow-y-auto sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle className="text-white">Form Settings</DialogTitle>
+          <DialogTitle className="text-[#0F294A]">Form Settings</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           {LISTS.map((l) => (
             <div key={l.key} className="space-y-1.5">
-              <Label className="text-xs text-[#a0aec0]">{l.label} (one per line)</Label>
+              <Label className="text-xs text-[#64748B]">{l.label} (one per line)</Label>
               <Textarea
                 value={lists[l.key] || ""}
                 onChange={(e) => setLists((s) => ({ ...s, [l.key]: e.target.value }))}
-                className="bg-[#0e131d] border-[#1e2740] text-white min-h-[60px] text-sm"
+                className="bg-white border-[#E2E8F0] text-[#0F294A] min-h-[60px] text-sm"
               />
             </div>
           ))}
 
-          <div className="space-y-3 rounded-lg border border-[#1e2740] bg-[#0e131d] p-3">
-            <p className="text-xs font-semibold text-[#e2e8f0]">Required fields per request type</p>
+          <div className="space-y-3 rounded-lg border border-[#E2E8F0] bg-white p-3">
+            <p className="text-xs font-semibold text-[#334155]">Required fields per request type</p>
             {REQUEST_TYPES.map((t) => (
               <div key={t} className="space-y-1.5">
-                <p className="text-[10px] font-semibold tracking-wide text-[#00e5ff]">{t}</p>
+                <p className="text-[10px] font-semibold tracking-wide text-[#1D4ED8]">{t}</p>
                 <div className="flex flex-wrap gap-x-4 gap-y-1.5">
                   {TYPE_FIELDS[t].map((f) => (
-                    <label key={f.key} className="flex items-center gap-1.5 text-xs text-[#e2e8f0] cursor-pointer">
+                    <label key={f.key} className="flex items-center gap-1.5 text-xs text-[#334155] cursor-pointer">
                       <Checkbox checked={(required[t] || []).includes(f.key)} onCheckedChange={() => toggleRequired(t, f.key)} />
                       {f.label}
                     </label>
@@ -141,16 +141,16 @@ export default function FormSettingsDialog({ open, onOpenChange, config = DEFAUL
             ))}
           </div>
 
-          <div className="space-y-2 rounded-lg border border-[#1e2740] bg-[#0e131d] p-3">
-            <p className="text-xs font-semibold text-[#e2e8f0]">Evidence requirements</p>
-            <label className="flex items-center gap-2 text-sm text-[#e2e8f0] cursor-pointer">
+          <div className="space-y-2 rounded-lg border border-[#E2E8F0] bg-white p-3">
+            <p className="text-xs font-semibold text-[#334155]">Evidence requirements</p>
+            <label className="flex items-center gap-2 text-sm text-[#334155] cursor-pointer">
               <Checkbox checked={evidenceDowntime} onCheckedChange={(c) => setEvidenceDowntime(c === true)} />
               Evidence photo required for Downtime / Stoppage
             </label>
-            <p className="text-[10px] text-[#a0aec0]">Evidence photo required for these approval types:</p>
+            <p className="text-[10px] text-[#64748B]">Evidence photo required for these approval types:</p>
             <div className="flex flex-wrap gap-x-4 gap-y-1.5">
               {APPROVAL_TYPES.map((t) => (
-                <label key={t} className="flex items-center gap-1.5 text-xs text-[#e2e8f0] cursor-pointer">
+                <label key={t} className="flex items-center gap-1.5 text-xs text-[#334155] cursor-pointer">
                   <Checkbox
                     checked={evidenceApprovals.includes(t)}
                     onCheckedChange={(c) => setEvidenceApprovals((list) => (c === true ? [...list, t] : list.filter((x) => x !== t)))}
@@ -160,23 +160,23 @@ export default function FormSettingsDialog({ open, onOpenChange, config = DEFAUL
               ))}
             </div>
             <div className="space-y-1 pt-1">
-              <Label className="text-xs text-[#a0aec0]">Purchase / Spending goes to the MD above this amount</Label>
+              <Label className="text-xs text-[#64748B]">Purchase / Spending goes to the MD above this amount</Label>
               <Input
                 type="number"
                 value={mdLimit}
                 onChange={(e) => setMdLimit(e.target.value)}
-                className="bg-[#0e131d] border-[#1e2740] text-white"
+                className="bg-white border-[#E2E8F0] text-[#0F294A]"
               />
             </div>
           </div>
 
-          {error && <p className="text-xs text-[#ff4d4d]">{error}</p>}
+          {error && <p className="text-xs text-rose-600">{error}</p>}
         </div>
         <DialogFooter className="mt-2">
-          <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="text-[#a0aec0] hover:text-white hover:bg-white/5">
+          <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="text-[#64748B] hover:text-[#0F294A] hover:bg-[#F1F5F9]">
             Cancel
           </Button>
-          <Button type="button" disabled={saving} onClick={save} className="bg-[#00e5ff] hover:bg-[#00c3d7] text-[#0a0e17]">
+          <Button type="button" disabled={saving} onClick={save} className="bg-[#0F294A] hover:bg-[#193B68] text-white">
             {saving ? "Saving..." : "Save Settings"}
           </Button>
         </DialogFooter>

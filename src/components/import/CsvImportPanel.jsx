@@ -43,17 +43,17 @@ function ResultBanner({ result, label }) {
   const ok = result.created > 0 && result.rowErrors.length === 0;
   const shown = result.rowErrors.slice(0, 15);
   return (
-    <div className={`rounded-lg border px-4 py-3 space-y-2 ${ok ? "border-[#00ff9d]/40 bg-[#00ff9d]/10" : "border-[#ff4d4d]/40 bg-[#ff4d4d]/10"}`}>
+    <div className={`rounded-lg border px-4 py-3 space-y-2 ${ok ? "border-emerald-300 bg-emerald-50" : "border-rose-300 bg-rose-600/10"}`}>
       <div className="flex items-center gap-2 text-sm">
-        {ok ? <CheckCircle2 className="w-4 h-4 text-[#00ff9d]" /> : <AlertTriangle className="w-4 h-4 text-[#ff9f43]" />}
-        <span className="text-white font-medium">
+        {ok ? <CheckCircle2 className="w-4 h-4 text-emerald-700" /> : <AlertTriangle className="w-4 h-4 text-amber-700" />}
+        <span className="text-[#0F294A] font-medium">
           {result.created} record{result.created === 1 ? "" : "s"} added to {label}
           {result.rowErrors.length > 0 && `, ${result.rowErrors.length} row${result.rowErrors.length === 1 ? "" : "s"} skipped`}
           .
         </span>
       </div>
       {shown.length > 0 && (
-        <ul className="text-xs text-[#a0aec0] space-y-1 max-h-40 overflow-y-auto">
+        <ul className="text-xs text-[#64748B] space-y-1 max-h-40 overflow-y-auto">
           {shown.map((e, i) => (
             <li key={i}>Row {e.row ?? "?"}: {e.error}</li>
           ))}
@@ -154,20 +154,20 @@ export default function CsvImportPanel({ config }) {
   };
 
   return (
-    <div className="bg-[#101828] rounded-xl border border-[#1e2740] p-4 space-y-4">
+    <div className="bg-[#F8FAFC] rounded-xl border border-[#E2E8F0] p-4 space-y-4">
       <input ref={fileRef} type="file" accept=".csv,text/csv" className="hidden" onChange={onFile} disabled={importing} />
       <div className="flex flex-wrap items-center gap-3">
         <Button
           onClick={() => fileRef.current?.click()}
           disabled={importing}
           variant="outline"
-          className="bg-[#0e131d] border-[#1e2740] text-white hover:bg-[#16203a] hover:text-[#00e5ff]"
+          className="bg-white border-[#E2E8F0] text-[#0F294A] hover:bg-[#16203a] hover:text-[#1D4ED8]"
         >
           <Upload className="w-4 h-4 mr-1.5" /> Choose CSV file
         </Button>
         {fileName && (
-          <span className="inline-flex items-center gap-1.5 text-sm text-[#a0aec0]">
-            <FileText className="w-4 h-4 text-[#00e5ff] shrink-0" />
+          <span className="inline-flex items-center gap-1.5 text-sm text-[#64748B]">
+            <FileText className="w-4 h-4 text-[#1D4ED8] shrink-0" />
             {fileName} — {rows.length} data rows, {headers.length} columns
           </span>
         )}
@@ -185,7 +185,7 @@ export default function CsvImportPanel({ config }) {
       )}
 
       {rows.length > 0 && (
-        <Button onClick={runImport} disabled={importing} className="bg-[#00e5ff] hover:bg-[#00c3d7] text-[#0a0e17]">
+        <Button onClick={runImport} disabled={importing} className="bg-[#0F294A] hover:bg-[#193B68] text-white">
           {importing && <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />}
           {importing ? `Importing… ${progress.done} / ${progress.total}` : `Add ${rows.length} rows to ${label}`}
         </Button>

@@ -97,17 +97,17 @@ export default function BatchRecords() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0e17] p-4 md:p-6 space-y-4">
+    <div className="min-h-screen bg-[#F6F8FC] p-4 md:p-6 space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-white text-lg font-semibold">Batch Records</h2>
-          <p className="text-[#a0aec0] text-sm mt-1">Every batch created with its labels, and every reprint logged.</p>
+          <h2 className="text-[#0F294A] text-lg font-semibold">Batch Records</h2>
+          <p className="text-[#64748B] text-sm mt-1">Every batch created with its labels, and every reprint logged.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={exportCsv} className={subtleButton} disabled={rows.length === 0}>
             <Download className="w-4 h-4 mr-1.5" /> Export CSV
           </Button>
-          <Button asChild className="bg-[#00e5ff] hover:bg-[#00c3d7] text-[#0a0e17] font-semibold">
+          <Button asChild className="bg-[#0F294A] hover:bg-[#193B68] text-white font-semibold">
             <Link to="/create-batch"><Printer className="w-4 h-4 mr-1.5" /> Create Batch</Link>
           </Button>
         </div>
@@ -117,7 +117,7 @@ export default function BatchRecords() {
         <div className="space-y-1 max-w-md">
           <label className={labelClass}>Search</label>
           <div className="relative">
-            <Search className="w-3.5 h-3.5 text-[#5f6b7f] absolute left-2.5 top-2.5" />
+            <Search className="w-3.5 h-3.5 text-[#64748B] absolute left-2.5 top-2.5" />
             <Input value={term} onChange={(e) => setTerm(e.target.value)} placeholder="Product, batch number, machine or who created it" className={`${inputClass} pl-8`} />
           </div>
         </div>
@@ -125,13 +125,13 @@ export default function BatchRecords() {
 
       {loading ? (
         <div className="flex justify-center py-12">
-          <div className="w-8 h-8 border-4 border-[#1e2740] border-t-[#00e5ff] rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-[#E2E8F0] border-t-[#0F294A] rounded-full animate-spin" />
         </div>
       ) : (
         <div className={`${panelClass} overflow-x-auto`}>
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-[10px] uppercase tracking-widest text-[#5f6b7f] border-b border-[#1e2740]">
+              <tr className="text-[10px] uppercase tracking-widest text-[#64748B] border-b border-[#E2E8F0]">
                 <th className="text-left font-semibold px-3 py-2">Product</th>
                 <th className="text-left font-semibold px-3 py-2">Recipe</th>
                 <th className="text-left font-semibold px-3 py-2">Batch</th>
@@ -146,41 +146,41 @@ export default function BatchRecords() {
             <tbody>
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-3 py-8 text-center text-[#a0aec0]">
+                  <td colSpan={9} className="px-3 py-8 text-center text-[#64748B]">
                     {records.length === 0 ? "No batches recorded yet." : "No batch matches this search."}
                   </td>
                 </tr>
               ) : (
                 rows.map((r) => (
-                  <tr key={r.id} className="border-b border-[#131926] hover:bg-white/5">
-                    <td className="px-3 py-2 text-white">
+                  <tr key={r.id} className="border-b border-[#E2E8F0] hover:bg-[#F1F5F9]">
+                    <td className="px-3 py-2 text-[#0F294A]">
                       {r.product_name}
-                      <span className="block text-[10px] text-[#5f6b7f]">{r.product_code}</span>
+                      <span className="block text-[10px] text-[#64748B]">{r.product_code}</span>
                     </td>
-                    <td className="px-3 py-2 text-[#a0aec0] max-w-[200px] truncate" title={recipeFor(r)}>{recipeFor(r) || "—"}</td>
-                    <td className="px-3 py-2 text-[#00e5ff] font-semibold whitespace-nowrap">{r.batch_number}</td>
-                    <td className="px-3 py-2 text-[#a0aec0] whitespace-nowrap">{fmtDay(r.production_date)}</td>
-                    <td className="px-3 py-2 text-[#a0aec0] whitespace-nowrap">
+                    <td className="px-3 py-2 text-[#64748B] max-w-[200px] truncate" title={recipeFor(r)}>{recipeFor(r) || "—"}</td>
+                    <td className="px-3 py-2 text-[#1D4ED8] font-semibold whitespace-nowrap">{r.batch_number}</td>
+                    <td className="px-3 py-2 text-[#64748B] whitespace-nowrap">{fmtDay(r.production_date)}</td>
+                    <td className="px-3 py-2 text-[#64748B] whitespace-nowrap">
                       {fmtDay(r.expiry_date)}
                       {r.expiry_overridden && (
-                        <span className="ml-1 inline-flex items-center gap-0.5 text-[10px] text-[#ff9f43]" title={r.expiry_override_reason || "Expiry overridden"}>
+                        <span className="ml-1 inline-flex items-center gap-0.5 text-[10px] text-amber-700" title={r.expiry_override_reason || "Expiry overridden"}>
                           <AlertTriangle className="w-3 h-3" /> override
                         </span>
                       )}
                     </td>
-                    <td className="px-3 py-2 text-right text-[#a0aec0]">{fmtQty(r.quantity_cartons)}</td>
-                    <td className="px-3 py-2 text-[#a0aec0] max-w-[180px] truncate">{r.machine || "—"}</td>
-                    <td className="px-3 py-2 text-[#a0aec0] whitespace-nowrap">
+                    <td className="px-3 py-2 text-right text-[#64748B]">{fmtQty(r.quantity_cartons)}</td>
+                    <td className="px-3 py-2 text-[#64748B] max-w-[180px] truncate">{r.machine || "—"}</td>
+                    <td className="px-3 py-2 text-[#64748B] whitespace-nowrap">
                       {r.created_by_name || "—"}
-                      <span className="block text-[10px] text-[#5f6b7f]">{fmtDateTime(r.created_date)}</span>
+                      <span className="block text-[10px] text-[#64748B]">{fmtDateTime(r.created_date)}</span>
                     </td>
                     <td className="px-3 py-2 text-right whitespace-nowrap">
-                      <Link to={`/traceability?batch=${encodeURIComponent(r.batch_number)}`} className="text-[#5f6b7f] hover:text-[#00e5ff] mr-2" title="Open traceability">
+                      <Link to={`/traceability?batch=${encodeURIComponent(r.batch_number)}`} className="text-[#64748B] hover:text-[#1D4ED8] mr-2" title="Open traceability">
                         <ExternalLink className="w-3.5 h-3.5 inline" />
                       </Link>
-                      <Button size="sm" variant="ghost" onClick={() => setReprintTarget(r)} className="text-[#00e5ff] hover:bg-[#00e5ff]/10">
+                      <Button size="sm" variant="ghost" onClick={() => setReprintTarget(r)} className="text-[#1D4ED8] hover:bg-[#EBF3FF]">
                         <Printer className="w-3.5 h-3.5 mr-1" /> Reprint
-                        {(r.reprints || []).length > 0 && <span className="text-[10px] text-[#5f6b7f] ml-1">×{r.reprints.length}</span>}
+                        {(r.reprints || []).length > 0 && <span className="text-[10px] text-[#64748B] ml-1">×{r.reprints.length}</span>}
                       </Button>
                     </td>
                   </tr>
@@ -191,7 +191,7 @@ export default function BatchRecords() {
         </div>
       )}
 
-      <p className="text-xs text-[#5f6b7f]">{rows.length} of {records.length} batch record(s)</p>
+      <p className="text-xs text-[#64748B]">{rows.length} of {records.length} batch record(s)</p>
 
       <ReprintDialog
         open={!!reprintTarget}

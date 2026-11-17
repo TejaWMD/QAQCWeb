@@ -6,7 +6,7 @@ import { appRoleOf, appRoleLabel } from "@/lib/permissions";
 import { sweepOverdue } from "@/lib/overdue";
 import { productionLines } from "@/lib/shiftLogConstants";
 import { Button } from "@/components/ui/button";
-import { Factory, ShieldCheck, ClipboardList, Users, ClipboardCheck, TrendingUp, Info, UserCheck, Plus, ArrowUpCircle, AlertTriangle } from "lucide-react";
+import { Factory, ShieldCheck, ClipboardList, Users, ClipboardCheck, TrendingUp, Plus, ArrowUpCircle, AlertTriangle } from "lucide-react";
 import KpiCard from "@/components/factoryops/KpiCard";
 import DashboardFilterBar from "@/components/factoryops/DashboardFilterBar";
 import CriticalAttentionTable from "@/components/factoryops/CriticalAttentionTable";
@@ -177,23 +177,20 @@ export default function AttentionDashboard() {
   const targetLabel = target >= 1000 ? `${(target / 1000).toFixed(target % 1000 === 0 ? 0 : 1)}k` : `${target}`;
 
   return (
-    <div className="min-h-screen bg-[#0a0e17] p-4 md:p-6 space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2 text-sm">
-          <span className="text-[#a0aec0]">Your role:</span>
-          <span className="px-2 py-0.5 rounded-full bg-[#00e5ff]/15 text-[#00e5ff] border border-[#00e5ff]/30 text-xs font-medium">
-            {role === "admin" ? "Admin" : role ? appRoleLabel(role) : "Custom modules"}
-          </span>
-        </div>
+    <div className="min-h-screen bg-[#0a0e17] p-3 sm:p-5 lg:p-6 space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-2.5">
+        <span className="px-3 py-1 rounded-full bg-[#00e5ff]/15 text-[#00e5ff] border border-[#00e5ff]/30 text-xs font-semibold">
+          {role === "admin" ? "Admin" : role ? appRoleLabel(role) : "Custom"}
+        </span>
         <div className="flex flex-wrap items-center gap-2">
-          <Button onClick={() => navigate("/shift-log-draft")} className="bg-[#00e5ff] hover:bg-[#00c3d7] text-[#0a0e17]">
-            <Plus className="w-4 h-4 mr-1" /> Log Shift Output
+          <Button size="sm" onClick={() => navigate("/shift-log-draft")} className="bg-[#00e5ff] hover:bg-[#00c3d7] text-[#0a0e17] font-semibold">
+            <Plus className="w-3.5 h-3.5" /> Shift Log
           </Button>
-          <Button onClick={() => navigate("/downtime")} className="bg-[#ff9f43] hover:bg-[#ff8c1a] text-[#0a0e17]">
-            <ArrowUpCircle className="w-4 h-4 mr-1" /> Log Downtime
+          <Button size="sm" onClick={() => navigate("/downtime")} className="bg-[#ff9f43] hover:bg-[#ff8c1a] text-[#0a0e17] font-semibold">
+            <ArrowUpCircle className="w-3.5 h-3.5" /> Downtime
           </Button>
-          <Button onClick={() => navigate("/capa-tracker")} className="bg-[#ff4d4d] hover:bg-[#e63b3b] text-white">
-            🛡 Raise CAPA
+          <Button size="sm" onClick={() => navigate("/capa-tracker")} className="bg-[#ff4d4d] hover:bg-[#e63b3b] text-white font-semibold">
+            <ShieldCheck className="w-3.5 h-3.5" /> CAPA
           </Button>
         </div>
       </div>
@@ -208,16 +205,16 @@ export default function AttentionDashboard() {
       />
 
       {(view.failedLimits > 0 || view.activeHolds > 0) && (
-        <div className="bg-[#ff4d4d]/10 border border-[#ff4d4d] rounded-xl px-4 py-3 flex flex-wrap items-center gap-3">
+        <div className="bg-[#ff4d4d]/10 border border-[#ff4d4d]/60 rounded-2xl px-4 py-3 flex flex-wrap items-center gap-3">
           <AlertTriangle className="w-5 h-5 text-[#ff4d4d] shrink-0" />
-          <div className="flex-1 min-w-[220px]">
-            <h3 className="text-[#ff4d4d] text-sm font-semibold">Critical Quality Alert</h3>
+          <div className="flex-1 min-w-[200px]">
+            <h3 className="text-[#ff4d4d] text-sm font-semibold">Quality Alert</h3>
             <p className="text-[#e2e8f0] text-xs mt-0.5">
-              {view.failedLimits} failed HACCP critical limit{view.failedLimits === 1 ? "" : "s"} and {view.activeHolds} active product hold{view.activeHolds === 1 ? "" : "s"} need attention. CAPA drafts are created automatically.
+              {view.failedLimits} failed limit{view.failedLimits === 1 ? "" : "s"} · {view.activeHolds} active hold{view.activeHolds === 1 ? "" : "s"}
             </p>
           </div>
-          <Button onClick={() => navigate("/qa-haccp?tab=holds")} className="bg-[#ff4d4d] hover:bg-[#e63b3b] text-white">
-            Review in QA &amp; HACCP
+          <Button size="sm" onClick={() => navigate("/qa-haccp?tab=holds")} className="bg-[#ff4d4d] hover:bg-[#e63b3b] text-white">
+            Review
           </Button>
         </div>
       )}
@@ -231,7 +228,7 @@ export default function AttentionDashboard() {
         <PackagingLowStock />
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
         <KpiCard
           icon={Factory}
           title="Production"
@@ -291,17 +288,6 @@ export default function AttentionDashboard() {
           progress={{ value: view.totalLines > 0 ? (view.linesLogged / view.totalLines) * 100 : 0 }}
           onClick={() => navigate("/shift-log-draft")}
         />
-      </div>
-
-      <div className="bg-[#101828] rounded-xl border border-[#1e2740] px-4 py-3 flex flex-wrap items-center gap-3">
-        <Info className="w-5 h-5 text-[#00e5ff] shrink-0" />
-        <div>
-          <h3 className="text-white text-sm font-semibold">Daily Operational Focus Mandate</h3>
-          <p className="text-[#a0aec0] text-xs mt-0.5">What needs attention today, who owns it, and is it completed with verified evidence?</p>
-        </div>
-        <span className="ml-auto flex items-center gap-1.5 text-[#00ff9d] text-xs font-medium">
-          <UserCheck className="w-4 h-4" /> Strict Protocol: Verification Required for Closure
-        </span>
       </div>
 
       <CriticalAttentionTable items={view.critical} onOpen={(item) => navigate(item.path)} />

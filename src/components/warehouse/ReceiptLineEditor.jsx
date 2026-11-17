@@ -4,11 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Trash2 } from "lucide-react";
 
-const FIELD = "bg-[#0e131d] border-[#1e2740] text-white";
+const FIELD = "bg-white border-[#E2E8F0] text-[#0F294A]";
 
 const Field = ({ label, children, className = "" }) => (
   <div className={`space-y-1 ${className}`}>
-    <label className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">{label}</label>
+    <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">{label}</label>
     {children}
   </div>
 );
@@ -19,11 +19,11 @@ export default function ReceiptLineEditor({ index, line, items, units, racks, on
   const known = items.some((i) => (i.item_code || "").toLowerCase() === code.toLowerCase());
 
   return (
-    <div className="rounded-lg border border-[#1e2740] bg-[#0e131d]/60 p-3 space-y-3">
+    <div className="rounded-lg border border-[#E2E8F0] bg-white p-3 space-y-3">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-[10px] font-semibold tracking-widest text-[#5f6b7f]">ITEM {index + 1}</p>
+        <p className="text-[10px] font-semibold tracking-widest text-[#64748B]">ITEM {index + 1}</p>
         {removable && (
-          <Button type="button" variant="ghost" size="sm" onClick={onRemove} className="h-8 text-[#ff4d4d] hover:bg-white/5 hover:text-[#ff4d4d]">
+          <Button type="button" variant="ghost" size="sm" onClick={onRemove} className="h-8 text-rose-600 hover:bg-[#F1F5F9] hover:text-rose-600">
             <Trash2 className="w-4 h-4" />
             <span className="hidden sm:inline">Remove</span>
           </Button>
@@ -40,7 +40,7 @@ export default function ReceiptLineEditor({ index, line, items, units, racks, on
             className={FIELD}
           />
           {line.product_id && (
-            <p className="mt-1 text-[11px] text-[#00e5ff]">
+            <p className="mt-1 text-[11px] text-[#1D4ED8]">
               Product Master · {line.product_code}
               {line.product_recipe ? ` · ${line.product_recipe}` : ""}
             </p>
@@ -49,7 +49,7 @@ export default function ReceiptLineEditor({ index, line, items, units, racks, on
             <button
               type="button"
               onClick={() => onAddItem(line)}
-              className="text-[11px] text-[#00e5ff] hover:underline mt-1"
+              className="text-[11px] text-[#1D4ED8] hover:underline mt-1"
             >
               Unknown item — add “{code}” to the item list
             </button>

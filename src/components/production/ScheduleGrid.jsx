@@ -10,9 +10,9 @@ const TOTAL_PX = 24 * HOUR_PX;
 const HOURS = Array.from({ length: 25 }, (_, i) => i);
 
 const BLOCK_STYLES = {
-  Planned: "bg-[#00e5ff]/15 border-[#00e5ff]/60 text-[#d8fbff]",
-  "In Progress": "bg-[#ff9f43]/20 border-[#ff9f43]/70 text-[#ffe3c4]",
-  Completed: "bg-[#00ff9d]/15 border-[#00ff9d]/60 text-[#d8ffe9]",
+  Planned: "bg-[#EBF3FF] border-[#BFD7FF] text-[#d8fbff]",
+  "In Progress": "bg-amber-50 border-amber-300 text-[#ffe3c4]",
+  Completed: "bg-emerald-50 border-emerald-300 text-[#d8ffe9]",
   Cancelled: "bg-[#3a4560]/30 border-[#3a4560] text-[#8b96a8] line-through",
 };
 
@@ -45,7 +45,7 @@ const laneLayout = (list) => {
 const Hours = () => (
   <>
     {HOURS.map((h) => (
-      <div key={h} className="absolute left-0 right-0 border-t border-[#131926]" style={{ top: h * HOUR_PX }} />
+      <div key={h} className="absolute left-0 right-0 border-t border-[#E2E8F0]" style={{ top: h * HOUR_PX }} />
     ))}
   </>
 );
@@ -72,21 +72,21 @@ export default function ScheduleGrid({ machines = [], orders = [], dateStr, onOp
 
   if (!machines.length) {
     return (
-      <div className="rounded-xl border border-[#1e2740] bg-[#0e131d] px-4 py-10 text-center text-sm text-[#a0aec0]">
+      <div className="rounded-xl border border-[#E2E8F0] bg-white px-4 py-10 text-center text-sm text-[#64748B]">
         No machines for this location. Add them on the Machines page.
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl border border-[#1e2740] bg-[#0e131d] overflow-auto max-h-[72vh]">
+    <div className="rounded-xl border border-[#E2E8F0] bg-white overflow-auto max-h-[72vh]">
       <div className="flex min-w-max">
-        <div className="w-14 shrink-0 sticky left-0 z-30 bg-[#0e131d] border-r border-[#1e2740]">
-          <div className="h-11 sticky top-0 z-30 bg-[#101828] border-b border-[#1e2740]" />
+        <div className="w-14 shrink-0 sticky left-0 z-30 bg-white border-r border-[#E2E8F0]">
+          <div className="h-11 sticky top-0 z-30 bg-[#F8FAFC] border-b border-[#E2E8F0]" />
           <div className="relative" style={{ height: TOTAL_PX }}>
             {HOURS.map((h) => (
-              <div key={h} className="absolute left-0 right-0 border-t border-[#131926]" style={{ top: h * HOUR_PX }}>
-                <span className="absolute right-1 -top-2 text-[10px] text-[#5f6b7f]">{String(h).padStart(2, "0")}:00</span>
+              <div key={h} className="absolute left-0 right-0 border-t border-[#E2E8F0]" style={{ top: h * HOUR_PX }}>
+                <span className="absolute right-1 -top-2 text-[10px] text-[#64748B]">{String(h).padStart(2, "0")}:00</span>
               </div>
             ))}
           </div>
@@ -96,13 +96,13 @@ export default function ScheduleGrid({ machines = [], orders = [], dateStr, onOp
           const { placed, lanes } = laneLayout(ordersOf(machine.name));
           const maintenance = machine.status === "Under Maintenance";
           return (
-            <div key={machine.id} className="w-[230px] shrink-0 border-r border-[#1e2740]">
-              <div className={`h-11 sticky top-0 z-20 border-b border-[#1e2740] px-2 flex items-center gap-1.5 ${maintenance ? "bg-[#2a1417]" : "bg-[#101828]"}`}>
-                <span className="text-xs font-semibold text-white truncate" title={machine.name}>{machine.name}</span>
-                {maintenance && <Wrench className="w-3 h-3 text-[#ff4d4d] shrink-0" />}
+            <div key={machine.id} className="w-[230px] shrink-0 border-r border-[#E2E8F0]">
+              <div className={`h-11 sticky top-0 z-20 border-b border-[#E2E8F0] px-2 flex items-center gap-1.5 ${maintenance ? "bg-[#2a1417]" : "bg-[#F8FAFC]"}`}>
+                <span className="text-xs font-semibold text-[#0F294A] truncate" title={machine.name}>{machine.name}</span>
+                {maintenance && <Wrench className="w-3 h-3 text-rose-600 shrink-0" />}
               </div>
               <div
-                className={`relative ${maintenance ? "bg-[#ff4d4d]/5" : ""} ${hoverMachine === machine.name ? "bg-[#00e5ff]/5" : ""}`}
+                className={`relative ${maintenance ? "bg-rose-600/5" : ""} ${hoverMachine === machine.name ? "bg-[#EBF3FF]" : ""}`}
                 style={{ height: TOTAL_PX }}
                 onDragOver={(e) => { e.preventDefault(); setHoverMachine(machine.name); }}
                 onDragLeave={() => setHoverMachine("")}
@@ -130,7 +130,7 @@ export default function ScheduleGrid({ machines = [], orders = [], dateStr, onOp
                         }}
                         onDragEnd={() => { setTimeout(() => { draggedRef.current = false; }, 50); }}
                         onClick={() => { if (!draggedRef.current) onOpen?.(order); }}
-                        className={`absolute rounded border px-1.5 py-1 overflow-hidden cursor-pointer hover:brightness-110 ${BLOCK_STYLES[order.status] || BLOCK_STYLES.Planned} ${conflict ? "ring-1 ring-[#ff4d4d]" : ""}`}
+                        className={`absolute rounded border px-1.5 py-1 overflow-hidden cursor-pointer hover:brightness-110 ${BLOCK_STYLES[order.status] || BLOCK_STYLES.Planned} ${conflict ? "ring-1 ring-[#E11D48]" : ""}`}
                         style={{ top, height, left: `calc(${lane * widthPct}% + 2px)`, width: `calc(${widthPct}% - 4px)` }}
                       >
                         <p className="text-[10px] leading-tight truncate font-semibold opacity-90">{order.product_code || "—"}</p>
@@ -140,12 +140,12 @@ export default function ScheduleGrid({ machines = [], orders = [], dateStr, onOp
                         {height > 74 && (order.batch_codes || []).length > 0 && (
                           <p className="text-[10px] leading-tight opacity-70 truncate">{order.batch_codes.join(", ")}</p>
                         )}
-                        {conflict && <AlertTriangle className="absolute top-1 right-1 w-3 h-3 text-[#ff4d4d]" />}
+                        {conflict && <AlertTriangle className="absolute top-1 right-1 w-3 h-3 text-rose-600" />}
                       </div>
                       {actualTop != null && (
                         <div
                           title={`Actual ${fmtTime(order.actual_start)}${order.actual_end ? `–${fmtTime(order.actual_end)}` : "–now"}`}
-                          className="absolute h-1.5 rounded bg-[#00ff9d] pointer-events-none"
+                          className="absolute h-1.5 rounded bg-emerald-500 pointer-events-none"
                           style={{ top: actualTop, height: Math.max(4, actualHeight), left: `calc(${lane * widthPct}% + 4px)`, width: `calc(${widthPct}% - 8px)`, opacity: 0.85 }}
                         />
                       )}

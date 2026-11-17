@@ -101,40 +101,39 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="px-6 py-3 flex items-center justify-end bg-slate-100 border-b border-slate-200">
-        <div className="flex items-center gap-4">
-          <div className="bg-slate-800 text-white text-sm px-4 py-2 rounded-full flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-green-500" />
-            {lineFilter === "all" ? "All Production Lines" : lineFilter}
+      <header className="px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between sm:justify-end gap-2 bg-slate-100 border-b border-slate-200">
+        <div className="flex flex-wrap items-center gap-2.5 sm:gap-4">
+          <div className="bg-slate-800 text-white text-xs sm:text-sm px-3.5 py-1.5 rounded-full flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-green-500 shrink-0" />
+            <span className="truncate max-w-[180px] sm:max-w-none">{lineFilter === "all" ? "All Lines" : lineFilter}</span>
           </div>
-          <Button onClick={() => navigate("/shift-log-draft")} className="bg-sky-600 hover:bg-sky-700 text-white">
-            <Plus className="w-4 h-4 mr-1" /> New Shift Log
+          <Button size="sm" onClick={() => navigate("/shift-log-draft")} className="bg-sky-600 hover:bg-sky-700 text-white">
+            <Plus className="w-4 h-4 mr-1" /> New Log
           </Button>
         </div>
       </header>
 
-      <main className="p-6 max-w-7xl mx-auto">
-        <div className="flex items-end justify-between mb-6">
+      <main className="p-4 sm:p-6 max-w-7xl mx-auto">
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 mb-6">
           <div>
-            <h2 className="text-2xl text-slate-800 font-light [font-family:'Rubik_Mono_One',_system-ui]">Operations &amp; Material Loss Overview</h2>
-            <p className="text-slate-500 text-sm mt-1">Real-time packaging efficiency, material scrap, and labor usage.</p>
+            <h2 className="text-xl sm:text-2xl text-slate-800 font-bold">Operations &amp; Loss Overview</h2>
           </div>
           {lines.length > 0 &&
-          <div className="flex items-center gap-2">
-              <div className="w-56">
+          <div className="flex flex-wrap items-center gap-2">
+              <div className="w-full sm:w-52">
                 <Select value={lineFilter} onValueChange={setLineFilter}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="rounded-full bg-white"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Lines Combined</SelectItem>
+                    <SelectItem value="all">All Lines</SelectItem>
                     {productionLines.map((l) =>
                   <SelectItem key={l} value={l}>{l}</SelectItem>
                   )}
                   </SelectContent>
                 </Select>
               </div>
-              <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="w-40" />
-              <span className="text-slate-400 text-sm">to</span>
-              <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="w-40" />
+              <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="w-[140px] sm:w-36 rounded-full bg-white" />
+              <span className="text-slate-500 text-xs">to</span>
+              <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="w-[140px] sm:w-36 rounded-full bg-white" />
             </div>
           }
         </div>
@@ -187,7 +186,7 @@ export default function Home() {
               <DowntimeParetoChart data={downtimeData.pareto} />
             </div>
 
-            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
               <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-slate-700">Recent Shift Logs</h3>
                 <span className="text-xs text-slate-400">{recentLogs.length} of {filtered.length} entries</span>

@@ -29,7 +29,7 @@ export default function IdentityFields({ form, set, brands = [], codeTaken, disa
         <Input
           value={form.product_code}
           onChange={(e) => set("product_code", e.target.value.toUpperCase())}
-          className={`${inputClass} ${codeTaken ? "border-[#ff4d4d]" : ""}`}
+          className={`${inputClass} ${codeTaken ? "border-rose-300" : ""}`}
           placeholder="RCE"
           disabled={disabled}
         />
@@ -62,7 +62,7 @@ export default function IdentityFields({ form, set, brands = [], codeTaken, disa
         </Select>
       </Field>
       <Field label="Hide from new records" hint="Hidden products stay on old records but leave the dropdowns">
-        <label className="flex items-center gap-2 text-sm text-[#a0aec0] pt-2">
+        <label className="flex items-center gap-2 text-sm text-[#64748B] pt-2">
           <Checkbox checked={!!form.hidden} onCheckedChange={(v) => set("hidden", !!v)} disabled={disabled} />
           Hidden
         </label>

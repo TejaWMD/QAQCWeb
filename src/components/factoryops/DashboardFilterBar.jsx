@@ -5,21 +5,21 @@ import { Button } from "@/components/ui/button";
 import { Filter, RotateCcw } from "lucide-react";
 import { productionLines } from "@/lib/shiftLogConstants";
 
-// Global filter bar of the Attention Dashboard. Values are controlled by the page.
 export default function DashboardFilterBar({ date, shift, line, status, onChange, onReset }) {
   return (
-    <div className="bg-[#131926] rounded-xl border border-[#1e2740] px-4 py-3 flex flex-wrap items-center gap-3">
-      <span className="flex items-center gap-1.5 text-sm text-[#00e5ff] font-medium">
-        <Filter className="w-4 h-4" /> Global Filters:
-      </span>
+    <div className="bg-[#131926] rounded-2xl border border-[#1e2740] p-3 sm:px-4 sm:py-3 grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap items-center gap-2.5">
+      <div className="hidden lg:flex items-center justify-center w-8 h-8 rounded-full bg-[#00e5ff]/10 text-[#00e5ff] shrink-0">
+        <Filter className="w-4 h-4" />
+      </div>
       <Input
         type="date"
         value={date}
         onChange={(e) => onChange("date", e.target.value)}
-        className="w-[160px] bg-[#0e131d] border-[#1e2740] text-white"
+        aria-label="Filter by date"
+        className="w-full lg:w-[155px] rounded-full bg-[#0e131d] border-[#1e2740] text-white text-xs h-9 px-3.5"
       />
       <Select value={shift} onValueChange={(v) => onChange("shift", v)}>
-        <SelectTrigger className="w-[160px] bg-[#0e131d] border-[#1e2740] text-white">
+        <SelectTrigger className="w-full lg:w-[150px] rounded-full bg-[#0e131d] border-[#1e2740] text-white text-xs h-9 px-3.5">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -29,18 +29,18 @@ export default function DashboardFilterBar({ date, shift, line, status, onChange
         </SelectContent>
       </Select>
       <Select value={line} onValueChange={(v) => onChange("line", v)}>
-        <SelectTrigger className="w-[240px] bg-[#0e131d] border-[#1e2740] text-white">
+        <SelectTrigger className="w-full lg:w-[210px] rounded-full bg-[#0e131d] border-[#1e2740] text-white text-xs h-9 px-3.5">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">All Production Lines</SelectItem>
+          <SelectItem value="all">All Lines</SelectItem>
           {productionLines.map((l) => (
             <SelectItem key={l} value={l}>{l}</SelectItem>
           ))}
         </SelectContent>
       </Select>
       <Select value={status} onValueChange={(v) => onChange("status", v)}>
-        <SelectTrigger className="w-[150px] bg-[#0e131d] border-[#1e2740] text-white">
+        <SelectTrigger className="w-full lg:w-[140px] rounded-full bg-[#0e131d] border-[#1e2740] text-white text-xs h-9 px-3.5">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -50,8 +50,15 @@ export default function DashboardFilterBar({ date, shift, line, status, onChange
           <SelectItem value="Verified">Verified</SelectItem>
         </SelectContent>
       </Select>
-      <Button variant="ghost" onClick={onReset} className="text-[#a0aec0] hover:text-white hover:bg-white/5">
-        <RotateCcw className="w-3.5 h-3.5 mr-1" /> Reset
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={onReset}
+        title="Reset filters"
+        aria-label="Reset filters"
+        className="justify-self-end lg:ml-auto h-9 w-9 rounded-full text-[#cbd5e1] hover:text-white hover:bg-white/10"
+      >
+        <RotateCcw className="w-4 h-4" />
       </Button>
     </div>
   );

@@ -69,16 +69,16 @@ export default function ActivityHistory() {
   const exportCsv = () => downloadCsv(`activity-history-${todayStr()}.csv`, EXPORT_COLUMNS, filtered);
 
   return (
-    <div className="min-h-full bg-[#0a0e17] p-4 md:p-6 space-y-4">
+    <div className="min-h-full bg-[#F6F8FC] p-4 md:p-6 space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-white text-lg font-semibold">Activity History</h2>
-          <p className="text-[#a0aec0] text-sm mt-1 flex items-center gap-1.5">
-            <ShieldCheck className="w-3.5 h-3.5 text-[#00e5ff]" />
+          <h2 className="text-[#0F294A] text-lg font-semibold">Activity History</h2>
+          <p className="text-[#64748B] text-sm mt-1 flex items-center gap-1.5">
+            <ShieldCheck className="w-3.5 h-3.5 text-[#1D4ED8]" />
             Read-only record of every action taken in the app, including user actions, system actions and data changes.
           </p>
         </div>
-        <p className="text-[11px] text-[#5f6b7f]">
+        <p className="text-[11px] text-[#64748B]">
           Latest {AUDIT_LIMIT} audit entries and {ACTIVITY_LIMIT} production line entries
         </p>
       </div>

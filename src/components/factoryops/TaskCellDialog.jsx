@@ -73,36 +73,36 @@ export default function TaskCellDialog({ task, onOpenChange, onUpdated }) {
 
   return (
     <Dialog open={!!task} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-[#131926] border-[#1e2740] text-white sm:max-w-md">
+      <DialogContent className="bg-white border-[#E2E8F0] text-[#0F294A] sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-white">{task.title}</DialogTitle>
+          <DialogTitle className="text-[#0F294A]">{task.title}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3 text-sm">
           <div className="grid grid-cols-2 gap-2 text-xs">
-            <div><span className="text-[#a0aec0]">Supervisor:</span> <span className="text-[#e2e8f0]">{task.owner || "Unassigned"}</span></div>
-            <div><span className="text-[#a0aec0]">Module:</span> <span className="text-[#e2e8f0]">{task.module || "—"}</span></div>
-            <div><span className="text-[#a0aec0]">Due Date:</span> <span className="text-[#e2e8f0]">{task.due_date || "—"}</span></div>
-            <div><span className="text-[#a0aec0]">Priority:</span> <span className="text-[#e2e8f0]">{task.priority || "—"}</span></div>
+            <div><span className="text-[#64748B]">Supervisor:</span> <span className="text-[#334155]">{task.owner || "Unassigned"}</span></div>
+            <div><span className="text-[#64748B]">Module:</span> <span className="text-[#334155]">{task.module || "—"}</span></div>
+            <div><span className="text-[#64748B]">Due Date:</span> <span className="text-[#334155]">{task.due_date || "—"}</span></div>
+            <div><span className="text-[#64748B]">Priority:</span> <span className="text-[#334155]">{task.priority || "—"}</span></div>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[#a0aec0] text-xs">Status:</span>
+            <span className="text-[#64748B] text-xs">Status:</span>
             <StatusBadge status={task.status} />
           </div>
-          {task.notes && <p className="text-xs text-[#a0aec0] bg-[#0e131d] border border-[#1e2740] rounded-md p-2.5">{task.notes}</p>}
+          {task.notes && <p className="text-xs text-[#64748B] bg-white border border-[#E2E8F0] rounded-md p-2.5">{task.notes}</p>}
           <EvidenceUpload value={evidence} onChange={setEvidence} label="Evidence Attachment (required to close)" />
-          <p className="text-[11px] text-[#a0aec0] flex items-start gap-1.5">
-            <Lock className="w-3.5 h-3.5 shrink-0 mt-0.5 text-[#00e5ff]" />
+          <p className="text-[11px] text-[#64748B] flex items-start gap-1.5">
+            <Lock className="w-3.5 h-3.5 shrink-0 mt-0.5 text-[#1D4ED8]" />
             A task can only be closed by uploading evidence. A manager then marks it Verified.
           </p>
         </div>
         <DialogFooter className="gap-2">
           {task.status === "Open" && canEdit && (
-            <Button disabled={busy} onClick={() => update("In Progress")} className="bg-[#00e5ff] hover:bg-[#00c3d7] text-[#0a0e17]">
+            <Button disabled={busy} onClick={() => update("In Progress")} className="bg-[#0F294A] hover:bg-[#193B68] text-white">
               <PlayCircle className="w-4 h-4 mr-1" /> Start Task
             </Button>
           )}
           {canEdit && !["Completed", "Verified"].includes(task.status) && (
-            <Button disabled={busy || !hasEvidence} onClick={() => update("Completed")} className="bg-[#ff9f43] hover:bg-[#ff8c1a] text-[#0a0e17]">
+            <Button disabled={busy || !hasEvidence} onClick={() => update("Completed")} className="bg-amber-500 hover:bg-amber-600 text-white">
               <BadgeCheck className="w-4 h-4 mr-1" /> Upload Evidence &amp; Complete
             </Button>
           )}
@@ -110,7 +110,7 @@ export default function TaskCellDialog({ task, onOpenChange, onUpdated }) {
             <Button
               disabled={busy || !hasEvidence || task.status !== "Completed"}
               onClick={() => update("Verified")}
-              className="bg-[#00ff9d] hover:bg-[#00e08a] text-[#0a0e17]"
+              className="bg-emerald-500 hover:bg-[#00e08a] text-[#0F294A]"
             >
               <BadgeCheck className="w-4 h-4 mr-1" /> Mark Verified
             </Button>

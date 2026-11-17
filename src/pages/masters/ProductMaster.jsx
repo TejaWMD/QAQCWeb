@@ -105,11 +105,11 @@ export default function ProductMaster() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0e17] p-4 md:p-6 space-y-4">
+    <div className="min-h-screen bg-[#F6F8FC] p-4 md:p-6 space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-white text-lg font-semibold">Product Master</h2>
-          <p className="text-[#a0aec0] text-sm mt-1">
+          <h2 className="text-[#0F294A] text-lg font-semibold">Product Master</h2>
+          <p className="text-[#64748B] text-sm mt-1">
             The single source of truth for every product: Item Code, carton description, recipe, line type, calculated filling and cartons per batch.
           </p>
         </div>
@@ -135,11 +135,11 @@ export default function ProductMaster() {
 
       {loading ? (
         <div className="flex justify-center py-12">
-          <div className="w-8 h-8 border-4 border-[#1e2740] border-t-[#00e5ff] rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-[#E2E8F0] border-t-[#0F294A] rounded-full animate-spin" />
         </div>
       ) : (
         <Tabs value={tab} onValueChange={setTab}>
-          <TabsList className="bg-[#0e131d] border border-[#1e2740] flex-wrap h-auto">
+          <TabsList className="bg-white border border-[#E2E8F0] flex-wrap h-auto">
             <TabsTrigger value="products">Datasheet ({live.length})</TabsTrigger>
             <TabsTrigger value="completeness">Data completeness{incomplete ? ` (${incomplete})` : ""}</TabsTrigger>
             {admin && <TabsTrigger value="imports">Import history</TabsTrigger>}

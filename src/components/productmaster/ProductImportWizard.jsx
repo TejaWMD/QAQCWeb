@@ -101,16 +101,16 @@ export default function ProductImportWizard({ open, onClose, products = [], reci
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && !importing && onClose()}>
-      <DialogContent className="bg-[#0b1018] border-[#1e2740] text-white max-w-5xl max-h-[92vh] overflow-y-auto">
+      <DialogContent className="bg-white border-[#E2E8F0] text-[#0F294A] max-w-5xl max-h-[92vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-white">Import Product Master</DialogTitle>
-          <p className="text-xs text-[#5f6b7f]">CSV or Excel. Rows are matched on Item Code — nothing is ever deleted by an import.</p>
+          <DialogTitle className="text-[#0F294A]">Import Product Master</DialogTitle>
+          <p className="text-xs text-[#64748B]">CSV or Excel. Rows are matched on Item Code — nothing is ever deleted by an import.</p>
           <div className="flex flex-wrap gap-2 pt-2">
             {STEPS.map((label, index) => (
               <span
                 key={label}
                 className={`text-[11px] px-2 py-1 rounded-full border ${
-                  index === step ? "border-[#00e5ff] bg-[#00e5ff]/10 text-[#00e5ff]" : index < step ? "border-[#00ff9d]/30 bg-[#00ff9d]/10 text-[#00ff9d]" : "border-[#1e2740] text-[#5f6b7f]"
+                  index === step ? "border-[#BFD7FF] bg-[#EBF3FF] text-[#1D4ED8]" : index < step ? "border-emerald-300 bg-emerald-50 text-emerald-700" : "border-[#E2E8F0] text-[#64748B]"
                 }`}
               >
                 {label}
@@ -121,14 +121,14 @@ export default function ProductImportWizard({ open, onClose, products = [], reci
 
         {step === 0 && (
           <div className="space-y-3">
-            <label className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-[#1e2740] bg-[#0e131d] px-4 py-10 cursor-pointer hover:border-[#00e5ff]/50">
+            <label className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-[#E2E8F0] bg-white px-4 py-10 cursor-pointer hover:border-[#BFD7FF]">
               <input type="file" accept=".csv,.xlsx,.xls,text/csv" className="hidden" onChange={onFile} disabled={reading} />
-              {reading ? <Loader2 className="w-6 h-6 text-[#00e5ff] animate-spin" /> : <Upload className="w-6 h-6 text-[#00e5ff]" />}
-              <span className="text-sm text-white">{reading ? "Reading the file..." : "Choose the datasheet CSV or Excel file"}</span>
-              <span className="text-xs text-[#5f6b7f]">Blank rows and a title row above the header are skipped automatically.</span>
+              {reading ? <Loader2 className="w-6 h-6 text-[#1D4ED8] animate-spin" /> : <Upload className="w-6 h-6 text-[#1D4ED8]" />}
+              <span className="text-sm text-[#0F294A]">{reading ? "Reading the file..." : "Choose the datasheet CSV or Excel file"}</span>
+              <span className="text-xs text-[#64748B]">Blank rows and a title row above the header are skipped automatically.</span>
             </label>
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-xs text-[#5f6b7f]">Start from the template if you are building a new file.</p>
+              <p className="text-xs text-[#64748B]">Start from the template if you are building a new file.</p>
               <Button variant="outline" onClick={downloadBlankTemplate} className={subtleButton}>
                 <Download className="w-4 h-4 mr-1.5" /> Download blank template
               </Button>
@@ -149,12 +149,12 @@ export default function ProductImportWizard({ open, onClose, products = [], reci
 
         {step === 2 && (
           <>
-            <div className="flex flex-wrap items-center gap-2 text-xs text-[#a0aec0]">
-              <FileText className="w-3.5 h-3.5 text-[#00e5ff]" /> {fileName} · {table.rows.length} data row(s)
+            <div className="flex flex-wrap items-center gap-2 text-xs text-[#64748B]">
+              <FileText className="w-3.5 h-3.5 text-[#1D4ED8]" /> {fileName} · {table.rows.length} data row(s)
             </div>
             <ImportPreviewStep preview={preview} />
             {importable === 0 && (
-              <p className="flex items-center gap-1.5 text-sm text-[#ff4d4d]">
+              <p className="flex items-center gap-1.5 text-sm text-rose-600">
                 <AlertTriangle className="w-4 h-4" /> Nothing can be imported yet — check the mapping and the rejected rows.
               </p>
             )}

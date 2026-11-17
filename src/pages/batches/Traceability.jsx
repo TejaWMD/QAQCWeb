@@ -33,8 +33,8 @@ export default function Traceability() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0a0e17] flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-[#1e2740] border-t-[#00e5ff] rounded-full animate-spin" />
+      <div className="min-h-screen bg-[#F6F8FC] flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-[#E2E8F0] border-t-[#0F294A] rounded-full animate-spin" />
       </div>
     );
   }
@@ -50,12 +50,12 @@ export default function Traceability() {
   ] : [];
 
   return (
-    <div className="min-h-screen bg-[#0a0e17] p-4 md:p-6 space-y-4">
+    <div className="min-h-screen bg-[#F6F8FC] p-4 md:p-6 space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-white text-lg font-semibold">{lot && !batch ? "Lot Traceability" : "Batch Traceability"}</h2>
-          <p className="text-[#a0aec0] text-sm mt-1">
-            {lot && !batch ? "Supplier lot:" : "Scanned batch:"} <span className="text-[#00e5ff] font-semibold">{batch || lot || "—"}</span>
+          <h2 className="text-[#0F294A] text-lg font-semibold">{lot && !batch ? "Lot Traceability" : "Batch Traceability"}</h2>
+          <p className="text-[#64748B] text-sm mt-1">
+            {lot && !batch ? "Supplier lot:" : "Scanned batch:"} <span className="text-[#1D4ED8] font-semibold">{batch || lot || "—"}</span>
           </p>
         </div>
         <Button asChild variant="outline" className={subtleButton}>
@@ -67,9 +67,9 @@ export default function Traceability() {
         <div className={`${panelClass} p-6 max-w-xl`}>
           <div className="flex items-center gap-2 mb-2">
             <AlertTriangle className="w-5 h-5 text-amber-500" />
-            <h3 className="text-white font-semibold">{lot ? "Lot not found" : "Batch not found"}</h3>
+            <h3 className="text-[#0F294A] font-semibold">{lot ? "Lot not found" : "Batch not found"}</h3>
           </div>
-          <p className="text-sm text-[#a0aec0]">
+          <p className="text-sm text-[#64748B]">
             {batch || lot
               ? `Nothing matches "${batch || lot}".`
               : "No batch number or lot was given in the link."} Check the label or open Batch Records.
@@ -83,51 +83,51 @@ export default function Traceability() {
             <div className="space-y-4">
               <div className={`${panelClass} p-4 space-y-4`}>
                 <div>
-                  <h3 className="text-white text-base font-semibold">{record.product_name}</h3>
-                  <p className="text-xs text-[#5f6b7f]">Batch {record.batch_number}</p>
+                  <h3 className="text-[#0F294A] text-base font-semibold">{record.product_name}</h3>
+                  <p className="text-xs text-[#64748B]">Batch {record.batch_number}</p>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {facts.map(([label, value]) => (
                     <div key={label}>
                       <p className={labelClass}>{label}</p>
-                      <p className="text-sm text-white mt-0.5">{value}</p>
+                      <p className="text-sm text-[#0F294A] mt-0.5">{value}</p>
                     </div>
                   ))}
                 </div>
 
                 {record.expiry_overridden && (
-                  <div className="rounded-lg border border-[#ff9f43]/40 bg-[#ff9f43]/10 px-3 py-2">
-                    <p className="text-[11px] text-[#ff9f43] font-semibold flex items-center gap-1">
+                  <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2">
+                    <p className="text-[11px] text-amber-700 font-semibold flex items-center gap-1">
                       <AlertTriangle className="w-3.5 h-3.5" /> Expiry date overridden by {record.expiry_override_by || "Admin"}
                     </p>
-                    <p className="text-[11px] text-[#a0aec0] mt-0.5">{record.expiry_override_reason || "No reason recorded."}</p>
+                    <p className="text-[11px] text-[#64748B] mt-0.5">{record.expiry_override_reason || "No reason recorded."}</p>
                   </div>
                 )}
 
                 {order && (
-                  <div className="border-t border-[#1e2740] pt-3">
+                  <div className="border-t border-[#E2E8F0] pt-3">
                     <p className={`${labelClass} mb-1`}>Scheduled production</p>
-                    <p className="text-sm text-white">{order.order_number} · {order.status}</p>
-                    <p className="text-xs text-[#a0aec0] mt-0.5">
+                    <p className="text-sm text-[#0F294A]">{order.order_number} · {order.status}</p>
+                    <p className="text-xs text-[#64748B] mt-0.5">
                       {order.machine || "—"} · planned {fmtDateTime(order.planned_start)}
                       {order.actual_start ? ` · actual ${fmtDateTime(order.actual_start)}` : ""}
                     </p>
-                    <p className="text-xs text-[#a0aec0] mt-1">
-                      Produced <span className="text-[#00ff9d] font-semibold">{fmtQty(order.produced_cartons)}</span> of {fmtQty(order.quantity_cartons)} cartons
+                    <p className="text-xs text-[#64748B] mt-1">
+                      Produced <span className="text-emerald-700 font-semibold">{fmtQty(order.produced_cartons)}</span> of {fmtQty(order.quantity_cartons)} cartons
                       {" · "}{(order.recorded_batches || []).length} batch{ (order.recorded_batches || []).length === 1 ? "" : "es"} recorded
                     </p>
                   </div>
                 )}
 
-                <div className="border-t border-[#1e2740] pt-3">
+                <div className="border-t border-[#E2E8F0] pt-3">
                   <p className={`${labelClass} mb-1 flex items-center gap-1`}><FlaskConical className="w-3 h-3" /> Reprint history</p>
                   {(record.reprints || []).length === 0 ? (
-                    <p className="text-xs text-[#5f6b7f]">Printed once when the batch was created ({record.print_count || 0} label(s)).</p>
+                    <p className="text-xs text-[#64748B]">Printed once when the batch was created ({record.print_count || 0} label(s)).</p>
                   ) : (
                     <ul className="space-y-1">
                       {record.reprints.map((entry, index) => (
-                        <li key={index} className="text-xs text-[#a0aec0]">
+                        <li key={index} className="text-xs text-[#64748B]">
                           {entry.user_name || "—"} · {fmtDateTime(entry.date)} · {entry.copies || 1} label(s)
                         </li>
                       ))}
@@ -140,7 +140,7 @@ export default function Traceability() {
             </div>
 
             <div className={`${panelClass} p-4 space-y-2`}>
-              <p className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Label as printed</p>
+              <p className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Label as printed</p>
               <div className="overflow-x-auto pb-1">
                 <div className="inline-block shadow-lg">
                   <LabelPreview
@@ -155,7 +155,7 @@ export default function Traceability() {
                   />
                 </div>
               </div>
-              <p className="text-[11px] text-[#5f6b7f]">{record.label_layout_name || "Saved layout"}</p>
+              <p className="text-[11px] text-[#64748B]">{record.label_layout_name || "Saved layout"}</p>
             </div>
           </div>
 

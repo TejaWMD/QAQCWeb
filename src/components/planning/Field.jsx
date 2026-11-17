@@ -6,7 +6,7 @@ export default function Field({ label, hint, className = "", children }) {
     <div className={`space-y-1 ${className}`}>
       <label className={labelClass}>{label}</label>
       {children}
-      {hint && <p className="text-[11px] text-[#5f6b7f]">{hint}</p>}
+      {hint && <p className="text-[11px] text-[#64748B]">{hint}</p>}
     </div>
   );
 }

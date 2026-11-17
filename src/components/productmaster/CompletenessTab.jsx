@@ -12,7 +12,7 @@ import {
 import { inputClass, selectClass, subtleButton, panelClass } from "@/components/planning/styles";
 
 const Cell = ({ filled, children }) => (
-  <span className={filled ? "text-[#a0aec0]" : "text-[#ff9f43]"}>{children}</span>
+  <span className={filled ? "text-[#64748B]" : "text-amber-700"}>{children}</span>
 );
 
 // Finds what is still missing on each product and lets it be fixed in place.
@@ -69,7 +69,7 @@ export default function CompletenessTab({ products = [], brands = [], user, onRe
             </SelectContent>
           </Select>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setOnlyGaps((v) => !v)} className={`${subtleButton} flex-1 ${onlyGaps ? "text-[#ff9f43] border-[#ff9f43]/40" : ""}`}>
+            <Button variant="outline" onClick={() => setOnlyGaps((v) => !v)} className={`${subtleButton} flex-1 ${onlyGaps ? "text-amber-700 border-amber-300" : ""}`}>
               <AlertTriangle className="w-4 h-4 mr-1.5" /> {onlyGaps ? "Gaps only" : "All rows"}
             </Button>
             <Button variant="outline" onClick={exportGaps} className={subtleButton} title="Export gaps"><Download className="w-4 h-4" /></Button>
@@ -80,7 +80,7 @@ export default function CompletenessTab({ products = [], brands = [], user, onRe
       <div className={`${panelClass} overflow-x-auto`}>
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-[10px] uppercase tracking-widest text-[#5f6b7f] border-b border-[#1e2740]">
+            <tr className="text-[10px] uppercase tracking-widest text-[#64748B] border-b border-[#E2E8F0]">
               <th className="text-left font-semibold px-3 py-2">Item Code</th>
               <th className="text-left font-semibold px-3 py-2">Carton Description</th>
               <th className="text-left font-semibold px-3 py-2">Batch Code</th>
@@ -95,13 +95,13 @@ export default function CompletenessTab({ products = [], brands = [], user, onRe
           </thead>
           <tbody>
             {filtered.length === 0 ? (
-              <tr><td colSpan={10} className="px-3 py-8 text-center text-[#a0aec0]">Nothing to show.</td></tr>
+              <tr><td colSpan={10} className="px-3 py-8 text-center text-[#64748B]">Nothing to show.</td></tr>
             ) : filtered.map((p) => {
               const completeness = productCompleteness(p);
               return (
-                <tr key={p.id} className="border-b border-[#131926] hover:bg-white/5">
-                  <td className="px-3 py-2 text-white font-semibold whitespace-nowrap">{p.product_code}</td>
-                  <td className="px-3 py-2 text-[#a0aec0] max-w-[240px] truncate" title={p.product_name}>{p.product_name}</td>
+                <tr key={p.id} className="border-b border-[#E2E8F0] hover:bg-[#F1F5F9]">
+                  <td className="px-3 py-2 text-[#0F294A] font-semibold whitespace-nowrap">{p.product_code}</td>
+                  <td className="px-3 py-2 text-[#64748B] max-w-[240px] truncate" title={p.product_name}>{p.product_name}</td>
                   <td className="px-3 py-2">
                     <Cell filled={!!p.batch_prefix}>
                       <InlineCell value={p.batch_prefix || ""} onSave={(v) => saveField(p, "batch_prefix", v)} canEdit={canEditProductField(user, "batch_prefix")} />
@@ -139,9 +139,9 @@ export default function CompletenessTab({ products = [], brands = [], user, onRe
                   </td>
                   <td className="px-3 py-2">
                     {completeness.incomplete ? (
-                      <span className="text-[#ff9f43] text-xs">{completeness.core.join(", ")}</span>
+                      <span className="text-amber-700 text-xs">{completeness.core.join(", ")}</span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 text-[#00ff9d] text-xs"><Check className="w-3.5 h-3.5" /> Ready</span>
+                      <span className="inline-flex items-center gap-1 text-emerald-700 text-xs"><Check className="w-3.5 h-3.5" /> Ready</span>
                     )}
                   </td>
                 </tr>
@@ -151,7 +151,7 @@ export default function CompletenessTab({ products = [], brands = [], user, onRe
         </table>
       </div>
 
-      <p className="text-xs text-[#5f6b7f]">{filtered.length} product(s). QA may edit shelf life and barcodes; other fields are Admin only.</p>
+      <p className="text-xs text-[#64748B]">{filtered.length} product(s). QA may edit shelf life and barcodes; other fields are Admin only.</p>
     </div>
   );
 }

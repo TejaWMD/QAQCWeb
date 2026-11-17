@@ -19,23 +19,23 @@ export default function FieldMappingList({ fields, headers, mapping, required, o
 
   return (
     <div>
-      <p className="text-xs text-[#a0aec0] mb-2">
+      <p className="text-xs text-[#64748B] mb-2">
         {mappedCount} of {fields.length} fields matched to columns — adjust any mapping below; unmapped fields are skipped.
       </p>
       <div className="max-h-[360px] overflow-y-auto pr-1 space-y-1.5">
         {ordered.map((f) => (
-          <div key={f.key} className="grid grid-cols-1 md:grid-cols-[1fr_230px] gap-2 items-center bg-[#0e131d] border border-[#1e2740] rounded-lg px-3 py-2">
+          <div key={f.key} className="grid grid-cols-1 md:grid-cols-[1fr_230px] gap-2 items-center bg-white border border-[#E2E8F0] rounded-lg px-3 py-2">
             <div className="min-w-0">
-              <span className="text-sm text-white">{humanize(f.key)}</span>
-              {requiredSet.has(f.key) && <span className="text-[#ff4d4d] ml-1" title="Required">*</span>}
-              <span className="block text-[10px] text-[#5f6b7f] truncate">{f.key} · {typeLabel(f)}</span>
+              <span className="text-sm text-[#0F294A]">{humanize(f.key)}</span>
+              {requiredSet.has(f.key) && <span className="text-rose-600 ml-1" title="Required">*</span>}
+              <span className="block text-[10px] text-[#64748B] truncate">{f.key} · {typeLabel(f)}</span>
             </div>
             <Select
               value={mapping[f.key] || "none"}
               onValueChange={(v) => onChange({ ...mapping, [f.key]: v === "none" ? "" : v })}
               disabled={disabled}
             >
-              <SelectTrigger className="h-8 bg-[#101828] border-[#1e2740] text-white text-xs">
+              <SelectTrigger className="h-8 bg-[#F8FAFC] border-[#E2E8F0] text-[#0F294A] text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

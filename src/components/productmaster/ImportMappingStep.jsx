@@ -23,14 +23,14 @@ export default function ImportMappingStep({ columns = [], mapping = {}, setMappi
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm text-[#a0aec0]">Match each column in the file to a datasheet field.</p>
+        <p className="text-sm text-[#64748B]">Match each column in the file to a datasheet field.</p>
         <Button variant="outline" onClick={onReset} className={subtleButton}>
           <Sparkles className="w-4 h-4 mr-1.5" /> Reset to best guess
         </Button>
       </div>
 
       {missingRequired.length > 0 && (
-        <p className="text-xs text-[#ff9f43]">
+        <p className="text-xs text-amber-700">
           Map these before continuing: {missingRequired.map((key) => MAPPING_TARGETS.find((t) => t.key === key)?.label).join(", ")}
         </p>
       )}
@@ -39,10 +39,10 @@ export default function ImportMappingStep({ columns = [], mapping = {}, setMappi
         {columns.map((column) => (
           <div key={column.index} className="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr] items-center gap-2 px-3 py-2">
             <div>
-              <p className="text-sm text-white">{column.label}</p>
-              <p className="text-[10px] text-[#5f6b7f]">Column {column.index + 1}</p>
+              <p className="text-sm text-[#0F294A]">{column.label}</p>
+              <p className="text-[10px] text-[#64748B]">Column {column.index + 1}</p>
             </div>
-            <ArrowRight className="w-4 h-4 text-[#5f6b7f] hidden sm:block" />
+            <ArrowRight className="w-4 h-4 text-[#64748B] hidden sm:block" />
             <Select value={mapping[column.index] || "ignore"} onValueChange={(v) => setColumn(column.index, v)}>
               <SelectTrigger className={selectClass}><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -56,7 +56,7 @@ export default function ImportMappingStep({ columns = [], mapping = {}, setMappi
         ))}
       </div>
 
-      <label className="flex items-center gap-2 text-xs text-[#a0aec0]">
+      <label className="flex items-center gap-2 text-xs text-[#64748B]">
         <Checkbox checked={saveMapping} onCheckedChange={(v) => setSaveMapping(!!v)} />
         Remember this mapping for the next file with the same columns
       </label>

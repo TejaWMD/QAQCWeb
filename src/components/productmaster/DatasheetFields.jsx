@@ -67,10 +67,10 @@ export default function DatasheetFields({ form, set, brands = [], customers = []
           <Input type="number" min="0" value={form.batch_output_kg} onChange={(e) => set("batch_output_kg", e.target.value)} className={inputClass} placeholder="608" />
         </Field>
         <Field label="Net Filling (kg/Carton)" hint="Calculated">
-          <div className="h-9 flex items-center px-3 rounded-md border border-[#1e2740] bg-[#0a0e17] text-[#00e5ff] font-semibold">{derived.net_filling_kg || "—"}</div>
+          <div className="h-9 flex items-center px-3 rounded-md border border-[#E2E8F0] bg-[#F6F8FC] text-[#1D4ED8] font-semibold">{derived.net_filling_kg || "—"}</div>
         </Field>
         <Field label="Cartons per Batch" hint="Calculated">
-          <div className="h-9 flex items-center px-3 rounded-md border border-[#1e2740] bg-[#0a0e17] text-[#00e5ff] font-semibold">{derived.cartons_per_batch || "—"}</div>
+          <div className="h-9 flex items-center px-3 rounded-md border border-[#E2E8F0] bg-[#F6F8FC] text-[#1D4ED8] font-semibold">{derived.cartons_per_batch || "—"}</div>
         </Field>
       </div>
 
@@ -122,7 +122,7 @@ export default function DatasheetFields({ form, set, brands = [], customers = []
           <Input value={form.remarks} onChange={(e) => set("remarks", e.target.value)} className={inputClass} placeholder="Optional remark" />
         </Field>
         <Field label="Net Filling check" hint={`${num(form.carton_size)} pcs × ${num(form.net_weight_kg)} kg`}>
-          <div className="h-9 flex items-center px-3 rounded-md border border-[#1e2740] bg-[#0a0e17] text-[#5f6b7f] text-xs">
+          <div className="h-9 flex items-center px-3 rounded-md border border-[#E2E8F0] bg-[#F6F8FC] text-[#64748B] text-xs">
             Cartons per batch = {num(form.batch_output_kg)} ÷ {derived.net_filling_kg || "—"} = {derived.cartons_per_batch || "—"}
           </div>
         </Field>

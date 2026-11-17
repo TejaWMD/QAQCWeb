@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { actingUserName } from "@/lib/permissions";
 import { canEditReceipt, eventStamp } from "@/lib/warehouse";
 
-const FIELD = "bg-[#0e131d] border-[#1e2740] text-white";
+const FIELD = "bg-white border-[#E2E8F0] text-[#0F294A]";
 
 const FIELDS = [
   ["item_code", "Item Code"],
@@ -90,74 +90,74 @@ export default function EditReceiptDialog({ record, user, units, racks, onClose,
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="bg-[#131926] border-[#1e2740] text-white max-h-[85vh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent className="bg-white border-[#E2E8F0] text-[#0F294A] max-h-[85vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="text-white">Edit received goods</DialogTitle>
-          <DialogDescription className="text-[#a0aec0] text-sm">
+          <DialogTitle className="text-[#0F294A]">Edit received goods</DialogTitle>
+          <DialogDescription className="text-[#64748B] text-sm">
             {record.item_code} · batch {record.batch_number} · received {record.date_received}
           </DialogDescription>
         </DialogHeader>
 
         {!editable && (
-          <p className="text-xs text-[#ff9f43]">
+          <p className="text-xs text-amber-700">
             The 24-hour edit window for this entry has closed. Only an Admin or Warehouse Supervisor can change it.
           </p>
         )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1">
-            <label className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Item Code</label>
+            <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Item Code</label>
             <Input value={values.item_code || ""} onChange={(e) => set("item_code", e.target.value)} className={FIELD} />
           </div>
           <div className="space-y-1">
-            <label className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Description</label>
+            <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Description</label>
             <Input value={values.product_description || ""} onChange={(e) => set("product_description", e.target.value)} className={FIELD} />
           </div>
           <div className="space-y-1">
-            <label className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Batch Number</label>
+            <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Batch Number</label>
             <Input value={values.batch_number || ""} onChange={(e) => set("batch_number", e.target.value)} className={FIELD} />
           </div>
           <div className="space-y-1">
-            <label className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Quantity</label>
+            <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Quantity</label>
             <Input type="number" min="0" step="any" value={values.quantity ?? ""} onChange={(e) => set("quantity", e.target.value)} className={FIELD} />
           </div>
           <div className="space-y-1">
-            <label className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Unit</label>
+            <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Unit</label>
             <Select value={values.unit || undefined} onValueChange={(v) => set("unit", v)}>
               <SelectTrigger className={FIELD}><SelectValue placeholder="Select unit" /></SelectTrigger>
               <SelectContent>{units.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           <div className="space-y-1">
-            <label className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Rack</label>
+            <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Rack</label>
             <Select value={values.rack_location || undefined} onValueChange={(v) => set("rack_location", v)}>
               <SelectTrigger className={FIELD}><SelectValue placeholder="Select rack" /></SelectTrigger>
               <SelectContent>{racks.map((r) => <SelectItem key={r.id} value={r.rack_code}>{r.rack_code}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           <div className="space-y-1">
-            <label className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Expiry Date</label>
+            <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Expiry Date</label>
             <Input type="date" value={values.expiry_date || ""} onChange={(e) => set("expiry_date", e.target.value)} className={FIELD} />
           </div>
           <div className="space-y-1">
-            <label className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Supplier</label>
+            <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Supplier</label>
             <Input value={values.supplier || ""} onChange={(e) => set("supplier", e.target.value)} className={FIELD} />
           </div>
           <div className="space-y-1">
-            <label className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Delivery Note</label>
+            <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Delivery Note</label>
             <Input value={values.delivery_note || ""} onChange={(e) => set("delivery_note", e.target.value)} className={FIELD} />
           </div>
           <div className="space-y-1">
-            <label className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Remarks</label>
+            <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Remarks</label>
             <Input value={values.remarks || ""} onChange={(e) => set("remarks", e.target.value)} className={FIELD} />
           </div>
         </div>
 
-        {error && <p className="text-xs text-[#ff4d4d]">{error}</p>}
+        {error && <p className="text-xs text-rose-600">{error}</p>}
 
         <DialogFooter>
-          <Button variant="ghost" onClick={onClose} className="text-[#a0aec0] hover:bg-white/5 hover:text-white">Cancel</Button>
-          <Button onClick={save} disabled={saving || !editable} className="bg-[#00e5ff] hover:bg-[#00c3d7] text-[#0a0e17]">
+          <Button variant="ghost" onClick={onClose} className="text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F294A]">Cancel</Button>
+          <Button onClick={save} disabled={saving || !editable} className="bg-[#0F294A] hover:bg-[#193B68] text-white">
             {saving ? "Saving..." : "Save changes"}
           </Button>
         </DialogFooter>

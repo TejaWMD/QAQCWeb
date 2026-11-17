@@ -27,7 +27,7 @@ const columns = [
   { key: "shift_type", label: "Shift" },
   { key: "planned_headcount", label: "Planned" },
   { key: "actual_headcount", label: "Actual" },
-  { key: "gap_logged", label: "Gap", render: (r) => r.gap_logged ? <span className="text-[#ff9f43]">Yes</span> : "—" },
+  { key: "gap_logged", label: "Gap", render: (r) => r.gap_logged ? <span className="text-amber-700">Yes</span> : "—" },
   { key: "gap_reason", label: "Gap Reason" },
   { key: "owner", label: "Owner" },
   { key: "due_date", label: "Due" },
@@ -41,10 +41,10 @@ export default function Staffing() {
   const guard = statusChangeGuard(user, { managerVerifies: true });
 
   return (
-    <div className="min-h-screen bg-[#0a0e17] p-4 md:p-6 space-y-4">
+    <div className="min-h-screen bg-[#F6F8FC] p-4 md:p-6 space-y-4">
       <div>
-        <h2 className="text-white text-lg font-semibold">Staffing</h2>
-        <p className="text-[#a0aec0] text-sm mt-1">Planned versus actual headcount per line and shift, with staffing gap tracking.</p>
+        <h2 className="text-[#0F294A] text-lg font-semibold">Staffing</h2>
+        <p className="text-[#64748B] text-sm mt-1">Planned versus actual headcount per line and shift, with staffing gap tracking.</p>
       </div>
       <RecordsTable
         entity="StaffingRecord"

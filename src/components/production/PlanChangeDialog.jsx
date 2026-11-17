@@ -78,29 +78,29 @@ export default function PlanChangeDialog({ open, onClose, order, target, machine
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="bg-[#0b1018] border-[#1e2740] text-white max-w-md">
+      <DialogContent className="bg-white border-[#E2E8F0] text-[#0F294A] max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-white">Change the plan</DialogTitle>
-          <p className="text-xs text-[#5f6b7f]">{order?.order_number} · {order?.product_name}</p>
+          <DialogTitle className="text-[#0F294A]">Change the plan</DialogTitle>
+          <p className="text-xs text-[#64748B]">{order?.order_number} · {order?.product_name}</p>
         </DialogHeader>
 
         <div className="space-y-3 text-sm">
           <div className="grid grid-cols-2 gap-3">
             <div>
               <p className={labelClass}>From</p>
-              <p className="text-[#a0aec0]">{order?.machine || "—"}</p>
-              <p className="text-xs text-[#5f6b7f]">{order?.planned_start ? fmtDateTime(order.planned_start) : "—"}</p>
+              <p className="text-[#64748B]">{order?.machine || "—"}</p>
+              <p className="text-xs text-[#64748B]">{order?.planned_start ? fmtDateTime(order.planned_start) : "—"}</p>
             </div>
             <div>
               <p className={labelClass}>To</p>
-              <p className="text-white">{machine?.name || "—"}</p>
-              <p className="text-xs text-[#5f6b7f]">{startIso ? fmtDateTime(startIso) : "—"}</p>
+              <p className="text-[#0F294A]">{machine?.name || "—"}</p>
+              <p className="text-xs text-[#64748B]">{startIso ? fmtDateTime(startIso) : "—"}</p>
             </div>
           </div>
 
           {(maintenance || conflicts.length > 0) && (
-            <div className="rounded-lg border border-[#ff9f43]/40 bg-[#ff9f43]/10 p-3 flex gap-2">
-              <AlertTriangle className="w-4 h-4 text-[#ff9f43] shrink-0 mt-0.5" />
+            <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 flex gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
               <div className="text-xs text-[#ffb46b] space-y-1">
                 {maintenance && <p>{machine?.name} is under maintenance.</p>}
                 {conflicts.length > 0 && <p>Overlaps {conflicts.map((o) => o.order_number).join(", ")} on this machine.</p>}
@@ -110,7 +110,7 @@ export default function PlanChangeDialog({ open, onClose, order, target, machine
 
           <div className="space-y-1">
             <label className={labelClass}>Reason for the change</label>
-            <Textarea value={reason} onChange={(e) => setReason(e.target.value)} className="bg-[#0a0e17] border-[#1e2740] text-white min-h-[70px]" placeholder="e.g. Changeover running late, moved to SA03" />
+            <Textarea value={reason} onChange={(e) => setReason(e.target.value)} className="bg-[#F6F8FC] border-[#E2E8F0] text-[#0F294A] min-h-[70px]" placeholder="e.g. Changeover running late, moved to SA03" />
           </div>
         </div>
 

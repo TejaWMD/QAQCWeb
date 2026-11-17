@@ -323,18 +323,18 @@ export default function RequestFormDialog({ open, onOpenChange, user, config = D
       return (
         <div key={key} className="flex items-center gap-2 pt-1">
           <Checkbox id={key} checked={!!values[key]} onCheckedChange={(c) => set(key, c === true)} />
-          <Label htmlFor={key} className="text-sm text-[#a0aec0] font-normal">{label}</Label>
+          <Label htmlFor={key} className="text-sm text-[#64748B] font-normal">{label}</Label>
         </div>
       );
     }
     return (
       <div key={key} className="space-y-1.5">
-        <Label htmlFor={key} className="text-xs text-[#a0aec0]">
-          {label} {required && <span className="text-[#ff4d4d]">*</span>}
+        <Label htmlFor={key} className="text-xs text-[#64748B]">
+          {label} {required && <span className="text-rose-600">*</span>}
         </Label>
         {def.type === "select" ? (
           <Select value={values[key] || undefined} onValueChange={(v) => (key === "approval_type" ? setApprovalType(v) : set(key, v))}>
-            <SelectTrigger id={key} className="bg-[#0e131d] border-[#1e2740] text-white">
+            <SelectTrigger id={key} className="bg-white border-[#E2E8F0] text-[#0F294A]">
               <SelectValue placeholder={`Select ${label}`} />
             </SelectTrigger>
             <SelectContent>
@@ -348,7 +348,7 @@ export default function RequestFormDialog({ open, onOpenChange, user, config = D
             id={key}
             value={values[key] ?? ""}
             onChange={(e) => set(key, e.target.value)}
-            className="bg-[#0e131d] border-[#1e2740] text-white min-h-[70px]"
+            className="bg-white border-[#E2E8F0] text-[#0F294A] min-h-[70px]"
           />
         ) : (
           <Input
@@ -356,7 +356,7 @@ export default function RequestFormDialog({ open, onOpenChange, user, config = D
             type={def.type === "number" ? "number" : def.type === "date" ? "date" : def.type === "datetime" ? "datetime-local" : "text"}
             value={values[key] ?? ""}
             onChange={(e) => set(key, def.type === "number" ? (e.target.value === "" ? "" : Number(e.target.value)) : e.target.value)}
-            className="bg-[#0e131d] border-[#1e2740] text-white"
+            className="bg-white border-[#E2E8F0] text-[#0F294A]"
           />
         )}
       </div>
@@ -365,17 +365,17 @@ export default function RequestFormDialog({ open, onOpenChange, user, config = D
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-[#131926] border-[#1e2740] text-white max-h-[85vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="bg-white border-[#E2E8F0] text-[#0F294A] max-h-[85vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle className="text-white">New Request</DialogTitle>
+          <DialogTitle className="text-[#0F294A]">New Request</DialogTitle>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-3">
           <div className="space-y-1.5">
-            <Label className="text-xs text-[#a0aec0]">
-              Request Type <span className="text-[#ff4d4d]">*</span>
+            <Label className="text-xs text-[#64748B]">
+              Request Type <span className="text-rose-600">*</span>
             </Label>
             <Select value={type} onValueChange={switchType}>
-              <SelectTrigger className="bg-[#0e131d] border-[#1e2740] text-white">
+              <SelectTrigger className="bg-white border-[#E2E8F0] text-[#0F294A]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -387,11 +387,11 @@ export default function RequestFormDialog({ open, onOpenChange, user, config = D
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs text-[#a0aec0]">
-              Production Line / Area <span className="text-[#ff4d4d]">*</span>
+            <Label className="text-xs text-[#64748B]">
+              Production Line / Area <span className="text-rose-600">*</span>
             </Label>
             <Select value={values.production_line || undefined} onValueChange={(v) => set("production_line", v)}>
-              <SelectTrigger className="bg-[#0e131d] border-[#1e2740] text-white">
+              <SelectTrigger className="bg-white border-[#E2E8F0] text-[#0F294A]">
                 <SelectValue placeholder="Select Production Line" />
               </SelectTrigger>
               <SelectContent>
@@ -403,19 +403,19 @@ export default function RequestFormDialog({ open, onOpenChange, user, config = D
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs text-[#a0aec0]">Requester</Label>
-            <p className="text-sm text-[#e2e8f0] bg-[#0e131d] border border-[#1e2740] rounded-md px-3 py-2">
-              {requesterName || "—"} <span className="text-[#a0aec0] text-xs">(auto-filled from login)</span>
+            <Label className="text-xs text-[#64748B]">Requester</Label>
+            <p className="text-sm text-[#334155] bg-white border border-[#E2E8F0] rounded-md px-3 py-2">
+              {requesterName || "—"} <span className="text-[#64748B] text-xs">(auto-filled from login)</span>
             </p>
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs text-[#a0aec0]">
-              Owner <span className="text-[#ff4d4d]">*</span>
+            <Label className="text-xs text-[#64748B]">
+              Owner <span className="text-rose-600">*</span>
             </Label>
             <div className="flex flex-wrap gap-4">
               {(config.owner_teams || []).map((t) => (
-                <label key={t} className="flex items-center gap-2 text-sm text-[#e2e8f0] cursor-pointer">
+                <label key={t} className="flex items-center gap-2 text-sm text-[#334155] cursor-pointer">
                   <Checkbox
                     checked={(values.owners || []).includes(t)}
                     onCheckedChange={(c) => toggleOwner(t, c === true)}
@@ -426,26 +426,26 @@ export default function RequestFormDialog({ open, onOpenChange, user, config = D
               ))}
             </div>
             {qaForced && (
-              <p className="text-[10px] text-[#a0aec0]">Labelling / Packaging Error requests are always routed to the QA/QC Team.</p>
+              <p className="text-[10px] text-[#64748B]">Labelling / Packaging Error requests are always routed to the QA/QC Team.</p>
             )}
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs text-[#a0aec0]">
-              Evidence / Proof {evidenceRequired && <span className="text-[#ff4d4d]">*</span>}
+            <Label className="text-xs text-[#64748B]">
+              Evidence / Proof {evidenceRequired && <span className="text-rose-600">*</span>}
             </Label>
             <EvidenceUploader files={evidenceFiles} onChange={setEvidenceFiles} />
-            {evidenceRequired && <p className="text-[10px] text-[#a0aec0]">A photo is required for this request type.</p>}
+            {evidenceRequired && <p className="text-[10px] text-[#64748B]">A photo is required for this request type.</p>}
           </div>
 
           {visibleKeys.map(renderField)}
 
-          {error && <p className="text-xs text-[#ff4d4d]">{error}</p>}
+          {error && <p className="text-xs text-rose-600">{error}</p>}
           <DialogFooter>
-            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="text-[#a0aec0] hover:text-white hover:bg-white/5">
+            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="text-[#64748B] hover:text-[#0F294A] hover:bg-[#F1F5F9]">
               Cancel
             </Button>
-            <Button type="submit" disabled={saving} className="bg-[#00e5ff] hover:bg-[#00c3d7] text-[#0a0e17]">
+            <Button type="submit" disabled={saving} className="bg-[#0F294A] hover:bg-[#193B68] text-white">
               {saving ? "Submitting..." : "Submit Request"}
             </Button>
           </DialogFooter>

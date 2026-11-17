@@ -71,7 +71,7 @@ export default function YieldLossSettingsDialog({ open, onClose, settings, onSav
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className={dialogClass}>
         <DialogHeader>
-          <DialogTitle className="text-white">Yield &amp; Loss Settings</DialogTitle>
+          <DialogTitle className="text-[#0F294A]">Yield &amp; Loss Settings</DialogTitle>
         </DialogHeader>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -91,20 +91,20 @@ export default function YieldLossSettingsDialog({ open, onClose, settings, onSav
             <textarea
               value={form?.waste_reasons_text || ""}
               onChange={(e) => set("waste_reasons_text", e.target.value)}
-              className="w-full min-h-[140px] rounded-md border border-[#1e2740] bg-[#0a0e17] text-white text-sm p-2"
+              className="w-full min-h-[140px] rounded-md border border-[#E2E8F0] bg-[#F6F8FC] text-[#0F294A] text-sm p-2"
             />
           </Field>
           <Field label="Rework reasons" hint="One per line">
             <textarea
               value={form?.rework_reasons_text || ""}
               onChange={(e) => set("rework_reasons_text", e.target.value)}
-              className="w-full min-h-[140px] rounded-md border border-[#1e2740] bg-[#0a0e17] text-white text-sm p-2"
+              className="w-full min-h-[140px] rounded-md border border-[#E2E8F0] bg-[#F6F8FC] text-[#0F294A] text-sm p-2"
             />
           </Field>
         </div>
 
         <p className={labelClass}>Only QA and Admin can change these values. Every change is written to the Audit Trail Log.</p>
-        {error && <p className="text-sm text-[#ff4d4d]">{error}</p>}
+        {error && <p className="text-sm text-rose-600">{error}</p>}
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose} className={subtleButton}>Cancel</Button>

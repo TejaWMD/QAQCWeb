@@ -137,38 +137,38 @@ export default function PackagingStock() {
   const units = DEFAULT_UNITS;
 
   return (
-    <div className="min-h-screen bg-[#0a0e17] p-4 md:p-6 space-y-4">
+    <div className="min-h-screen bg-[#F6F8FC] p-4 md:p-6 space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-white text-lg font-semibold">Stock Counter</h2>
-          <p className="text-[#a0aec0] text-sm mt-1">Track inventory, usage, and low-stock alerts.</p>
+          <h2 className="text-[#0F294A] text-lg font-semibold">Stock Counter</h2>
+          <p className="text-[#64748B] text-sm mt-1">Track inventory, usage, and low-stock alerts.</p>
         </div>
         <div className="flex flex-wrap gap-2 w-full sm:w-auto">
           {isPackagingStaff(user) && (
-            <Button onClick={() => setItemDialog({ open: true, item: null })} className="flex-1 sm:flex-none bg-[#00e5ff] hover:bg-[#00c3d7] text-[#0a0e17] font-semibold">
+            <Button onClick={() => setItemDialog({ open: true, item: null })} className="flex-1 sm:flex-none bg-[#0F294A] hover:bg-[#193B68] text-white font-semibold">
               <Plus className="w-4 h-4" /> Add Item
             </Button>
           )}
           {canManagePackaging(user) && (
-            <Button variant="outline" onClick={() => setSettingsOpen(true)} className="flex-1 sm:flex-none border-[#1e2740] bg-[#0e131d] text-[#a0aec0] hover:bg-white/5 hover:text-white">
+            <Button variant="outline" onClick={() => setSettingsOpen(true)} className="flex-1 sm:flex-none border-[#E2E8F0] bg-white text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F294A]">
               <Settings2 className="w-4 h-4" /> Categories
             </Button>
           )}
           <Button
             variant="outline"
             onClick={() => downloadCsv(`packaging-stock-${new Date().toISOString().slice(0, 10)}.csv`, ITEM_CSV_COLUMNS, visible)}
-            className="flex-1 sm:flex-none border-[#1e2740] bg-[#0e131d] text-[#a0aec0] hover:bg-white/5 hover:text-white"
+            className="flex-1 sm:flex-none border-[#E2E8F0] bg-white text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F294A]"
           >
             <Download className="w-4 h-4" /> Export
           </Button>
-          <Button asChild variant="outline" className="flex-1 sm:flex-none border-[#1e2740] bg-[#0e131d] text-[#a0aec0] hover:bg-white/5 hover:text-white">
+          <Button asChild variant="outline" className="flex-1 sm:flex-none border-[#E2E8F0] bg-white text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F294A]">
             <Link to="/packaging-movements"><ArrowLeftRight className="w-4 h-4" /> Movements</Link>
           </Button>
-          <Button asChild variant="outline" className="flex-1 sm:flex-none border-[#1e2740] bg-[#0e131d] text-[#a0aec0] hover:bg-white/5 hover:text-white">
+          <Button asChild variant="outline" className="flex-1 sm:flex-none border-[#E2E8F0] bg-white text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F294A]">
             <Link to="/packaging-approvals">
               <CheckCircle2 className="w-4 h-4" /> Approvals
               {pendingIds.size > 0 && (
-                <span className="ml-1 rounded-full bg-[#ff9f43] text-[#0a0e17] text-[10px] font-bold px-1.5">{pendingIds.size}</span>
+                <span className="ml-1 rounded-full bg-amber-500 text-white text-[10px] font-bold px-1.5">{pendingIds.size}</span>
               )}
             </Link>
           </Button>
@@ -176,25 +176,25 @@ export default function PackagingStock() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="rounded-xl border border-[#1e2740] bg-[#0e131d] px-4 py-3">
-          <p className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Total Items</p>
-          <p className="text-2xl text-white font-semibold mt-1">{items.length}</p>
+        <div className="rounded-xl border border-[#E2E8F0] bg-white px-4 py-3">
+          <p className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Total Items</p>
+          <p className="text-2xl text-[#0F294A] font-semibold mt-1">{items.length}</p>
         </div>
-        <div className={`rounded-xl border px-4 py-3 ${lowCount ? "border-[#ff9f43]/50 bg-[#ff9f43]/10" : "border-[#1e2740] bg-[#0e131d]"}`}>
-          <p className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Low Stock</p>
-          <p className={`text-2xl font-semibold mt-1 ${lowCount ? "text-[#ff9f43]" : "text-white"}`}>{lowCount}</p>
+        <div className={`rounded-xl border px-4 py-3 ${lowCount ? "border-amber-300 bg-amber-50" : "border-[#E2E8F0] bg-white"}`}>
+          <p className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Low Stock</p>
+          <p className={`text-2xl font-semibold mt-1 ${lowCount ? "text-amber-700" : "text-[#0F294A]"}`}>{lowCount}</p>
         </div>
-        <div className="rounded-xl border border-[#1e2740] bg-[#0e131d] px-4 py-3">
-          <p className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Total Units</p>
-          <p className="text-2xl text-white font-semibold mt-1">{fmtQty(totalUnits)}</p>
+        <div className="rounded-xl border border-[#E2E8F0] bg-white px-4 py-3">
+          <p className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Total Units</p>
+          <p className="text-2xl text-[#0F294A] font-semibold mt-1">{fmtQty(totalUnits)}</p>
         </div>
       </div>
 
       <div className="flex flex-col lg:flex-row lg:items-center gap-2">
         <div className="flex-1 flex items-center gap-2">
-          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search item code, description or supplier" className="bg-[#0e131d] border-[#1e2740] text-white" />
+          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search item code, description or supplier" className="bg-white border-[#E2E8F0] text-[#0F294A]" />
           <Select value={category} onValueChange={setCategory}>
-            <SelectTrigger className="w-44 bg-[#0e131d] border-[#1e2740] text-white"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-44 bg-white border-[#E2E8F0] text-[#0F294A]"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All categories</SelectItem>
               {settings.categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
@@ -208,7 +208,7 @@ export default function PackagingStock() {
               size="sm"
               variant={mode === m ? "default" : "outline"}
               onClick={() => setMode(m)}
-              className={mode === m ? "bg-[#00e5ff] hover:bg-[#00c3d7] text-[#0a0e17] font-semibold" : "border-[#1e2740] bg-[#0e131d] text-[#a0aec0] hover:bg-white/5 hover:text-white"}
+              className={mode === m ? "bg-[#0F294A] hover:bg-[#193B68] text-white font-semibold" : "border-[#E2E8F0] bg-white text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F294A]"}
             >
               {m === "all" ? "All" : "Low Stock"}
             </Button>
@@ -218,12 +218,12 @@ export default function PackagingStock() {
 
       {loading ? (
         <div className="flex justify-center py-12">
-          <div className="w-8 h-8 border-4 border-[#1e2740] border-t-[#00e5ff] rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-[#E2E8F0] border-t-[#0F294A] rounded-full animate-spin" />
         </div>
       ) : visible.length === 0 ? (
-        <div className="rounded-xl border border-[#1e2740] bg-[#0e131d] p-10 text-center">
+        <div className="rounded-xl border border-[#E2E8F0] bg-white p-10 text-center">
           <Boxes className="w-8 h-8 text-[#3a465c] mx-auto" />
-          <p className="text-[#a0aec0] text-sm mt-3">
+          <p className="text-[#64748B] text-sm mt-3">
             {items.length === 0 ? "No packaging items yet — add your first item to start tracking stock." : "No items match these filters."}
           </p>
         </div>
@@ -293,16 +293,16 @@ export default function PackagingStock() {
       />
 
       <Dialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
-        <DialogContent className="bg-[#131926] border-[#1e2740] text-white sm:max-w-md">
+        <DialogContent className="bg-white border-[#E2E8F0] text-[#0F294A] sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-white">Remove {deleting?.item_code}?</DialogTitle>
-            <DialogDescription className="text-[#a0aec0] text-sm">
+            <DialogTitle className="text-[#0F294A]">Remove {deleting?.item_code}?</DialogTitle>
+            <DialogDescription className="text-[#64748B] text-sm">
               An item with movement history is deactivated instead of deleted, so past movements stay intact.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setDeleting(null)} className="text-[#a0aec0] hover:bg-white/5 hover:text-white">Cancel</Button>
-            <Button onClick={remove} disabled={busy} className="bg-[#ff4d4d] hover:bg-[#e63b3b] text-white">
+            <Button variant="ghost" onClick={() => setDeleting(null)} className="text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F294A]">Cancel</Button>
+            <Button onClick={remove} disabled={busy} className="bg-rose-600 hover:bg-rose-700 text-white">
               {busy ? "Working..." : "Remove item"}
             </Button>
           </DialogFooter>

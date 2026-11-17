@@ -84,8 +84,8 @@ export default function RecipeDialog({ open, onClose, recipe, product, products 
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className={dialogClass}>
         <DialogHeader>
-          <DialogTitle className="text-white">Recipe — v{version}</DialogTitle>
-          <p className="text-xs text-[#5f6b7f]">
+          <DialogTitle className="text-[#0F294A]">Recipe — v{version}</DialogTitle>
+          <p className="text-xs text-[#64748B]">
             {recipe
               ? `Saving keeps version ${recipe.version} in the history and makes version ${version} the active recipe for every item below.`
               : "Saving creates the first version of this recipe."}
@@ -107,18 +107,18 @@ export default function RecipeDialog({ open, onClose, recipe, product, products 
           </Field>
         </div>
 
-        <div className="rounded-lg border border-[#1e2740] bg-[#0e131d] p-3 space-y-1">
-          <p className="text-[10px] uppercase tracking-widest text-[#5f6b7f]">Items using this recipe</p>
+        <div className="rounded-lg border border-[#E2E8F0] bg-white p-3 space-y-1">
+          <p className="text-[10px] uppercase tracking-widest text-[#64748B]">Items using this recipe</p>
           <div className="flex flex-wrap gap-1.5">
             {linked.map((p) => (
-              <span key={p.id} className="text-xs px-1.5 py-0.5 rounded bg-[#00e5ff]/10 text-[#00e5ff] border border-[#00e5ff]/30">
+              <span key={p.id} className="text-xs px-1.5 py-0.5 rounded bg-[#EBF3FF] text-[#1D4ED8] border border-[#BFD7FF]">
                 {p.product_code}
               </span>
             ))}
-            {linked.length === 0 && <span className="text-xs text-[#5f6b7f]">No item linked yet.</span>}
+            {linked.length === 0 && <span className="text-xs text-[#64748B]">No item linked yet.</span>}
           </div>
           {product && (
-            <p className="text-[11px] text-[#5f6b7f]">
+            <p className="text-[11px] text-[#64748B]">
               Product Master: {num(product.batch_output_kg) || "—"} kg per batch · {num(product.cooking_time_hr) || "—"} h cooking
             </p>
           )}
@@ -132,7 +132,7 @@ export default function RecipeDialog({ open, onClose, recipe, product, products 
           <Textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} className={`${inputClass} min-h-[70px]`} placeholder="Optional" />
         </Field>
 
-        {error && <p className="text-sm text-[#ff4d4d]">{error}</p>}
+        {error && <p className="text-sm text-rose-600">{error}</p>}
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose} className={subtleButton}>Cancel</Button>

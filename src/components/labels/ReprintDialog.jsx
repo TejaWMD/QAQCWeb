@@ -18,10 +18,10 @@ export default function ReprintDialog({ open, record, busy, onClose, onConfirm }
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="bg-[#0b1018] border-[#1e2740] text-white max-w-md">
+      <DialogContent className="bg-white border-[#E2E8F0] text-[#0F294A] max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-white">Reprint labels</DialogTitle>
-          <p className="text-xs text-[#5f6b7f]">
+          <DialogTitle className="text-[#0F294A]">Reprint labels</DialogTitle>
+          <p className="text-xs text-[#64748B]">
             {record.product_name} · {record.batch_number} · exp {fmtDay(record.expiry_date)}
           </p>
         </DialogHeader>
@@ -29,7 +29,7 @@ export default function ReprintDialog({ open, record, busy, onClose, onConfirm }
         <div className="space-y-1">
           <label className={labelClass}>Number of copies</label>
           <Input type="number" min="1" max="200" value={copies} onChange={(e) => setCopies(e.target.value)} className={inputClass} />
-          <p className="text-[11px] text-[#5f6b7f]">Every reprint is logged with your name and the time.</p>
+          <p className="text-[11px] text-[#64748B]">Every reprint is logged with your name and the time.</p>
         </div>
 
         <DialogFooter>

@@ -86,14 +86,14 @@ export default function EvidenceUploader({ files, onChange, max = MAX_FILES }) {
           addFiles(e.dataTransfer.files);
         }}
         className={`rounded-lg border border-dashed px-4 py-4 text-center transition-colors ${
-          dragging ? "border-[#00e5ff] bg-[#00e5ff]/5" : "border-[#3a4560] bg-[#0e131d]"
+          dragging ? "border-[#BFD7FF] bg-[#EBF3FF]" : "border-[#3a4560] bg-white"
         }`}
       >
-        <p className="text-xs text-[#a0aec0] mb-2 hidden sm:block">
+        <p className="text-xs text-[#64748B] mb-2 hidden sm:block">
           Drag &amp; drop photos or PDFs here (JPG, PNG, HEIC, PDF — up to {max})
         </p>
         <div className="flex flex-wrap items-center justify-center gap-2">
-          <Button type="button" size="sm" onClick={() => cameraRef.current?.click()} className="bg-[#00e5ff] hover:bg-[#00c3d7] text-[#0a0e17]">
+          <Button type="button" size="sm" onClick={() => cameraRef.current?.click()} className="bg-[#0F294A] hover:bg-[#193B68] text-white">
             <Camera className="w-4 h-4 mr-1" /> Take Photo
           </Button>
           <Button
@@ -101,7 +101,7 @@ export default function EvidenceUploader({ files, onChange, max = MAX_FILES }) {
             size="sm"
             variant="outline"
             onClick={() => galleryRef.current?.click()}
-            className="bg-[#0e131d] border-[#1e2740] text-[#e2e8f0] hover:bg-white/5"
+            className="bg-white border-[#E2E8F0] text-[#334155] hover:bg-[#F1F5F9]"
           >
             <ImagePlus className="w-4 h-4 mr-1" /> Choose from Gallery
           </Button>
@@ -129,33 +129,33 @@ export default function EvidenceUploader({ files, onChange, max = MAX_FILES }) {
           }}
         />
       </div>
-      {error && <p className="text-xs text-[#ff4d4d]">{error}</p>}
+      {error && <p className="text-xs text-rose-600">{error}</p>}
       {files.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {files.map((f) => (
-            <div key={f.id} className="rounded-lg border border-[#1e2740] bg-[#0e131d] p-2 space-y-1.5">
+            <div key={f.id} className="rounded-lg border border-[#E2E8F0] bg-white p-2 space-y-1.5">
               <a href={f.preview || undefined} target="_blank" rel="noreferrer" className="block">
                 {f.preview ? (
                   <img src={f.preview} alt={f.file.name} className="w-full h-20 object-cover rounded" />
                 ) : (
-                  <div className="w-full h-20 flex items-center justify-center rounded bg-[#131926]">
-                    <FileText className="w-6 h-6 text-[#a0aec0]" />
+                  <div className="w-full h-20 flex items-center justify-center rounded bg-white">
+                    <FileText className="w-6 h-6 text-[#64748B]" />
                   </div>
                 )}
               </a>
-              <p className="text-[10px] text-[#a0aec0] truncate">{f.file.name}</p>
+              <p className="text-[10px] text-[#64748B] truncate">{f.file.name}</p>
               <Input
                 value={f.caption}
                 onChange={(e) => onChange(files.map((x) => (x.id === f.id ? { ...x, caption: e.target.value } : x)))}
                 placeholder="Caption (optional)"
-                className="h-7 text-xs bg-[#0e131d] border-[#1e2740] text-white"
+                className="h-7 text-xs bg-white border-[#E2E8F0] text-[#0F294A]"
               />
               <Button
                 type="button"
                 size="sm"
                 variant="ghost"
                 onClick={() => onChange(files.filter((x) => x.id !== f.id))}
-                className="w-full h-6 text-[#ff4d4d] hover:bg-[#ff4d4d]/10 text-[10px]"
+                className="w-full h-6 text-rose-600 hover:bg-rose-600/10 text-[10px]"
               >
                 <X className="w-3 h-3 mr-1" /> Remove
               </Button>

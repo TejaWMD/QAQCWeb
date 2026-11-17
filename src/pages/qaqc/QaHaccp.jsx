@@ -22,8 +22,8 @@ const productCol = {
   render: (r) =>
     r.product_code ? (
       <span className="block max-w-[180px]">
-        <span className="text-white font-medium">{r.product_code}</span>
-        <span className="block text-[10px] text-[#5f6b7f] truncate">{r.product_name || ""}</span>
+        <span className="text-[#0F294A] font-medium">{r.product_code}</span>
+        <span className="block text-[10px] text-[#64748B] truncate">{r.product_name || ""}</span>
       </span>
     ) : (
       r.product_name || "—"
@@ -36,9 +36,9 @@ const resultCol = {
   key: "result",
   label: "Result",
   render: (r) =>
-    r.result === "Pass" ? <span className="text-[#00ff9d]">Pass</span>
-    : r.result === "Fail" ? <span className="text-[#ff4d4d]">Fail</span>
-    : <span className="text-[#a0aec0]">Pending</span>,
+    r.result === "Pass" ? <span className="text-emerald-700">Pass</span>
+    : r.result === "Fail" ? <span className="text-rose-600">Fail</span>
+    : <span className="text-[#64748B]">Pending</span>,
 };
 
 // A HACCP/CCP check is automatically marked Overdue when its scheduled
@@ -156,20 +156,20 @@ export default function QaHaccp() {
   ];
 
   const tabTrigger = (value, label) => (
-    <TabsTrigger value={value} className="data-[state=active]:bg-[#00e5ff] data-[state=active]:text-[#0a0e17] text-[#a0aec0]">{label}</TabsTrigger>
+    <TabsTrigger value={value} className="data-[state=active]:bg-[#0F294A] data-[state=active]:text-[#0F294A] text-[#64748B]">{label}</TabsTrigger>
   );
 
   return (
-    <div className="min-h-screen bg-[#0a0e17] p-4 md:p-6 space-y-4">
+    <div className="min-h-screen bg-[#F6F8FC] p-4 md:p-6 space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-white text-lg font-semibold">QA &amp; HACCP Safety</h2>
-          <p className="text-[#a0aec0] text-sm mt-1">CCP checks, product holds, defects and halal verification, with evidence on every record.</p>
+          <h2 className="text-[#0F294A] text-lg font-semibold">QA &amp; HACCP Safety</h2>
+          <p className="text-[#64748B] text-sm mt-1">CCP checks, product holds, defects and halal verification, with evidence on every record.</p>
         </div>
         {canManageQa && <RaiseCapaButton />}
       </div>
       <Tabs defaultValue={initialTab}>
-        <TabsList className="bg-[#131926] border border-[#1e2740] flex-wrap h-auto">
+        <TabsList className="bg-white border border-[#E2E8F0] flex-wrap h-auto">
           {canManageQa && tabTrigger("checks", "HACCP / CCP Checks")}
           {canManageQa && tabTrigger("holds", "Product Holds")}
           {tabTrigger("defects", "Defects")}
@@ -276,8 +276,8 @@ export default function QaHaccp() {
                   key: "verified",
                   label: "Verified",
                   render: (r) => r.verified
-                    ? <span className="inline-flex items-center gap-1 text-[#00ff9d] text-xs"><CheckCircle2 className="w-3.5 h-3.5" /> Yes</span>
-                    : <span className="inline-flex items-center gap-1 text-[#ff4d4d] text-xs"><XCircle className="w-3.5 h-3.5" /> No</span>,
+                    ? <span className="inline-flex items-center gap-1 text-emerald-700 text-xs"><CheckCircle2 className="w-3.5 h-3.5" /> Yes</span>
+                    : <span className="inline-flex items-center gap-1 text-rose-600 text-xs"><XCircle className="w-3.5 h-3.5" /> No</span>,
                 },
                 { key: "verifier", label: "Verifier" },
                 {

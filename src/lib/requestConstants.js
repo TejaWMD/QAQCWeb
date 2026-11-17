@@ -166,15 +166,15 @@ export const statusesForType = (row) => {
 };
 
 export const TYPE_STYLES = {
-  [DOWNTIME_TYPE]: "text-[#00e5ff] border-[#00e5ff]/40 bg-[#00e5ff]/10",
-  [ITEM_TYPE]: "text-[#00ff9d] border-[#00ff9d]/40 bg-[#00ff9d]/10",
-  [APPROVAL_TYPE]: "text-[#ff9f43] border-[#ff9f43]/40 bg-[#ff9f43]/10",
+  [DOWNTIME_TYPE]: "text-[#1D4ED8] border-[#BFD7FF] bg-[#EBF3FF]",
+  [ITEM_TYPE]: "text-emerald-700 border-emerald-300 bg-emerald-50",
+  [APPROVAL_TYPE]: "text-amber-700 border-amber-300 bg-amber-50",
 };
 
 export const URGENCY_STYLES = {
-  "Line stopped": "text-[#ff4d4d] border-[#ff4d4d]/40 bg-[#ff4d4d]/10",
-  Urgent: "text-[#ff9f43] border-[#ff9f43]/40 bg-[#ff9f43]/10",
-  Normal: "text-[#a0aec0] border-[#3a4560] bg-[#3a4560]/20",
+  "Line stopped": "text-rose-600 border-rose-300 bg-rose-600/10",
+  Urgent: "text-amber-700 border-amber-300 bg-amber-50",
+  Normal: "text-[#64748B] border-[#3a4560] bg-[#3a4560]/20",
 };
 
 // One-line summary of a request, used in tables, dialogs and audit entries.

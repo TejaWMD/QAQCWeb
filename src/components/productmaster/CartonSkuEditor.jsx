@@ -29,7 +29,7 @@ export default function CartonSkuEditor({ value = [], onChange, disabled }) {
   return (
     <div className="space-y-2">
       {rows.length === 0 ? (
-        <p className="text-xs text-[#5f6b7f]">No carton options yet.</p>
+        <p className="text-xs text-[#64748B]">No carton options yet.</p>
       ) : (
         <div className="space-y-2">
           {rows.map((row, index) => (
@@ -65,7 +65,7 @@ export default function CartonSkuEditor({ value = [], onChange, disabled }) {
                 className={inputClass}
               />
               {!disabled && (
-                <Button variant="ghost" size="icon" onClick={() => remove(index)} className="text-[#5f6b7f] hover:text-[#ff4d4d] hover:bg-[#ff4d4d]/10">
+                <Button variant="ghost" size="icon" onClick={() => remove(index)} className="text-[#64748B] hover:text-rose-600 hover:bg-rose-600/10">
                   <Trash2 className="w-4 h-4" />
                 </Button>
               )}

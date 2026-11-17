@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { productionLines } from "@/lib/shiftLogConstants";
 import { fefoBatch, fmtQty, loadItemBatches, submitStockUse } from "@/lib/packaging";
 
-const FIELD = "bg-[#0e131d] border-[#1e2740] text-white";
+const FIELD = "bg-white border-[#E2E8F0] text-[#0F294A]";
 
 export default function StockUseDialog({ open, item, user, orders = [], threshold = 0, onClose, onSaved }) {
   const [rows, setRows] = useState([]);
@@ -67,21 +67,21 @@ export default function StockUseDialog({ open, item, user, orders = [], threshol
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose?.()}>
-      <DialogContent className="bg-[#131926] border-[#1e2740] text-white max-h-[88vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="bg-white border-[#E2E8F0] text-[#0F294A] max-h-[88vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle className="text-white">Use stock</DialogTitle>
-          <DialogDescription className="text-[#a0aec0] text-sm">
+          <DialogTitle className="text-[#0F294A]">Use stock</DialogTitle>
+          <DialogDescription className="text-[#64748B] text-sm">
             {item ? `${item.item_code} · available ${fmtQty(available)} ${item.unit || ""}` : ""}
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid grid-cols-2 gap-2">
           <div className="space-y-1">
-            <label className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Quantity *</label>
+            <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Quantity *</label>
             <Input type="number" min="0" step="0.001" value={form.quantity} onChange={(e) => set("quantity", e.target.value)} placeholder="0" className={FIELD} />
           </div>
           <div className="space-y-1">
-            <label className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Batch</label>
+            <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Batch</label>
             <Select value={batchKey} onValueChange={setBatchKey} disabled={loading}>
               <SelectTrigger className={FIELD}>
                 <SelectValue placeholder={loading ? "Loading..." : "No batch"} />
@@ -97,7 +97,7 @@ export default function StockUseDialog({ open, item, user, orders = [], threshol
             </Select>
           </div>
           <div className="space-y-1">
-            <label className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Production Order</label>
+            <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Production Order</label>
             <Select value={form.production_order || "none"} onValueChange={(v) => set("production_order", v === "none" ? "" : v)}>
               <SelectTrigger className={FIELD}><SelectValue placeholder="None" /></SelectTrigger>
               <SelectContent>
@@ -107,7 +107,7 @@ export default function StockUseDialog({ open, item, user, orders = [], threshol
             </Select>
           </div>
           <div className="space-y-1">
-            <label className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Line</label>
+            <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Line</label>
             <Select value={form.production_line || "none"} onValueChange={(v) => set("production_line", v === "none" ? "" : v)}>
               <SelectTrigger className={FIELD}><SelectValue placeholder="None" /></SelectTrigger>
               <SelectContent>
@@ -117,24 +117,24 @@ export default function StockUseDialog({ open, item, user, orders = [], threshol
             </Select>
           </div>
           <div className="col-span-2 space-y-1">
-            <label className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Remarks</label>
+            <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Remarks</label>
             <Input value={form.remarks} onChange={(e) => set("remarks", e.target.value)} placeholder="Optional" className={FIELD} />
           </div>
         </div>
 
         {chosen?.expiry_date && (
-          <p className="text-[11px] text-[#00ff9d]">Suggested by earliest expiry (FEFO): batch {chosen.batch_number} · {chosen.expiry_date}</p>
+          <p className="text-[11px] text-emerald-700">Suggested by earliest expiry (FEFO): batch {chosen.batch_number} · {chosen.expiry_date}</p>
         )}
         {needsApproval && (
-          <p className="text-[11px] text-[#ff9f43]">
+          <p className="text-[11px] text-amber-700">
             {fmtQty(qty)} is above the {fmtQty(threshold)} approval threshold — this issue will be sent to approvals instead of being deducted.
           </p>
         )}
-        {error && <p className="text-xs text-[#ff4d4d]">{error}</p>}
+        {error && <p className="text-xs text-rose-600">{error}</p>}
 
         <DialogFooter>
-          <Button variant="ghost" onClick={onClose} className="text-[#a0aec0] hover:bg-white/5 hover:text-white">Cancel</Button>
-          <Button onClick={save} disabled={saving} className="bg-[#00e5ff] hover:bg-[#00c3d7] text-[#0a0e17] font-semibold">
+          <Button variant="ghost" onClick={onClose} className="text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F294A]">Cancel</Button>
+          <Button onClick={save} disabled={saving} className="bg-[#0F294A] hover:bg-[#193B68] text-white font-semibold">
             {saving ? "Saving..." : needsApproval ? "Send for approval" : "Record use"}
           </Button>
         </DialogFooter>

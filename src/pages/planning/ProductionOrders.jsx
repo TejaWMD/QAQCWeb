@@ -19,10 +19,10 @@ import { num } from "@/lib/planning";
 import { activeRecipeFor } from "@/lib/recipeMaster";
 
 const STATUS_STYLES = {
-  Planned: "bg-[#00e5ff]/10 text-[#00e5ff] border-[#00e5ff]/30",
-  "In Progress": "bg-[#ff9f43]/15 text-[#ff9f43] border-[#ff9f43]/40",
-  Completed: "bg-[#00ff9d]/10 text-[#00ff9d] border-[#00ff9d]/30",
-  Cancelled: "bg-[#3a4560]/20 text-[#a0aec0] border-[#3a4560]",
+  Planned: "bg-[#EBF3FF] text-[#1D4ED8] border-[#BFD7FF]",
+  "In Progress": "bg-amber-50 text-amber-700 border-amber-300",
+  Completed: "bg-emerald-50 text-emerald-700 border-emerald-300",
+  Cancelled: "bg-[#3a4560]/20 text-[#64748B] border-[#3a4560]",
 };
 
 export default function ProductionOrders() {
@@ -83,11 +83,11 @@ export default function ProductionOrders() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0e17] p-4 md:p-6 space-y-4">
+    <div className="min-h-screen bg-[#F6F8FC] p-4 md:p-6 space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-white text-lg font-semibold">Production Orders</h2>
-          <p className="text-[#a0aec0] text-sm mt-1">Orders built from Product Master, scheduled onto the Machines list.</p>
+          <h2 className="text-[#0F294A] text-lg font-semibold">Production Orders</h2>
+          <p className="text-[#64748B] text-sm mt-1">Orders built from Product Master, scheduled onto the Machines list.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           {canEditProductionSettings(user) && (
@@ -140,13 +140,13 @@ export default function ProductionOrders() {
 
       {loading ? (
         <div className="flex justify-center py-12">
-          <div className="w-8 h-8 border-4 border-[#1e2740] border-t-[#00e5ff] rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-[#E2E8F0] border-t-[#0F294A] rounded-full animate-spin" />
         </div>
       ) : (
         <div className={`${panelClass} overflow-x-auto`}>
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-[10px] uppercase tracking-widest text-[#5f6b7f] border-b border-[#1e2740]">
+              <tr className="text-[10px] uppercase tracking-widest text-[#64748B] border-b border-[#E2E8F0]">
                 <th className="text-left font-semibold px-3 py-2">Order</th>
                 <th className="text-left font-semibold px-3 py-2">Product</th>
                 <th className="text-right font-semibold px-3 py-2">Cartons</th>
@@ -161,7 +161,7 @@ export default function ProductionOrders() {
             <tbody>
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-3 py-8 text-center text-[#a0aec0]">
+                  <td colSpan={9} className="px-3 py-8 text-center text-[#64748B]">
                     {active.length === 0 ? "No orders yet. Generate the first one." : "No orders match these filters."}
                   </td>
                 </tr>
@@ -170,21 +170,21 @@ export default function ProductionOrders() {
                   const materialShort = riskById[o.id]?.materials || 0;
                   const packagingShort = riskById[o.id]?.packaging || 0;
                   return (
-                    <tr key={o.id} className="border-b border-[#131926] hover:bg-white/5 cursor-pointer" onClick={() => setDetailId(o.id)}>
-                      <td className="px-3 py-2 text-white font-semibold whitespace-nowrap">{o.order_number}</td>
+                    <tr key={o.id} className="border-b border-[#E2E8F0] hover:bg-[#F1F5F9] cursor-pointer" onClick={() => setDetailId(o.id)}>
+                      <td className="px-3 py-2 text-[#0F294A] font-semibold whitespace-nowrap">{o.order_number}</td>
                       <td className="px-3 py-2 max-w-[220px]">
-                        <span className="block text-white font-semibold text-xs truncate">{o.product_code || "—"}</span>
-                        <span className="block text-[#a0aec0] text-[11px] truncate">{o.product_name}</span>
+                        <span className="block text-[#0F294A] font-semibold text-xs truncate">{o.product_code || "—"}</span>
+                        <span className="block text-[#64748B] text-[11px] truncate">{o.product_name}</span>
                       </td>
-                      <td className="px-3 py-2 text-right text-[#a0aec0]">
+                      <td className="px-3 py-2 text-right text-[#64748B]">
                         {fmtQty(o.quantity_cartons)}
                         {num(o.produced_cartons) > 0 && (
-                          <span className="block text-[10px] text-[#00ff9d]">{fmtQty(o.produced_cartons)} produced</span>
+                          <span className="block text-[10px] text-emerald-700">{fmtQty(o.produced_cartons)} produced</span>
                         )}
                       </td>
-                      <td className="px-3 py-2 text-right text-[#a0aec0]">{o.batches || 1}</td>
-                      <td className="px-3 py-2 text-[#a0aec0] max-w-[200px] truncate">{o.machine || "—"}</td>
-                      <td className="px-3 py-2 text-[#5f6b7f] whitespace-nowrap text-xs">
+                      <td className="px-3 py-2 text-right text-[#64748B]">{o.batches || 1}</td>
+                      <td className="px-3 py-2 text-[#64748B] max-w-[200px] truncate">{o.machine || "—"}</td>
+                      <td className="px-3 py-2 text-[#64748B] whitespace-nowrap text-xs">
                         {fmtDateTime(o.planned_start)}<br />to {fmtDateTime(o.planned_end)}
                       </td>
                       <td className="px-3 py-2">
@@ -192,20 +192,20 @@ export default function ProductionOrders() {
                       </td>
                       <td className="px-3 py-2">
                         {(materialShort > 0 || packagingShort > 0) ? (
-                          <span className="inline-flex items-center gap-1 text-[10px] text-[#ff4d4d]">
+                          <span className="inline-flex items-center gap-1 text-[10px] text-rose-600">
                             <AlertTriangle className="w-3 h-3" />
                             {[materialShort ? `${materialShort} mat` : "", packagingShort ? `${packagingShort} pkg` : ""].filter(Boolean).join(" · ")}
                           </span>
-                        ) : <span className="text-[10px] text-[#5f6b7f]">ok</span>}
+                        ) : <span className="text-[10px] text-[#64748B]">ok</span>}
                       </td>
                       <td className="px-3 py-2 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                         {canRunOrders(user) && o.status === "Planned" && (
-                          <Button size="sm" variant="ghost" disabled={busyId === o.id} onClick={() => quickRun(o, false)} className="text-[#00e5ff] hover:bg-[#00e5ff]/10">
+                          <Button size="sm" variant="ghost" disabled={busyId === o.id} onClick={() => quickRun(o, false)} className="text-[#1D4ED8] hover:bg-[#EBF3FF]">
                             <Play className="w-3.5 h-3.5 mr-1" /> Start
                           </Button>
                         )}
                         {canRunOrders(user) && o.status === "In Progress" && (
-                          <Button size="sm" variant="ghost" disabled={busyId === o.id} onClick={() => quickRun(o, true)} className="text-[#00ff9d] hover:bg-[#00ff9d]/10">
+                          <Button size="sm" variant="ghost" disabled={busyId === o.id} onClick={() => quickRun(o, true)} className="text-emerald-700 hover:bg-emerald-50">
                             <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Finish
                           </Button>
                         )}
@@ -219,7 +219,7 @@ export default function ProductionOrders() {
         </div>
       )}
 
-      <p className="text-xs text-[#5f6b7f]">{rows.length} of {active.length} order(s)</p>
+      <p className="text-xs text-[#64748B]">{rows.length} of {active.length} order(s)</p>
 
       <GenerateOrderDialog
         open={generateOpen}

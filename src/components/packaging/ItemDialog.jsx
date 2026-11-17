@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-const FIELD = "bg-[#0e131d] border-[#1e2740] text-white";
+const FIELD = "bg-white border-[#E2E8F0] text-[#0F294A]";
 
 const empty = (categories, units) => ({
   item_code: "",
@@ -90,25 +90,25 @@ export default function ItemDialog({ open, item, categories, units, racks, onClo
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose?.()}>
-      <DialogContent className="bg-[#131926] border-[#1e2740] text-white max-h-[85vh] overflow-y-auto sm:max-w-xl">
+      <DialogContent className="bg-white border-[#E2E8F0] text-[#0F294A] max-h-[85vh] overflow-y-auto sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle className="text-white">{item ? "Edit packaging item" : "Add packaging item"}</DialogTitle>
-          <DialogDescription className="text-[#a0aec0] text-sm">
+          <DialogTitle className="text-[#0F294A]">{item ? "Edit packaging item" : "Add packaging item"}</DialogTitle>
+          <DialogDescription className="text-[#64748B] text-sm">
             Quantities change only through In, Use and Check so every movement stays traceable.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Item Code *</label>
+              <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Item Code *</label>
               <Input value={form.item_code} onChange={(e) => set("item_code", e.target.value)} placeholder="e.g. LBL-250" className={FIELD} />
             </div>
             <div className="space-y-1">
-              <label className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Description</label>
+              <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Description</label>
               <Input value={form.description} onChange={(e) => set("description", e.target.value)} placeholder="Item name" className={FIELD} />
             </div>
             <div className="space-y-1">
-              <label className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Category</label>
+              <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Category</label>
               <Select value={form.category} onValueChange={(v) => set("category", v)}>
                 <SelectTrigger className={FIELD}><SelectValue placeholder="Select category" /></SelectTrigger>
                 <SelectContent>
@@ -117,7 +117,7 @@ export default function ItemDialog({ open, item, categories, units, racks, onClo
               </Select>
             </div>
             <div className="space-y-1">
-              <label className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Unit of Measure</label>
+              <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Unit of Measure</label>
               <Select value={form.unit} onValueChange={(v) => set("unit", v)}>
                 <SelectTrigger className={FIELD}><SelectValue placeholder="Select unit" /></SelectTrigger>
                 <SelectContent>
@@ -126,17 +126,17 @@ export default function ItemDialog({ open, item, categories, units, racks, onClo
               </Select>
             </div>
             <div className="space-y-1">
-              <label className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Minimum Level</label>
+              <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Minimum Level</label>
               <Input type="number" min="0" value={form.min_level} onChange={(e) => set("min_level", e.target.value)} placeholder="Low stock at or below this" className={FIELD} />
             </div>
             {!item && (
               <div className="space-y-1">
-                <label className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Initial Quantity</label>
+                <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Initial Quantity</label>
                 <Input type="number" min="0" step="0.001" value={form.quantity} onChange={(e) => set("quantity", e.target.value)} placeholder="0" className={FIELD} />
               </div>
             )}
             <div className="space-y-1">
-              <label className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Default Rack</label>
+              <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Default Rack</label>
               <Select value={form.default_rack || "none"} onValueChange={(v) => set("default_rack", v === "none" ? "" : v)}>
                 <SelectTrigger className={FIELD}><SelectValue placeholder="Select rack" /></SelectTrigger>
                 <SelectContent>
@@ -146,30 +146,30 @@ export default function ItemDialog({ open, item, categories, units, racks, onClo
               </Select>
             </div>
             <div className="space-y-1">
-              <label className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Supplier</label>
+              <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Supplier</label>
               <Input value={form.supplier} onChange={(e) => set("supplier", e.target.value)} placeholder="Optional" className={FIELD} />
             </div>
             <div className="space-y-1">
-              <label className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Linked Product</label>
+              <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Linked Product</label>
               <Input value={form.linked_product} onChange={(e) => set("linked_product", e.target.value)} placeholder="Product this packs (optional)" className={FIELD} />
             </div>
             <div className="space-y-1">
-              <label className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Qty per Finished Unit</label>
+              <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Qty per Finished Unit</label>
               <Input type="number" min="0" step="0.001" value={form.qty_per_unit} onChange={(e) => set("qty_per_unit", e.target.value)} placeholder="e.g. 1" className={FIELD} />
             </div>
           </div>
 
           <div className="flex items-center gap-2 pt-1">
             <Checkbox id="packaging-active" checked={form.active} onCheckedChange={(v) => set("active", v === true)} />
-            <Label htmlFor="packaging-active" className="text-sm text-[#a0aec0]">Active</Label>
+            <Label htmlFor="packaging-active" className="text-sm text-[#64748B]">Active</Label>
           </div>
 
-          {error && <p className="text-xs text-[#ff4d4d]">{error}</p>}
+          {error && <p className="text-xs text-rose-600">{error}</p>}
           <div className="flex justify-end gap-2 pt-1">
-            <Button type="button" variant="ghost" onClick={onClose} className="text-[#a0aec0] hover:bg-white/5 hover:text-white">
+            <Button type="button" variant="ghost" onClick={onClose} className="text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F294A]">
               Cancel
             </Button>
-            <Button type="submit" disabled={saving} className="bg-[#00e5ff] hover:bg-[#00c3d7] text-[#0a0e17] font-semibold">
+            <Button type="submit" disabled={saving} className="bg-[#0F294A] hover:bg-[#193B68] text-white font-semibold">
               {saving ? "Saving..." : "Save item"}
             </Button>
           </div>

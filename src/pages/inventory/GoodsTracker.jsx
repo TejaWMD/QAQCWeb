@@ -131,21 +131,21 @@ export default function GoodsTracker() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0e17] p-4 md:p-6 space-y-4">
+    <div className="min-h-screen bg-[#F6F8FC] p-4 md:p-6 space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-white text-lg font-semibold">Goods Tracker</h2>
-          <p className="text-[#a0aec0] text-sm mt-1">
+          <h2 className="text-[#0F294A] text-lg font-semibold">Goods Tracker</h2>
+          <p className="text-[#64748B] text-sm mt-1">
             Every item received into the warehouse, with rack location and who keyed it in.
           </p>
         </div>
         <div className="flex flex-wrap gap-2 w-full sm:w-auto">
           {isWarehouseSupervisor(user) && (
-            <Button variant="outline" onClick={() => setSettingsOpen(true)} className="flex-1 sm:flex-none border-[#1e2740] bg-[#0e131d] text-[#a0aec0] hover:bg-white/5 hover:text-white">
+            <Button variant="outline" onClick={() => setSettingsOpen(true)} className="flex-1 sm:flex-none border-[#E2E8F0] bg-white text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F294A]">
               <SettingsIcon className="w-4 h-4" /> Settings
             </Button>
           )}
-          <Button asChild className="flex-1 sm:flex-none bg-[#00e5ff] hover:bg-[#00c3d7] text-[#0a0e17] font-semibold">
+          <Button asChild className="flex-1 sm:flex-none bg-[#0F294A] hover:bg-[#193B68] text-white font-semibold">
             <Link to="/goods-receiving"><Plus className="w-4 h-4" /> Receive goods</Link>
           </Button>
         </div>
@@ -159,9 +159,9 @@ export default function GoodsTracker() {
         exporting={exporting}
       />
 
-      <div className="rounded-xl border border-[#1e2740] bg-[#0e131d] p-3">
+      <div className="rounded-xl border border-[#E2E8F0] bg-white p-3">
         <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-          <p className="text-xs text-[#5f6b7f]">
+          <p className="text-xs text-[#64748B]">
             {loading ? "Loading…" : `${rows.length} line${rows.length === 1 ? "" : "s"} shown`}
           </p>
           <p className="text-[11px] text-[#3a465c]">Edits: own entries for 24 hours · supervisors anytime</p>
@@ -169,7 +169,7 @@ export default function GoodsTracker() {
         <TrackerTable rows={rows} user={user} onEdit={setEditing} loading={loading && rows.length === 0} />
         {hasMore && (
           <div className="pt-3 text-center">
-            <Button variant="outline" onClick={loadMore} disabled={loadingMore} className="border-[#1e2740] bg-transparent text-[#a0aec0] hover:bg-white/5 hover:text-white">
+            <Button variant="outline" onClick={loadMore} disabled={loadingMore} className="border-[#E2E8F0] bg-transparent text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F294A]">
               {loadingMore ? "Loading…" : "Load more"}
             </Button>
           </div>

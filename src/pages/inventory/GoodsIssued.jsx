@@ -168,29 +168,29 @@ export default function GoodsIssued() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0e17] p-4 md:p-6 space-y-4">
+    <div className="min-h-screen bg-[#F6F8FC] p-4 md:p-6 space-y-4">
       <div>
-        <h2 className="text-white text-lg font-semibold">Goods Issued</h2>
-        <p className="text-[#a0aec0] text-sm mt-1">Record packaging stock going out to production. Stock cannot go below zero.</p>
+        <h2 className="text-[#0F294A] text-lg font-semibold">Goods Issued</h2>
+        <p className="text-[#64748B] text-sm mt-1">Record packaging stock going out to production. Stock cannot go below zero.</p>
       </div>
 
-      <div className="rounded-xl border border-[#1e2740] bg-[#0e131d] p-3">
+      <div className="rounded-xl border border-[#E2E8F0] bg-white p-3">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1">
-            <label className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Date</label>
-            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="bg-[#0a0e17] border-[#1e2740] text-white" />
+            <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Date</label>
+            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="bg-[#F6F8FC] border-[#E2E8F0] text-[#0F294A]" />
           </div>
           <div className="space-y-1">
-            <label className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Issue Reference</label>
-            <Input value={reference} onChange={(e) => setReference(e.target.value)} placeholder="Optional (used when a line has no order)" className="bg-[#0a0e17] border-[#1e2740] text-white" />
+            <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Issue Reference</label>
+            <Input value={reference} onChange={(e) => setReference(e.target.value)} placeholder="Optional (used when a line has no order)" className="bg-[#F6F8FC] border-[#E2E8F0] text-[#0F294A]" />
           </div>
         </div>
       </div>
 
-      <div className="rounded-xl border border-[#1e2740] bg-[#0e131d] p-3 space-y-2">
+      <div className="rounded-xl border border-[#E2E8F0] bg-white p-3 space-y-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="text-xs font-semibold text-white flex items-center gap-1.5">
-            <QrCode className="w-4 h-4 text-[#00e5ff]" /> QR Code Scanner
+          <span className="text-xs font-semibold text-[#0F294A] flex items-center gap-1.5">
+            <QrCode className="w-4 h-4 text-[#1D4ED8]" /> QR Code Scanner
           </span>
           <CameraQRScanner onDecode={handleQrScan} />
         </div>
@@ -200,9 +200,9 @@ export default function GoodsIssued() {
             onChange={(e) => setQrInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter" && qrInput.trim()) { e.preventDefault(); handleQrScan(qrInput); } }}
             placeholder="Scan with handheld scanner or paste QR payload and press Enter"
-            className="bg-[#0a0e17] border-[#1e2740] text-white"
+            className="bg-[#F6F8FC] border-[#E2E8F0] text-[#0F294A]"
           />
-          <Button type="button" variant="outline" onClick={() => qrInput.trim() && handleQrScan(qrInput)} className="border-[#1e2740] bg-[#0a0e17] text-[#00e5ff] hover:bg-white/5">
+          <Button type="button" variant="outline" onClick={() => qrInput.trim() && handleQrScan(qrInput)} className="border-[#E2E8F0] bg-[#F6F8FC] text-[#1D4ED8] hover:bg-[#F1F5F9]">
             Parse QR
           </Button>
         </div>
@@ -223,15 +223,15 @@ export default function GoodsIssued() {
         ))}
       </div>
 
-      <Button variant="outline" onClick={() => setLines((prev) => [...prev, blankLine()])} className="w-full border-dashed border-[#1e2740] bg-transparent text-[#a0aec0] hover:bg-white/5 hover:text-white">
+      <Button variant="outline" onClick={() => setLines((prev) => [...prev, blankLine()])} className="w-full border-dashed border-[#E2E8F0] bg-transparent text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F294A]">
         <Plus className="w-4 h-4" /> Add line
       </Button>
 
-      {error && <p className="text-sm text-[#ff4d4d]">{error}</p>}
+      {error && <p className="text-sm text-rose-600">{error}</p>}
 
-      <div className="sticky bottom-0 -mx-4 md:-mx-6 px-4 md:px-6 py-3 bg-[#0a0e17] border-t border-[#1e2740] flex flex-wrap items-center gap-3">
-        <p className="text-xs text-[#5f6b7f]">{lines.length} line{lines.length === 1 ? "" : "s"} · issued by {user?.full_name || user?.email || "—"}</p>
-        <Button onClick={save} disabled={saving} className="w-full sm:w-auto sm:ml-auto bg-[#00e5ff] hover:bg-[#00c3d7] text-[#0a0e17] font-semibold h-11">
+      <div className="sticky bottom-0 -mx-4 md:-mx-6 px-4 md:px-6 py-3 bg-[#F6F8FC] border-t border-[#E2E8F0] flex flex-wrap items-center gap-3">
+        <p className="text-xs text-[#64748B]">{lines.length} line{lines.length === 1 ? "" : "s"} · issued by {user?.full_name || user?.email || "—"}</p>
+        <Button onClick={save} disabled={saving} className="w-full sm:w-auto sm:ml-auto bg-[#0F294A] hover:bg-[#193B68] text-white font-semibold h-11">
           <Save className="w-4 h-4" /> {saving ? "Saving..." : "Issue stock"}
         </Button>
       </div>

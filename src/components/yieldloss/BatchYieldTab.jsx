@@ -51,7 +51,7 @@ export default function BatchYieldTab({ settings }) {
   };
 
   if (loading) {
-    return <div className={`${panelClass} p-8 text-center text-sm text-[#5f6b7f]`}>Loading batch yields…</div>;
+    return <div className={`${panelClass} p-8 text-center text-sm text-[#64748B]`}>Loading batch yields…</div>;
   }
 
   const rows = data.yields;
@@ -59,7 +59,7 @@ export default function BatchYieldTab({ settings }) {
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-xs text-[#5f6b7f]">
+        <p className="text-xs text-[#64748B]">
           {rows.length} yield record{rows.length === 1 ? "" : "s"} · tolerance ±{settings.yield_tolerance_pct}% below standard
         </p>
         {canEnterYieldLoss(user) && (
@@ -69,14 +69,14 @@ export default function BatchYieldTab({ settings }) {
 
       {rows.length === 0 ? (
         <div className={`${panelClass} p-8 text-center`}>
-          <p className="text-sm text-[#a0aec0]">No batch yields recorded yet.</p>
-          <p className="text-xs text-[#5f6b7f] mt-1">Open a batch, enter its ingredient input and the output kg is calculated from Product Master.</p>
+          <p className="text-sm text-[#64748B]">No batch yields recorded yet.</p>
+          <p className="text-xs text-[#64748B] mt-1">Open a batch, enter its ingredient input and the output kg is calculated from Product Master.</p>
         </div>
       ) : (
         <div className={`${panelClass} overflow-x-auto`}>
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-[#5f6b7f] text-[10px] uppercase tracking-widest">
+              <tr className="text-[#64748B] text-[10px] uppercase tracking-widest">
                 <th className="px-3 py-2 text-left font-semibold">Batch</th>
                 <th className="px-3 py-2 text-left font-semibold">Product</th>
                 <th className="px-3 py-2 text-left font-semibold">Line · date</th>
@@ -91,32 +91,32 @@ export default function BatchYieldTab({ settings }) {
             </thead>
             <tbody>
               {rows.map((r) => (
-                <tr key={r.id} className="border-t border-[#131926]">
-                  <td className="px-3 py-2 text-white font-medium whitespace-nowrap">{r.batch_number}</td>
-                  <td className="px-3 py-2 text-[#a0aec0]">{r.product_name}</td>
-                  <td className="px-3 py-2 text-[#5f6b7f] whitespace-nowrap">{r.production_line || "—"} · {fmtDay(r.shift_date)}</td>
-                  <td className="px-3 py-2 text-right text-[#e2e8f0]">
+                <tr key={r.id} className="border-t border-[#E2E8F0]">
+                  <td className="px-3 py-2 text-[#0F294A] font-medium whitespace-nowrap">{r.batch_number}</td>
+                  <td className="px-3 py-2 text-[#64748B]">{r.product_name}</td>
+                  <td className="px-3 py-2 text-[#64748B] whitespace-nowrap">{r.production_line || "—"} · {fmtDay(r.shift_date)}</td>
+                  <td className="px-3 py-2 text-right text-[#334155]">
                     {fmtKg(r.input_kg)}
-                    <span className={`block text-[10px] ${r.input_source === "Manual" ? "text-[#ff9f43]" : "text-[#5f6b7f]"}`} title={r.override_reason || ""}>
+                    <span className={`block text-[10px] ${r.input_source === "Manual" ? "text-amber-700" : "text-[#64748B]"}`} title={r.override_reason || ""}>
                       {r.input_source === "Manual" ? "manual override" : "goods issued"}
                     </span>
                   </td>
-                  <td className="px-3 py-2 text-right text-[#e2e8f0]">{fmtKg(r.output_kg)}</td>
-                  <td className={`px-3 py-2 text-right font-semibold ${r.within_tolerance ? "text-[#00ff9d]" : "text-[#ff4d4d]"}`}>{fmtPct(r.yield_pct)}</td>
-                  <td className="px-3 py-2 text-right text-[#a0aec0]">{r.standard_yield_pct ? fmtPct(r.standard_yield_pct) : "—"}</td>
-                  <td className={`px-3 py-2 text-right ${r.within_tolerance ? "text-[#a0aec0]" : "text-[#ff4d4d] font-semibold"}`}>
+                  <td className="px-3 py-2 text-right text-[#334155]">{fmtKg(r.output_kg)}</td>
+                  <td className={`px-3 py-2 text-right font-semibold ${r.within_tolerance ? "text-emerald-700" : "text-rose-600"}`}>{fmtPct(r.yield_pct)}</td>
+                  <td className="px-3 py-2 text-right text-[#64748B]">{r.standard_yield_pct ? fmtPct(r.standard_yield_pct) : "—"}</td>
+                  <td className={`px-3 py-2 text-right ${r.within_tolerance ? "text-[#64748B]" : "text-rose-600 font-semibold"}`}>
                     {r.variance_pct > 0 ? "+" : ""}{r.variance_pct ?? 0}%
                   </td>
                   <td className="px-3 py-2">
                     <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${
                       r.status === "Verified"
-                        ? "text-[#00ff9d] border-[#00ff9d]/30 bg-[#00ff9d]/10"
-                        : "text-[#a0aec0] border-[#1e2740] bg-white/5"
+                        ? "text-emerald-700 border-emerald-300 bg-emerald-50"
+                        : "text-[#64748B] border-[#E2E8F0] bg-white/5"
                     }`}>{r.status}</span>
                   </td>
                   <td className="px-3 py-2 text-right">
                     {canVerifyRecord(user, r) && (
-                      <Button size="sm" variant="outline" onClick={() => verify(r)} className="border-[#1e2740] bg-transparent text-[#a0aec0] hover:text-white">
+                      <Button size="sm" variant="outline" onClick={() => verify(r)} className="border-[#E2E8F0] bg-transparent text-[#64748B] hover:text-[#0F294A]">
                         <ShieldCheck className="w-3.5 h-3.5 mr-1" /> Verify
                       </Button>
                     )}

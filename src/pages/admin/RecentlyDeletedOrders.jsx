@@ -36,31 +36,31 @@ export default function RecentlyDeletedOrders() {
 
   if (!isAdminUser(user)) {
     return (
-      <div className="min-h-screen bg-[#0a0e17] p-4 md:p-6">
-        <div className="rounded-xl border border-[#1e2740] bg-[#101828] px-4 py-3 flex items-center gap-2">
-          <ShieldAlert className="w-4 h-4 text-[#ff9f43]" />
-          <p className="text-sm text-[#a0aec0]">Only an Admin can restore deleted orders.</p>
+      <div className="min-h-screen bg-[#F6F8FC] p-4 md:p-6">
+        <div className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-3 flex items-center gap-2">
+          <ShieldAlert className="w-4 h-4 text-amber-700" />
+          <p className="text-sm text-[#64748B]">Only an Admin can restore deleted orders.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0e17] p-4 md:p-6 space-y-4">
+    <div className="min-h-screen bg-[#F6F8FC] p-4 md:p-6 space-y-4">
       <div>
-        <h2 className="text-white text-lg font-semibold">Recently Deleted</h2>
-        <p className="text-[#a0aec0] text-sm mt-1">Deleted production orders stay here until they are restored.</p>
+        <h2 className="text-[#0F294A] text-lg font-semibold">Recently Deleted</h2>
+        <p className="text-[#64748B] text-sm mt-1">Deleted production orders stay here until they are restored.</p>
       </div>
 
       {loading ? (
         <div className="flex justify-center py-12">
-          <div className="w-8 h-8 border-4 border-[#1e2740] border-t-[#00e5ff] rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-[#E2E8F0] border-t-[#0F294A] rounded-full animate-spin" />
         </div>
       ) : (
         <div className={`${panelClass} overflow-x-auto`}>
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-[10px] uppercase tracking-widest text-[#5f6b7f] border-b border-[#1e2740]">
+              <tr className="text-[10px] uppercase tracking-widest text-[#64748B] border-b border-[#E2E8F0]">
                 <th className="text-left font-semibold px-3 py-2">Order</th>
                 <th className="text-left font-semibold px-3 py-2">Product</th>
                 <th className="text-right font-semibold px-3 py-2">Cartons</th>
@@ -73,17 +73,17 @@ export default function RecentlyDeletedOrders() {
             <tbody>
               {deleted.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-3 py-8 text-center text-[#a0aec0]">Nothing here. No orders have been deleted.</td>
+                  <td colSpan={7} className="px-3 py-8 text-center text-[#64748B]">Nothing here. No orders have been deleted.</td>
                 </tr>
               ) : (
                 deleted.map((o) => (
-                  <tr key={o.id} className="border-b border-[#131926] hover:bg-white/5">
-                    <td className="px-3 py-2 text-white font-semibold whitespace-nowrap">{o.order_number}</td>
-                    <td className="px-3 py-2 text-[#a0aec0] max-w-[260px] truncate">{o.product_name}</td>
-                    <td className="px-3 py-2 text-right text-[#a0aec0]">{fmtQty(o.quantity_cartons)}</td>
-                    <td className="px-3 py-2 text-[#a0aec0] max-w-[200px] truncate">{o.machine || "—"}</td>
-                    <td className="px-3 py-2 text-[#5f6b7f] text-xs whitespace-nowrap">{fmtDateTime(o.planned_start)}</td>
-                    <td className="px-3 py-2 text-[#5f6b7f] text-xs whitespace-nowrap">
+                  <tr key={o.id} className="border-b border-[#E2E8F0] hover:bg-[#F1F5F9]">
+                    <td className="px-3 py-2 text-[#0F294A] font-semibold whitespace-nowrap">{o.order_number}</td>
+                    <td className="px-3 py-2 text-[#64748B] max-w-[260px] truncate">{o.product_name}</td>
+                    <td className="px-3 py-2 text-right text-[#64748B]">{fmtQty(o.quantity_cartons)}</td>
+                    <td className="px-3 py-2 text-[#64748B] max-w-[200px] truncate">{o.machine || "—"}</td>
+                    <td className="px-3 py-2 text-[#64748B] text-xs whitespace-nowrap">{fmtDateTime(o.planned_start)}</td>
+                    <td className="px-3 py-2 text-[#64748B] text-xs whitespace-nowrap">
                       {o.deleted_by || "—"}<br />{o.deleted_date ? fmtDateTime(o.deleted_date) : ""}
                     </td>
                     <td className="px-3 py-2 text-right">
@@ -101,7 +101,7 @@ export default function RecentlyDeletedOrders() {
         </div>
       )}
 
-      <p className="text-xs text-[#5f6b7f]">{deleted.length} deleted order(s)</p>
+      <p className="text-xs text-[#64748B]">{deleted.length} deleted order(s)</p>
     </div>
   );
 }

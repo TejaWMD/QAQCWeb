@@ -216,9 +216,9 @@ export default function CreateBatch() {
     if (savedPrintView) {
     const d = savedPrintView.data;
     return (
-      <div className="min-h-screen bg-[#0a0e17] p-4 md:p-6 space-y-4">
+      <div className="min-h-screen bg-[#F6F8FC] p-4 md:p-6 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <Link to="/batch-records" className="inline-flex items-center gap-1.5 text-sm text-[#a0aec0] hover:text-white">
+          <Link to="/batch-records" className="inline-flex items-center gap-1.5 text-sm text-[#64748B] hover:text-[#0F294A]">
             <ArrowLeft className="w-4 h-4" /> Back to Batches
           </Link>
           <div className="flex items-center gap-2">
@@ -255,30 +255,30 @@ export default function CreateBatch() {
           </div>
 
           <div className={`${panelClass} p-4 space-y-3`}>
-            <p className="text-sm font-semibold text-white">Print Settings</p>
+            <p className="text-sm font-semibold text-[#0F294A]">Print Settings</p>
             <div className="space-y-1.5">
               <p className={labelClass}>Label Template</p>
               <button
                 type="button"
                 onClick={() => setTemplateSize("60x40")}
-                className={`w-full text-left rounded-lg border p-3 ${templateSize === "60x40" ? "border-[#00e5ff] bg-[#00e5ff]/10" : "border-[#1e2740] bg-[#0e131d]"}`}
+                className={`w-full text-left rounded-lg border p-3 ${templateSize === "60x40" ? "border-[#BFD7FF] bg-[#EBF3FF]" : "border-[#E2E8F0] bg-white"}`}
               >
-                <p className="text-sm font-semibold text-white">60 × 40 mm</p>
-                <p className="text-xs text-[#a0aec0]">60 × 40 mm label rotated to 90° in top-left corner of 100 × 150 mm (landscape) page</p>
+                <p className="text-sm font-semibold text-[#0F294A]">60 × 40 mm</p>
+                <p className="text-xs text-[#64748B]">60 × 40 mm label rotated to 90° in top-left corner of 100 × 150 mm (landscape) page</p>
               </button>
             </div>
-            <label className="flex items-start gap-2.5 rounded-lg border border-[#1e2740] bg-[#0e131d] p-3 cursor-pointer">
-              <input type="checkbox" checked={retailEanQr} onChange={(e) => setRetailEanQr(e.target.checked)} className="mt-0.5 accent-[#00e5ff]" />
+            <label className="flex items-start gap-2.5 rounded-lg border border-[#E2E8F0] bg-white p-3 cursor-pointer">
+              <input type="checkbox" checked={retailEanQr} onChange={(e) => setRetailEanQr(e.target.checked)} className="mt-0.5 accent-[#1D4ED8]" />
               <div>
-                <p className="text-sm font-medium text-white">Retail EAN-13 + QR Batch Template</p>
-                <p className="text-xs text-[#a0aec0]">Barcode shows only the batch number as EAN-13; the QR carries the batch number and full batch details.</p>
+                <p className="text-sm font-medium text-[#0F294A]">Retail EAN-13 + QR Batch Template</p>
+                <p className="text-xs text-[#64748B]">Barcode shows only the batch number as EAN-13; the QR carries the batch number and full batch details.</p>
               </div>
             </label>
             <div className="space-y-1.5">
               <p className={labelClass}>Label Layout</p>
-              <div className="rounded-lg border border-[#00e5ff] bg-[#00e5ff]/10 p-3">
-                <p className="text-sm font-semibold text-white">{savedPrintView.layout.name}</p>
-                <p className="text-xs text-[#a0aec0]">{savedPrintView.layout.width_mm} × {savedPrintView.layout.height_mm} mm · ECC {savedPrintView.layout.qr_ecc}</p>
+              <div className="rounded-lg border border-[#BFD7FF] bg-[#EBF3FF] p-3">
+                <p className="text-sm font-semibold text-[#0F294A]">{savedPrintView.layout.name}</p>
+                <p className="text-xs text-[#64748B]">{savedPrintView.layout.width_mm} × {savedPrintView.layout.height_mm} mm · ECC {savedPrintView.layout.qr_ecc}</p>
               </div>
             </div>
           </div>
@@ -289,8 +289,8 @@ export default function CreateBatch() {
   }
 
   return (
-      <div className="min-h-screen bg-[#0a0e17] flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-[#1e2740] border-t-[#00e5ff] rounded-full animate-spin" />
+      <div className="min-h-screen bg-[#F6F8FC] flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-[#E2E8F0] border-t-[#0F294A] rounded-full animate-spin" />
       </div>
     );
   }
@@ -298,9 +298,9 @@ export default function CreateBatch() {
   if (savedPrintView) {
     const d = savedPrintView.data;
     return (
-      <div className="min-h-screen bg-[#0a0e17] p-4 md:p-6 space-y-4">
+      <div className="min-h-screen bg-[#F6F8FC] p-4 md:p-6 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <Link to="/batch-records" className="inline-flex items-center gap-1.5 text-sm text-[#a0aec0] hover:text-white">
+          <Link to="/batch-records" className="inline-flex items-center gap-1.5 text-sm text-[#64748B] hover:text-[#0F294A]">
             <ArrowLeft className="w-4 h-4" /> Back to Batches
           </Link>
           <div className="flex items-center gap-2">
@@ -337,30 +337,30 @@ export default function CreateBatch() {
           </div>
 
           <div className={`${panelClass} p-4 space-y-3`}>
-            <p className="text-sm font-semibold text-white">Print Settings</p>
+            <p className="text-sm font-semibold text-[#0F294A]">Print Settings</p>
             <div className="space-y-1.5">
               <p className={labelClass}>Label Template</p>
               <button
                 type="button"
                 onClick={() => setTemplateSize("60x40")}
-                className={`w-full text-left rounded-lg border p-3 ${templateSize === "60x40" ? "border-[#00e5ff] bg-[#00e5ff]/10" : "border-[#1e2740] bg-[#0e131d]"}`}
+                className={`w-full text-left rounded-lg border p-3 ${templateSize === "60x40" ? "border-[#BFD7FF] bg-[#EBF3FF]" : "border-[#E2E8F0] bg-white"}`}
               >
-                <p className="text-sm font-semibold text-white">60 × 40 mm</p>
-                <p className="text-xs text-[#a0aec0]">60 × 40 mm label rotated to 90° in top-left corner of 100 × 150 mm (landscape) page</p>
+                <p className="text-sm font-semibold text-[#0F294A]">60 × 40 mm</p>
+                <p className="text-xs text-[#64748B]">60 × 40 mm label rotated to 90° in top-left corner of 100 × 150 mm (landscape) page</p>
               </button>
             </div>
-            <label className="flex items-start gap-2.5 rounded-lg border border-[#1e2740] bg-[#0e131d] p-3 cursor-pointer">
-              <input type="checkbox" checked={retailEanQr} onChange={(e) => setRetailEanQr(e.target.checked)} className="mt-0.5 accent-[#00e5ff]" />
+            <label className="flex items-start gap-2.5 rounded-lg border border-[#E2E8F0] bg-white p-3 cursor-pointer">
+              <input type="checkbox" checked={retailEanQr} onChange={(e) => setRetailEanQr(e.target.checked)} className="mt-0.5 accent-[#1D4ED8]" />
               <div>
-                <p className="text-sm font-medium text-white">Retail EAN-13 + QR Batch Template</p>
-                <p className="text-xs text-[#a0aec0]">Barcode shows only the batch number as EAN-13; the QR carries the batch number and full batch details.</p>
+                <p className="text-sm font-medium text-[#0F294A]">Retail EAN-13 + QR Batch Template</p>
+                <p className="text-xs text-[#64748B]">Barcode shows only the batch number as EAN-13; the QR carries the batch number and full batch details.</p>
               </div>
             </label>
             <div className="space-y-1.5">
               <p className={labelClass}>Label Layout</p>
-              <div className="rounded-lg border border-[#00e5ff] bg-[#00e5ff]/10 p-3">
-                <p className="text-sm font-semibold text-white">{savedPrintView.layout.name}</p>
-                <p className="text-xs text-[#a0aec0]">{savedPrintView.layout.width_mm} × {savedPrintView.layout.height_mm} mm · ECC {savedPrintView.layout.qr_ecc}</p>
+              <div className="rounded-lg border border-[#BFD7FF] bg-[#EBF3FF] p-3">
+                <p className="text-sm font-semibold text-[#0F294A]">{savedPrintView.layout.name}</p>
+                <p className="text-xs text-[#64748B]">{savedPrintView.layout.width_mm} × {savedPrintView.layout.height_mm} mm · ECC {savedPrintView.layout.qr_ecc}</p>
               </div>
             </div>
           </div>
@@ -371,11 +371,11 @@ export default function CreateBatch() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0e17] p-4 md:p-6 space-y-4">
+    <div className="min-h-screen bg-[#F6F8FC] p-4 md:p-6 space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-white text-lg font-semibold">Create Batch / Labels</h2>
-          <p className="text-[#a0aec0] text-sm mt-1">Record a batch and print its labels with a traceability QR code.</p>
+          <h2 className="text-[#0F294A] text-lg font-semibold">Create Batch / Labels</h2>
+          <p className="text-[#64748B] text-sm mt-1">Record a batch and print its labels with a traceability QR code.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           {canEditLabelSettings(user) && (
@@ -393,10 +393,10 @@ export default function CreateBatch() {
               <label className={labelClass}>Product</label>
               <ProductPicker products={products} value={productId} onChange={selectProduct} />
               {product && (
-                <p className="text-[11px] text-[#5f6b7f]">Shelf life {num(product.shelf_life_days) || 0} days · {product.product_code}</p>
+                <p className="text-[11px] text-[#64748B]">Shelf life {num(product.shelf_life_days) || 0} days · {product.product_code}</p>
               )}
               {product && labelBlock(product) && (
-                <p className="text-[11px] text-[#ff4d4d] flex items-center gap-1">
+                <p className="text-[11px] text-rose-600 flex items-center gap-1">
                   <AlertTriangle className="w-3 h-3" /> {labelBlock(product)} — labels are blocked until this is fixed in Product Master.
                 </p>
               )}
@@ -408,13 +408,13 @@ export default function CreateBatch() {
                 value={batchNumber}
                 readOnly
                 placeholder="Select product & production date"
-                className={`${inputClass} opacity-90 font-semibold text-[#00e5ff]`}
+                className={`${inputClass} opacity-90 font-semibold text-[#1D4ED8]`}
               />
-              <p className="text-[11px] text-[#5f6b7f]">
+              <p className="text-[11px] text-[#64748B]">
                 Auto-generated: {batchPrefix || "PREFIX"} + date (DDMMYY) + alphabet suffix
               </p>
               {duplicate && (
-                <p className="text-[11px] text-[#ff4d4d] flex items-center gap-1">
+                <p className="text-[11px] text-rose-600 flex items-center gap-1">
                   <AlertTriangle className="w-3 h-3" /> Already recorded for this product.
                 </p>
               )}
@@ -438,14 +438,14 @@ export default function CreateBatch() {
             <div className="space-y-1">
               <label className={labelClass}>Expiry date</label>
               <Input type="date" value={expiryDate} readOnly disabled className={`${inputClass} opacity-80`} />
-              <p className="text-[11px] text-[#5f6b7f]">
+              <p className="text-[11px] text-[#64748B]">
                 {computedExpiry ? `${num(product?.shelf_life_days)} day shelf life → ${fmtDay(computedExpiry)}` : "This product has no shelf life set."}
               </p>
               {admin && (
                 <button
                   type="button"
                   onClick={() => { setOverrideOpen((v) => !v); setOverrideDate(overrideOpen ? "" : (computedExpiry || productionDate)); }}
-                  className="text-[11px] text-[#00e5ff] hover:underline"
+                  className="text-[11px] text-[#1D4ED8] hover:underline"
                 >
                   {overrideOpen ? "Cancel override" : "Admin: override expiry date"}
                 </button>
@@ -465,28 +465,28 @@ export default function CreateBatch() {
           </div>
 
           {product && (
-            <div className="rounded-lg border border-[#1e2740] bg-[#0e131d] p-3 space-y-1">
+            <div className="rounded-lg border border-[#E2E8F0] bg-white p-3 space-y-1">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Recipe</p>
-                <Link to="/recipe-master" className="text-[11px] text-[#00e5ff] hover:underline">Recipe Master</Link>
+                <p className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Recipe</p>
+                <Link to="/recipe-master" className="text-[11px] text-[#1D4ED8] hover:underline">Recipe Master</Link>
               </div>
               {recipe ? (
                 <>
-                  <p className="text-sm text-white">
-                    {recipe.recipe_name || "Recipe"} <span className="text-[#5f6b7f]">· v{recipe.version}</span>
+                  <p className="text-sm text-[#0F294A]">
+                    {recipe.recipe_name || "Recipe"} <span className="text-[#64748B]">· v{recipe.version}</span>
                   </p>
-                  <p className="text-[11px] text-[#5f6b7f]">
+                  <p className="text-[11px] text-[#64748B]">
                     {(recipe.ingredients || []).length} ingredient(s) · {fmtQty(recipe.batch_cartons)} cartons per batch
                     {recipe.standard_yield_pct ? ` · standard yield ${fmtQty(recipe.standard_yield_pct)}%` : ""}
                   </p>
                 </>
               ) : (
-                <p className="text-[11px] text-[#ff9f43]">No recipe linked to this item yet — add one in Recipe Master.</p>
+                <p className="text-[11px] text-amber-700">No recipe linked to this item yet — add one in Recipe Master.</p>
               )}
             </div>
           )}
 
-          <div className="space-y-2 border-t border-[#1e2740] pt-3">
+          <div className="space-y-2 border-t border-[#E2E8F0] pt-3">
             <div className="flex items-center justify-between gap-2">
               <label className={labelClass}>Label layout</label>
               {product && (
@@ -494,7 +494,7 @@ export default function CreateBatch() {
                   type="button"
                   onClick={saveAsDefault}
                   disabled={layoutIsDefault}
-                  className={`text-[11px] inline-flex items-center gap-1 ${layoutIsDefault ? "text-[#5f6b7f]" : "text-[#00e5ff] hover:underline"}`}
+                  className={`text-[11px] inline-flex items-center gap-1 ${layoutIsDefault ? "text-[#64748B]" : "text-[#1D4ED8] hover:underline"}`}
                 >
                   <Star className="w-3 h-3" /> {layoutIsDefault ? "Saved as this product's default" : "Save as this product's default"}
                 </button>
@@ -509,7 +509,7 @@ export default function CreateBatch() {
             />
           </div>
 
-          <div className="flex flex-wrap items-end justify-between gap-3 border-t border-[#1e2740] pt-3">
+          <div className="flex flex-wrap items-end justify-between gap-3 border-t border-[#E2E8F0] pt-3">
             <div className="space-y-1 w-32">
               <label className={labelClass}>Label copies</label>
               <Input type="number" min="1" max="200" value={copies} onChange={(e) => setCopies(e.target.value)} className={inputClass} />
@@ -523,8 +523,8 @@ export default function CreateBatch() {
 
         <div className={`${panelClass} p-4 space-y-3 xl:sticky xl:top-4`}>
           <div className="flex items-center justify-between gap-2">
-            <p className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Label preview</p>
-            <span className="text-[10px] text-[#5f6b7f]">{layout.name} · {layout.width_mm} × {layout.height_mm} mm</span>
+            <p className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Label preview</p>
+            <span className="text-[10px] text-[#64748B]">{layout.name} · {layout.width_mm} × {layout.height_mm} mm</span>
           </div>
 
           <div className="overflow-x-auto pb-1">
@@ -533,8 +533,8 @@ export default function CreateBatch() {
             </div>
           </div>
 
-          <div className="text-[11px] text-[#5f6b7f] space-y-1">
-            <p className="flex items-center gap-1"><CheckCircle2 className="w-3 h-3 text-[#00ff9d]" /> QR opens the traceability page for this batch.</p>
+          <div className="text-[11px] text-[#64748B] space-y-1">
+            <p className="flex items-center gap-1"><CheckCircle2 className="w-3 h-3 text-emerald-700" /> QR opens the traceability page for this batch.</p>
             <p className="flex items-center gap-1"><History className="w-3 h-3" /> {records.length} batch record(s) saved so far.</p>
             {quantity ? <p>Quantity: {fmtQty(quantity)} cartons</p> : null}
           </div>

@@ -4,10 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Download, X } from "lucide-react";
 
-const FIELD = "bg-[#0e131d] border-[#1e2740] text-white";
+const FIELD = "bg-white border-[#E2E8F0] text-[#0F294A]";
 
 const Label = ({ children }) => (
-  <label className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">{children}</label>
+  <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">{children}</label>
 );
 
 // Date range, item code, batch, rack and free-text search across the goods log.
@@ -16,9 +16,9 @@ export default function TrackerFilters({ filters, onChange, racks, onExport, exp
   const clear = () => onChange({ from: "", to: "", item_code: "", batch: "", rack: "", search: "" });
 
   return (
-    <div className="rounded-xl border border-[#1e2740] bg-[#0e131d] p-3 space-y-3">
+    <div className="rounded-xl border border-[#E2E8F0] bg-white p-3 space-y-3">
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5f6b7f]" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#64748B]" />
         <Input
           value={filters.search}
           onChange={(e) => set("search", e.target.value)}
@@ -56,14 +56,14 @@ export default function TrackerFilters({ filters, onChange, racks, onExport, exp
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <Button variant="ghost" size="sm" onClick={clear} className="text-[#a0aec0] hover:bg-white/5 hover:text-white">
+        <Button variant="ghost" size="sm" onClick={clear} className="text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F294A]">
           <X className="w-4 h-4" /> Clear filters
         </Button>
         <Button
           onClick={onExport}
           disabled={exporting}
           size="sm"
-          className="ml-auto bg-[#00e5ff] hover:bg-[#00c3d7] text-[#0a0e17]"
+          className="ml-auto bg-[#0F294A] hover:bg-[#193B68] text-white"
         >
           <Download className="w-4 h-4" /> {exporting ? "Exporting..." : "Export CSV"}
         </Button>

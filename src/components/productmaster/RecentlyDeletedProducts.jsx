@@ -33,7 +33,7 @@ export default function RecentlyDeletedProducts({ products = [], user, onReload 
     <div className={`${panelClass} overflow-x-auto`}>
       <table className="w-full text-sm">
         <thead>
-          <tr className="text-[10px] uppercase tracking-widest text-[#5f6b7f] border-b border-[#1e2740]">
+          <tr className="text-[10px] uppercase tracking-widest text-[#64748B] border-b border-[#E2E8F0]">
             <th className="text-left font-semibold px-3 py-2">Item Code</th>
             <th className="text-left font-semibold px-3 py-2">Carton Description</th>
             <th className="text-left font-semibold px-3 py-2">Brand</th>
@@ -44,14 +44,14 @@ export default function RecentlyDeletedProducts({ products = [], user, onReload 
         </thead>
         <tbody>
           {products.length === 0 ? (
-            <tr><td colSpan={6} className="px-3 py-8 text-center text-[#a0aec0]">Nothing in Recently Deleted.</td></tr>
+            <tr><td colSpan={6} className="px-3 py-8 text-center text-[#64748B]">Nothing in Recently Deleted.</td></tr>
           ) : products.map((p) => (
-            <tr key={p.id} className="border-b border-[#131926]">
-              <td className="px-3 py-2 text-white font-semibold whitespace-nowrap">{p.product_code}</td>
-              <td className="px-3 py-2 text-[#a0aec0] max-w-[280px] truncate" title={p.product_name}>{p.product_name}</td>
-              <td className="px-3 py-2 text-[#a0aec0]">{p.brand || "—"}</td>
-              <td className="px-3 py-2 text-[#a0aec0]">{p.deleted_by || "—"}</td>
-              <td className="px-3 py-2 text-[#a0aec0] whitespace-nowrap">{when(p.deleted_date)}</td>
+            <tr key={p.id} className="border-b border-[#E2E8F0]">
+              <td className="px-3 py-2 text-[#0F294A] font-semibold whitespace-nowrap">{p.product_code}</td>
+              <td className="px-3 py-2 text-[#64748B] max-w-[280px] truncate" title={p.product_name}>{p.product_name}</td>
+              <td className="px-3 py-2 text-[#64748B]">{p.brand || "—"}</td>
+              <td className="px-3 py-2 text-[#64748B]">{p.deleted_by || "—"}</td>
+              <td className="px-3 py-2 text-[#64748B] whitespace-nowrap">{when(p.deleted_date)}</td>
               <td className="px-3 py-2 text-right">
                 <Button variant="outline" onClick={() => restore(p)} disabled={busy === p.id} className={subtleButton}>
                   <RotateCcw className="w-3.5 h-3.5 mr-1.5" /> Restore

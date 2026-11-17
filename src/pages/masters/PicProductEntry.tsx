@@ -396,7 +396,7 @@ export default function PicProductEntry() {
           />
         </div>
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-          <span style={{ fontSize: '0.75rem', color: '#a0aec0', fontWeight: 600 }}>STATUS:</span>
+          <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 600 }}>STATUS:</span>
           {(['All', 'Active', 'Inactive'] as const).map((st) => (
             <button
               key={st}
@@ -432,19 +432,19 @@ export default function PicProductEntry() {
             <tbody>
               {filteredProducts.length === 0 ? (
                 <tr>
-                  <td colSpan={11} style={{ textAlign: 'center', padding: '3rem', color: '#a0aec0' }}>
+                  <td colSpan={11} style={{ textAlign: 'center', padding: '3rem', color: '#64748B' }}>
                     {loading ? 'Loading products from Supabase...' : 'No products found. Click "+ Add Product" or "Bulk Excel Import" above.'}
                   </td>
                 </tr>
               ) : (
                 filteredProducts.map((p) => (
                   <tr key={p.id}>
-                    <td style={{ fontWeight: 700, color: '#00e5ff' }}>{p.product_code}</td>
+                    <td style={{ fontWeight: 700, color: '#1D4ED8' }}>{p.product_code}</td>
                     <td style={{ maxWidth: '240px', wordBreak: 'break-word' }}>{p.product_name}</td>
                     <td>{p.brand || '—'}</td>
                     <td>{p.carton_size || '—'}</td>
                     <td>{p.net_weight_kg ? `${p.net_weight_kg} kg` : '—'}</td>
-                    <td style={{ color: '#00e5ff', fontWeight: 600 }}>
+                    <td style={{ color: '#1D4ED8', fontWeight: 600 }}>
                       {p.net_filling_kg ? `${p.net_filling_kg} kg` : '—'}
                     </td>
                     <td style={{ color: '#38bdf8', fontWeight: 600 }}>{p.cartons_per_batch || '—'}</td>
@@ -499,7 +499,7 @@ export default function PicProductEntry() {
               </h2>
               <button
                 onClick={() => setIsModalOpen(false)}
-                style={{ background: 'none', border: 'none', color: '#a0aec0', cursor: 'pointer' }}
+                style={{ background: 'none', border: 'none', color: '#64748B', cursor: 'pointer' }}
               >
                 <X className="w-5 h-5" />
               </button>
@@ -797,7 +797,7 @@ export default function PicProductEntry() {
               </h2>
               <button
                 onClick={() => setIsImportModalOpen(false)}
-                style={{ background: 'none', border: 'none', color: '#a0aec0', cursor: 'pointer' }}
+                style={{ background: 'none', border: 'none', color: '#64748B', cursor: 'pointer' }}
               >
                 <X className="w-5 h-5" />
               </button>
@@ -815,7 +815,7 @@ export default function PicProductEntry() {
                 <p style={{ color: '#ffffff', fontWeight: 600, marginBottom: '0.5rem' }}>
                   Select or drop your Product Datasheet (.xlsx, .xls, .csv)
                 </p>
-                <p style={{ fontSize: '0.8rem', color: '#a0aec0', marginBottom: '1.5rem' }}>
+                <p style={{ fontSize: '0.8rem', color: '#64748B', marginBottom: '1.5rem' }}>
                   Auto-calculates net filling, cartons per batch, and upserts directly into Supabase.
                 </p>
                 <input
@@ -843,7 +843,7 @@ export default function PicProductEntry() {
                     background: '#0d121f',
                     borderRadius: '0.375rem',
                     fontSize: '0.85rem',
-                    color: '#00e5ff',
+                    color: '#1D4ED8',
                     border: '1px solid #1e2740',
                   }}
                 >

@@ -28,19 +28,19 @@ export default function ProductPicker({ products = [], value, onChange, disabled
         type="button"
         disabled={disabled}
         onClick={() => setOpen((v) => !v)}
-        className={`w-full flex items-center justify-between gap-2 rounded-md border border-[#1e2740] bg-[#0a0e17] px-3 py-2 text-sm text-left disabled:opacity-50 ${selected ? "text-white" : "text-[#5f6b7f]"}`}
+        className={`w-full flex items-center justify-between gap-2 rounded-md border border-[#E2E8F0] bg-[#F6F8FC] px-3 py-2 text-sm text-left disabled:opacity-50 ${selected ? "text-[#0F294A]" : "text-[#64748B]"}`}
       >
         <span className="truncate">
           {selected ? `${selected.product_name}` : "Select a product"}
-          {selected?.product_code ? <span className="text-[#5f6b7f]"> · {selected.product_code}</span> : null}
+          {selected?.product_code ? <span className="text-[#64748B]"> · {selected.product_code}</span> : null}
         </span>
         <ChevronDown className="w-4 h-4 opacity-60 shrink-0" />
       </button>
 
       {open && (
-        <div className="absolute z-30 mt-1 w-full rounded-lg border border-[#1e2740] bg-[#0b1018] shadow-xl">
-          <div className="flex items-center gap-2 border-b border-[#1e2740] px-2 py-1.5">
-            <Search className="w-3.5 h-3.5 text-[#5f6b7f]" />
+        <div className="absolute z-30 mt-1 w-full rounded-lg border border-[#E2E8F0] bg-white shadow-xl">
+          <div className="flex items-center gap-2 border-b border-[#E2E8F0] px-2 py-1.5">
+            <Search className="w-3.5 h-3.5 text-[#64748B]" />
             <Input
               autoFocus
               value={query}
@@ -51,20 +51,20 @@ export default function ProductPicker({ products = [], value, onChange, disabled
           </div>
           <div className="max-h-64 overflow-y-auto py-1">
             {matches.length === 0 ? (
-              <p className="px-3 py-2 text-xs text-[#5f6b7f]">No product matches.</p>
+              <p className="px-3 py-2 text-xs text-[#64748B]">No product matches.</p>
             ) : (
               matches.map((product) => (
                 <button
                   key={product.id}
                   type="button"
                   onClick={() => pick(product)}
-                  className="w-full flex items-center justify-between gap-2 px-3 py-1.5 text-sm text-left text-[#a0aec0] hover:bg-white/5 hover:text-white"
+                  className="w-full flex items-center justify-between gap-2 px-3 py-1.5 text-sm text-left text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F294A]"
                 >
                   <span className="truncate">
                     {product.product_name}
-                    <span className="text-[10px] text-[#5f6b7f] ml-1.5">{product.product_code}</span>
+                    <span className="text-[10px] text-[#64748B] ml-1.5">{product.product_code}</span>
                   </span>
-                  {product.id === value && <Check className="w-3.5 h-3.5 text-[#00e5ff]" />}
+                  {product.id === value && <Check className="w-3.5 h-3.5 text-[#1D4ED8]" />}
                 </button>
               ))
             )}

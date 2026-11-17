@@ -47,7 +47,7 @@ export default function PackagingWasteTab({ settings }) {
     load();
   };
 
-  if (loading) return <div className={`${panelClass} p-8 text-center text-sm text-[#5f6b7f]`}>Loading packaging waste…</div>;
+  if (loading) return <div className={`${panelClass} p-8 text-center text-sm text-[#64748B]`}>Loading packaging waste…</div>;
 
   const rows = data.wastes.filter((r) => line === "all" || r.production_line === line);
 
@@ -55,11 +55,11 @@ export default function PackagingWasteTab({ settings }) {
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2 justify-between">
         <div className="flex items-center gap-2">
-          <select value={line} onChange={(e) => setLine(e.target.value)} className="h-9 rounded-md border border-[#1e2740] bg-[#0a0e17] text-[#a0aec0] text-xs px-2">
+          <select value={line} onChange={(e) => setLine(e.target.value)} className="h-9 rounded-md border border-[#E2E8F0] bg-[#F6F8FC] text-[#64748B] text-xs px-2">
             <option value="all">All lines</option>
             {productionLines.map((l) => <option key={l} value={l}>{l}</option>)}
           </select>
-          <p className="text-xs text-[#5f6b7f]">{rows.length} entr{rows.length === 1 ? "y" : "ies"} · threshold {settings.packaging_waste_threshold_pct}%</p>
+          <p className="text-xs text-[#64748B]">{rows.length} entr{rows.length === 1 ? "y" : "ies"} · threshold {settings.packaging_waste_threshold_pct}%</p>
         </div>
         {canEnterYieldLoss(user) && (
           <Button onClick={() => setOpen(true)} className={primaryButton}><Plus className="w-4 h-4 mr-1" /> New waste entry</Button>
@@ -68,14 +68,14 @@ export default function PackagingWasteTab({ settings }) {
 
       {rows.length === 0 ? (
         <div className={`${panelClass} p-8 text-center`}>
-          <p className="text-sm text-[#a0aec0]">No packaging waste recorded yet.</p>
-          <p className="text-xs text-[#5f6b7f] mt-1">Figures already captured in the Daily Packaging Entry are pulled in automatically.</p>
+          <p className="text-sm text-[#64748B]">No packaging waste recorded yet.</p>
+          <p className="text-xs text-[#64748B] mt-1">Figures already captured in the Daily Packaging Entry are pulled in automatically.</p>
         </div>
       ) : (
         <div className={`${panelClass} overflow-x-auto`}>
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-[#5f6b7f] text-[10px] uppercase tracking-widest">
+              <tr className="text-[#64748B] text-[10px] uppercase tracking-widest">
                 <th className="px-3 py-2 text-left font-semibold">Date</th>
                 <th className="px-3 py-2 text-left font-semibold">Line</th>
                 <th className="px-3 py-2 text-left font-semibold">Shift</th>
@@ -92,32 +92,32 @@ export default function PackagingWasteTab({ settings }) {
             </thead>
             <tbody>
               {rows.map((r) => (
-                <tr key={r.id} className="border-t border-[#131926]">
-                  <td className="px-3 py-2 text-white whitespace-nowrap">{fmtDay(r.waste_date)}</td>
-                  <td className="px-3 py-2 text-[#a0aec0]">{r.production_line}</td>
-                  <td className="px-3 py-2 text-[#5f6b7f]">{r.shift_type}</td>
-                  <td className="px-3 py-2 text-right text-[#e2e8f0]">
+                <tr key={r.id} className="border-t border-[#E2E8F0]">
+                  <td className="px-3 py-2 text-[#0F294A] whitespace-nowrap">{fmtDay(r.waste_date)}</td>
+                  <td className="px-3 py-2 text-[#64748B]">{r.production_line}</td>
+                  <td className="px-3 py-2 text-[#64748B]">{r.shift_type}</td>
+                  <td className="px-3 py-2 text-right text-[#334155]">
                     {r.film_m ? `${r.film_m} m` : ""}{r.film_m && r.film_kg ? " · " : ""}{r.film_kg ? `${r.film_kg} kg` : ""}{!r.film_m && !r.film_kg ? "—" : ""}
                   </td>
-                  <td className="px-3 py-2 text-right text-[#a0aec0]">{r.cartons || 0}</td>
-                  <td className="px-3 py-2 text-right text-[#a0aec0]">{r.labels || 0}</td>
-                  <td className="px-3 py-2 text-right text-[#a0aec0]">{r.pouches || 0}</td>
-                  <td className={`px-3 py-2 text-right font-semibold ${r.exceeded ? "text-[#ff4d4d]" : "text-[#00ff9d]"}`}>
+                  <td className="px-3 py-2 text-right text-[#64748B]">{r.cartons || 0}</td>
+                  <td className="px-3 py-2 text-right text-[#64748B]">{r.labels || 0}</td>
+                  <td className="px-3 py-2 text-right text-[#64748B]">{r.pouches || 0}</td>
+                  <td className={`px-3 py-2 text-right font-semibold ${r.exceeded ? "text-rose-600" : "text-emerald-700"}`}>
                     {r.waste_pct ?? 0}%
-                    <span className="block text-[10px] text-[#5f6b7f] font-normal">{r.waste_units || 0} / {r.used_units || 0} pcs</span>
+                    <span className="block text-[10px] text-[#64748B] font-normal">{r.waste_units || 0} / {r.used_units || 0} pcs</span>
                   </td>
-                  <td className="px-3 py-2 text-[#a0aec0]">{r.reason || "—"}</td>
-                  <td className="px-3 py-2 text-[10px] text-[#5f6b7f]">{r.source || "Manual"}</td>
+                  <td className="px-3 py-2 text-[#64748B]">{r.reason || "—"}</td>
+                  <td className="px-3 py-2 text-[10px] text-[#64748B]">{r.source || "Manual"}</td>
                   <td className="px-3 py-2">
                     <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${
                       r.status === "Verified"
-                        ? "text-[#00ff9d] border-[#00ff9d]/30 bg-[#00ff9d]/10"
-                        : "text-[#a0aec0] border-[#1e2740] bg-white/5"
+                        ? "text-emerald-700 border-emerald-300 bg-emerald-50"
+                        : "text-[#64748B] border-[#E2E8F0] bg-white/5"
                     }`}>{r.status}</span>
                   </td>
                   <td className="px-3 py-2 text-right">
                     {canVerifyRecord(user, r) && (
-                      <Button size="sm" variant="outline" onClick={() => verify(r)} className="border-[#1e2740] bg-transparent text-[#a0aec0] hover:text-white">
+                      <Button size="sm" variant="outline" onClick={() => verify(r)} className="border-[#E2E8F0] bg-transparent text-[#64748B] hover:text-[#0F294A]">
                         <ShieldCheck className="w-3.5 h-3.5 mr-1" /> Verify
                       </Button>
                     )}

@@ -105,7 +105,7 @@ export default function ReworkDialog({ open, onClose, settings, records = [], pr
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className={dialogClass}>
         <DialogHeader>
-          <DialogTitle className="text-white">New Rework Record · {lotId}</DialogTitle>
+          <DialogTitle className="text-[#0F294A]">New Rework Record · {lotId}</DialogTitle>
         </DialogHeader>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -167,18 +167,18 @@ export default function ReworkDialog({ open, onClose, settings, records = [], pr
         </div>
 
         <div className={`${panelClass} p-3 grid grid-cols-2 sm:grid-cols-3 gap-2`}>
-          <div><p className={labelClass}>Batch output</p><p className="text-white text-sm font-semibold">{batchOutputKg ? fmtKg(batchOutputKg) : "unknown"}</p></div>
-          <div><p className={labelClass}>Rework % of batch</p><p className={`text-sm font-semibold ${exceeds ? "text-[#ff4d4d]" : "text-[#00ff9d]"}`}>{pct}%</p></div>
-          <div><p className={labelClass}>Maximum allowed</p><p className="text-white text-sm font-semibold">{settings.max_rework_pct}%</p></div>
+          <div><p className={labelClass}>Batch output</p><p className="text-[#0F294A] text-sm font-semibold">{batchOutputKg ? fmtKg(batchOutputKg) : "unknown"}</p></div>
+          <div><p className={labelClass}>Rework % of batch</p><p className={`text-sm font-semibold ${exceeds ? "text-rose-600" : "text-emerald-700"}`}>{pct}%</p></div>
+          <div><p className={labelClass}>Maximum allowed</p><p className="text-[#0F294A] text-sm font-semibold">{settings.max_rework_pct}%</p></div>
         </div>
-        {exceeds && <p className="text-xs text-[#ff4d4d]">This rework is above the maximum set in Settings — it will be flagged for QA.</p>}
+        {exceeds && <p className="text-xs text-rose-600">This rework is above the maximum set in Settings — it will be flagged for QA.</p>}
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
-          <label className="flex items-center gap-2 text-xs text-[#a0aec0]">
+          <label className="flex items-center gap-2 text-xs text-[#64748B]">
             <Checkbox checked={form.allergen_concern} onCheckedChange={(v) => set("allergen_concern", !!v)} />
             Allergen concern
           </label>
-          <label className="flex items-center gap-2 text-xs text-[#a0aec0]">
+          <label className="flex items-center gap-2 text-xs text-[#64748B]">
             <Checkbox checked={form.halal_concern} onCheckedChange={(v) => set("halal_concern", !!v)} />
             Halal concern
           </label>
@@ -194,19 +194,19 @@ export default function ReworkDialog({ open, onClose, settings, records = [], pr
               </Select>
             </Field>
           ) : (
-            <p className="text-[11px] text-[#ff9f43]">QA approval is recorded by QA, a manager or an Admin.</p>
+            <p className="text-[11px] text-amber-700">QA approval is recorded by QA, a manager or an Admin.</p>
           )}
         </div>
 
         {(form.allergen_concern || form.halal_concern) && (
-          <p className="text-xs text-[#ff9f43]">Allergen / halal concerns must be cleared by QA before this rework is reused.</p>
+          <p className="text-xs text-amber-700">Allergen / halal concerns must be cleared by QA before this rework is reused.</p>
         )}
 
         <Field label="Notes">
           <Textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} className={`${inputClass} min-h-[60px]`} placeholder="Optional" />
         </Field>
 
-        {error && <p className="text-sm text-[#ff4d4d]">{error}</p>}
+        {error && <p className="text-sm text-rose-600">{error}</p>}
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose} className={subtleButton}>Cancel</Button>

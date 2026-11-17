@@ -56,30 +56,30 @@ export default function ProductionSettingsDialog({ open, onClose, settings, user
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="bg-[#0b1018] border-[#1e2740] text-white max-w-lg">
+      <DialogContent className="bg-white border-[#E2E8F0] text-[#0F294A] max-w-lg">
         <DialogHeader>
-          <DialogTitle className="text-white">Production Settings</DialogTitle>
-          <p className="text-xs text-[#5f6b7f]">The batch pattern applies to every new order.</p>
+          <DialogTitle className="text-[#0F294A]">Production Settings</DialogTitle>
+          <p className="text-xs text-[#64748B]">The batch pattern applies to every new order.</p>
         </DialogHeader>
 
         <div className="space-y-3">
           <div className="space-y-1">
             <label className={labelClass}>Batch number pattern</label>
             <Input value={pattern} onChange={(e) => setPattern(e.target.value)} className={inputClass} placeholder={BATCH_PATTERN_DEFAULT} />
-            <p className="text-[11px] text-[#5f6b7f]">Example for today: <span className="text-[#00e5ff]">{preview}</span></p>
+            <p className="text-[11px] text-[#64748B]">Example for today: <span className="text-[#1D4ED8]">{preview}</span></p>
           </div>
 
-          <div className="rounded-lg border border-[#1e2740] bg-[#0e131d] p-2">
-            <p className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold mb-1">Tokens</p>
+          <div className="rounded-lg border border-[#E2E8F0] bg-white p-2">
+            <p className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold mb-1">Tokens</p>
             <div className="flex flex-wrap gap-1.5">
               {TOKEN_HELP.map(([token, label]) => (
                 <button
                   key={token}
                   type="button"
                   onClick={() => setPattern((p) => `${p || ""}${token}`)}
-                  className="text-[11px] px-1.5 py-0.5 rounded bg-[#00e5ff]/10 text-[#00e5ff] border border-[#00e5ff]/30 hover:bg-[#00e5ff]/20"
+                  className="text-[11px] px-1.5 py-0.5 rounded bg-[#EBF3FF] text-[#1D4ED8] border border-[#BFD7FF] hover:bg-[#EBF3FF]"
                 >
-                  {token} <span className="text-[#5f6b7f]">{label}</span>
+                  {token} <span className="text-[#64748B]">{label}</span>
                 </button>
               ))}
             </div>
@@ -88,7 +88,7 @@ export default function ProductionSettingsDialog({ open, onClose, settings, user
           <div className="space-y-1">
             <label className={labelClass}>Default capacity (cartons / hour)</label>
             <Input type="number" min="1" value={defaultCph} onChange={(e) => setDefaultCph(e.target.value)} className={inputClass} />
-            <p className="text-[11px] text-[#5f6b7f]">Used for run-time estimates when a machine has no capacity set.</p>
+            <p className="text-[11px] text-[#64748B]">Used for run-time estimates when a machine has no capacity set.</p>
           </div>
         </div>
 

@@ -9,15 +9,15 @@ import UnitSettingsCard from "@/components/warehouse/UnitSettingsCard";
 export default function WarehouseSettingsDialog({ open, onClose, updatedBy }) {
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="bg-[#131926] border-[#1e2740] text-white max-h-[85vh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent className="bg-white border-[#E2E8F0] text-[#0F294A] max-h-[85vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="text-white">Warehouse settings</DialogTitle>
-          <DialogDescription className="text-[#a0aec0] text-sm">
+          <DialogTitle className="text-[#0F294A]">Warehouse settings</DialogTitle>
+          <DialogDescription className="text-[#64748B] text-sm">
             Racks and units of measure used by the goods receiving form.
           </DialogDescription>
         </DialogHeader>
         <Tabs defaultValue="racks">
-          <TabsList className="bg-[#0e131d] border border-[#1e2740]">
+          <TabsList className="bg-white border border-[#E2E8F0]">
             <TabsTrigger value="racks">Racks</TabsTrigger>
             <TabsTrigger value="units">Units of measure</TabsTrigger>
           </TabsList>

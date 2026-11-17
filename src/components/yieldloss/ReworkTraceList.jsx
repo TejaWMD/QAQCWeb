@@ -31,24 +31,24 @@ export default function ReworkTraceList({ batchNumber }) {
           const isSource = same(r.source_batch, batchNumber);
           const other = isSource ? r.reused_batch : r.source_batch;
           return (
-            <li key={r.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs border-b border-[#131926] last:border-0 pb-1.5 last:pb-0">
-              <span className="text-[#00e5ff] font-semibold">{r.rework_lot_id}</span>
-              <span className="text-[#a0aec0]">{isSource ? "raised from this batch" : "reused into this batch"}</span>
-              <span className="text-white">{fmtKg(r.quantity_kg)}</span>
-              <span className="text-[#a0aec0]">{r.reason}</span>
-              <span className="text-[#5f6b7f]">{r.disposition}</span>
+            <li key={r.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs border-b border-[#E2E8F0] last:border-0 pb-1.5 last:pb-0">
+              <span className="text-[#1D4ED8] font-semibold">{r.rework_lot_id}</span>
+              <span className="text-[#64748B]">{isSource ? "raised from this batch" : "reused into this batch"}</span>
+              <span className="text-[#0F294A]">{fmtKg(r.quantity_kg)}</span>
+              <span className="text-[#64748B]">{r.reason}</span>
+              <span className="text-[#64748B]">{r.disposition}</span>
               {other && (
-                <Link to={`/traceability?batch=${encodeURIComponent(other)}`} className="text-[#00e5ff] hover:underline">
+                <Link to={`/traceability?batch=${encodeURIComponent(other)}`} className="text-[#1D4ED8] hover:underline">
                   {other}
                 </Link>
               )}
-              <span className="text-[#5f6b7f]">{fmtDay(r.rework_date)}</span>
+              <span className="text-[#64748B]">{fmtDay(r.rework_date)}</span>
               <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${
                 r.qa_clearance === "Cleared"
-                  ? "text-[#00ff9d] border-[#00ff9d]/30 bg-[#00ff9d]/10"
+                  ? "text-emerald-700 border-emerald-300 bg-emerald-50"
                   : r.qa_clearance === "Rejected"
-                    ? "text-[#ff4d4d] border-[#ff4d4d]/40 bg-[#ff4d4d]/10"
-                    : "text-[#ff9f43] border-[#ff9f43]/30 bg-[#ff9f43]/10"
+                    ? "text-rose-600 border-rose-300 bg-rose-600/10"
+                    : "text-amber-700 border-amber-300 bg-amber-50"
               }`}>
                 QA {r.qa_clearance || "Pending"}
               </span>

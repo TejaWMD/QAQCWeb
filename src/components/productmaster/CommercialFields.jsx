@@ -20,7 +20,7 @@ export default function CommercialFields({ form, set, channels = [], disabled })
         <Input
           value={form.barcode}
           onChange={(e) => set("barcode", e.target.value.replace(/\s/g, ""))}
-          className={`${inputClass} ${check && !check.ok ? "border-[#ff9f43]" : ""}`}
+          className={`${inputClass} ${check && !check.ok ? "border-amber-300" : ""}`}
           placeholder="9556123456789"
           disabled={disabled}
         />

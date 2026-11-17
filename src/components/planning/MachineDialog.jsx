@@ -73,7 +73,7 @@ export default function MachineDialog({ open, onClose, machine, availableNames =
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className={`${dialogClass} max-w-lg`}>
         <DialogHeader>
-          <DialogTitle className="text-white">{machine ? machine.name : "Add Machine"}</DialogTitle>
+          <DialogTitle className="text-[#0F294A]">{machine ? machine.name : "Add Machine"}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-3">
@@ -81,7 +81,7 @@ export default function MachineDialog({ open, onClose, machine, availableNames =
             {machine ? (
               <Input value={form.name} disabled className={`${inputClass} opacity-70`} />
             ) : availableNames.length === 0 ? (
-              <p className="text-xs text-[#ff9f43]">Every production line already has a machine.</p>
+              <p className="text-xs text-amber-700">Every production line already has a machine.</p>
             ) : (
               <Select value={form.name || undefined} onValueChange={(v) => set("name", v)}>
                 <SelectTrigger className={selectClass}><SelectValue placeholder="Select production line" /></SelectTrigger>
@@ -112,7 +112,7 @@ export default function MachineDialog({ open, onClose, machine, availableNames =
           </Field>
         </div>
 
-        {error && <p className="text-sm text-[#ff4d4d]">{error}</p>}
+        {error && <p className="text-sm text-rose-600">{error}</p>}
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose} className={subtleButton}>Cancel</Button>

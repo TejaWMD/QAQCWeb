@@ -40,8 +40,8 @@ export default function InlineCell({ value, display, type = "text", onSave, canE
           }}
           className={`${inputClass} h-7 text-xs`}
         />
-        <button type="button" onClick={commit} className="text-[#00ff9d] hover:text-white"><Check className="w-3.5 h-3.5" /></button>
-        <button type="button" onClick={() => { setDraft(value ?? ""); setEditing(false); }} className="text-[#5f6b7f] hover:text-white"><X className="w-3.5 h-3.5" /></button>
+        <button type="button" onClick={commit} className="text-emerald-700 hover:text-[#0F294A]"><Check className="w-3.5 h-3.5" /></button>
+        <button type="button" onClick={() => { setDraft(value ?? ""); setEditing(false); }} className="text-[#64748B] hover:text-[#0F294A]"><X className="w-3.5 h-3.5" /></button>
       </div>
     );
   }
@@ -51,7 +51,7 @@ export default function InlineCell({ value, display, type = "text", onSave, canE
       type="button"
       onClick={() => setEditing(true)}
       disabled={saving}
-      className="inline-flex items-center gap-1 text-left hover:text-[#00e5ff] group"
+      className="inline-flex items-center gap-1 text-left hover:text-[#1D4ED8] group"
       title="Click to edit"
     >
       <span>{display ?? (value || placeholder)}</span>

@@ -91,9 +91,9 @@ export default function AddRecordDialog({ open, onOpenChange, title, fields, onS
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-[#131926] border-[#1e2740] text-white max-h-[85vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="bg-white border-[#E2E8F0] text-[#0F294A] max-h-[85vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle className="text-white">{title}</DialogTitle>
+          <DialogTitle className="text-[#0F294A]">{title}</DialogTitle>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-3">
           {fields.filter((f) => (f.showIf ? f.showIf(values) : true)).map((f) => (
@@ -101,11 +101,11 @@ export default function AddRecordDialog({ open, onOpenChange, title, fields, onS
               {f.type === "checkbox" ? (
                 <div className="flex items-center gap-2 pt-1">
                   <Checkbox id={f.key} checked={!!values[f.key]} onCheckedChange={(c) => set(f.key, c === true)} />
-                  <Label htmlFor={f.key} className="text-sm text-[#a0aec0] font-normal">{f.label}</Label>
+                  <Label htmlFor={f.key} className="text-sm text-[#64748B] font-normal">{f.label}</Label>
                 </div>
               ) : f.type === "file" ? (
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-[#a0aec0]">{f.label}</Label>
+                  <Label className="text-xs text-[#64748B]">{f.label}</Label>
                   <EvidenceUpload
                     value={{ uri: values[`${f.key}_uri`], name: values[`${f.key}_name`] }}
                     onChange={(v) => { set(`${f.key}_uri`, v.uri || ""); set(`${f.key}_name`, v.name || ""); }}
@@ -113,7 +113,7 @@ export default function AddRecordDialog({ open, onOpenChange, title, fields, onS
                 </div>
               ) : (
                 <>
-                  <Label htmlFor={f.key} className="text-xs text-[#a0aec0]">{f.label}</Label>
+                  <Label htmlFor={f.key} className="text-xs text-[#64748B]">{f.label}</Label>
                   {f.type === "product" ? (
                     <ProductPicker products={link.products} value={values.product_id} onChange={pickProduct} />
                   ) : f.type === "batch" ? (
@@ -124,7 +124,7 @@ export default function AddRecordDialog({ open, onOpenChange, title, fields, onS
                         value={values[f.key]}
                         onChange={(e) => set(f.key, e.target.value.toUpperCase())}
                         placeholder={values.product_id ? "Pick a recorded batch or type one" : "Choose a product first"}
-                        className="bg-[#0e131d] border-[#1e2740] text-white"
+                        className="bg-white border-[#E2E8F0] text-[#0F294A]"
                       />
                       <datalist id={`batches-${f.key}`}>
                         {batchesForProduct(link.records, values.product_id).map((b) => <option key={b} value={b} />)}
@@ -132,7 +132,7 @@ export default function AddRecordDialog({ open, onOpenChange, title, fields, onS
                     </>
                   ) : f.type === "select" ? (
                     <Select value={values[f.key] || undefined} onValueChange={(v) => set(f.key, v)}>
-                      <SelectTrigger id={f.key} className="bg-[#0e131d] border-[#1e2740] text-white">
+                      <SelectTrigger id={f.key} className="bg-white border-[#E2E8F0] text-[#0F294A]">
                         <SelectValue placeholder={`Select ${f.label}`} />
                       </SelectTrigger>
                       <SelectContent>
@@ -141,7 +141,7 @@ export default function AddRecordDialog({ open, onOpenChange, title, fields, onS
                           if (opt && typeof opt === "object" && Array.isArray(opt.options)) {
                             return (
                               <SelectGroup key={opt.group}>
-                                <SelectLabel className="text-[#00e5ff]">{opt.group}</SelectLabel>
+                                <SelectLabel className="text-[#1D4ED8]">{opt.group}</SelectLabel>
                                 {opt.options.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
                               </SelectGroup>
                             );
@@ -158,7 +158,7 @@ export default function AddRecordDialog({ open, onOpenChange, title, fields, onS
                       value={values[f.key]}
                       onChange={(e) => set(f.key, e.target.value)}
                       required={f.required}
-                      className="bg-[#0e131d] border-[#1e2740] text-white min-h-[70px]"
+                      className="bg-white border-[#E2E8F0] text-[#0F294A] min-h-[70px]"
                     />
                   ) : (
                     <Input
@@ -167,19 +167,19 @@ export default function AddRecordDialog({ open, onOpenChange, title, fields, onS
                       value={values[f.key]}
                       onChange={(e) => set(f.key, f.type === "number" ? (e.target.value === "" ? "" : Number(e.target.value)) : e.target.value)}
                       required={f.required}
-                      className="bg-[#0e131d] border-[#1e2740] text-white"
+                      className="bg-white border-[#E2E8F0] text-[#0F294A]"
                     />
                   )}
                 </>
               )}
             </div>
           ))}
-          {error && <p className="text-xs text-[#ff4d4d]">{error}</p>}
+          {error && <p className="text-xs text-rose-600">{error}</p>}
           <DialogFooter>
-            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="text-[#a0aec0] hover:text-white hover:bg-white/5">
+            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="text-[#64748B] hover:text-[#0F294A] hover:bg-[#F1F5F9]">
               Cancel
             </Button>
-            <Button type="submit" disabled={saving} className="bg-[#00e5ff] hover:bg-[#00c3d7] text-[#0a0e17]">
+            <Button type="submit" disabled={saving} className="bg-[#0F294A] hover:bg-[#193B68] text-white">
               {saving ? "Saving..." : "Save"}
             </Button>
           </DialogFooter>

@@ -8,13 +8,13 @@ import { Download } from "lucide-react";
 import { MOVEMENT_CSV_COLUMNS, MOVEMENT_TYPES, fmtQty, loadPackagingSettings } from "@/lib/packaging";
 import { downloadCsv } from "@/lib/warehouse";
 
-const FIELD = "bg-[#0e131d] border-[#1e2740] text-white";
+const FIELD = "bg-white border-[#E2E8F0] text-[#0F294A]";
 const EMPTY = { from: "", to: "", item: "all", category: "all", type: "all", user: "all" };
 
 const TYPE_STYLES = {
-  In: "text-[#00ff9d]",
-  Use: "text-[#00e5ff]",
-  Adjustment: "text-[#ff9f43]",
+  In: "text-emerald-700",
+  Use: "text-[#1D4ED8]",
+  Adjustment: "text-amber-700",
 };
 
 const buildQuery = (f) => {
@@ -102,13 +102,13 @@ export default function PackagingMovements() {
   const set = (key, value) => setFilters((f) => ({ ...f, [key]: value }));
 
   return (
-    <div className="min-h-screen bg-[#0a0e17] p-4 md:p-6 space-y-4">
+    <div className="min-h-screen bg-[#F6F8FC] p-4 md:p-6 space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-white text-lg font-semibold">Stock Movements</h2>
-          <p className="text-[#a0aec0] text-sm mt-1">Every stock in, use and adjustment. Movements cannot be edited or deleted — corrections are adjustments.</p>
+          <h2 className="text-[#0F294A] text-lg font-semibold">Stock Movements</h2>
+          <p className="text-[#64748B] text-sm mt-1">Every stock in, use and adjustment. Movements cannot be edited or deleted — corrections are adjustments.</p>
         </div>
-        <Button onClick={exportCsv} disabled={exporting} variant="outline" className="border-[#1e2740] bg-[#0e131d] text-[#a0aec0] hover:bg-white/5 hover:text-white">
+        <Button onClick={exportCsv} disabled={exporting} variant="outline" className="border-[#E2E8F0] bg-white text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F294A]">
           <Download className="w-4 h-4" /> {exporting ? "Exporting..." : "Export CSV"}
         </Button>
       </div>
@@ -146,43 +146,43 @@ export default function PackagingMovements() {
         </Select>
       </div>
 
-      <div className="rounded-xl border border-[#1e2740] bg-[#0e131d] p-3">
+      <div className="rounded-xl border border-[#E2E8F0] bg-white p-3">
         <div className="flex items-center justify-between mb-2">
-          <p className="text-xs text-[#5f6b7f]">{loading ? "Loading…" : `${rows.length} movement${rows.length === 1 ? "" : "s"} shown`}</p>
+          <p className="text-xs text-[#64748B]">{loading ? "Loading…" : `${rows.length} movement${rows.length === 1 ? "" : "s"} shown`}</p>
         </div>
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className="border-[#1e2740] hover:bg-transparent">
-                <TableHead className="text-[#5f6b7f]">Date</TableHead>
-                <TableHead className="text-[#5f6b7f]">Item</TableHead>
-                <TableHead className="text-[#5f6b7f]">Type</TableHead>
-                <TableHead className="text-[#5f6b7f] text-right">Qty</TableHead>
-                <TableHead className="text-[#5f6b7f]">Batch</TableHead>
-                <TableHead className="text-[#5f6b7f]">Rack</TableHead>
-                <TableHead className="text-[#5f6b7f]">Production Order</TableHead>
-                <TableHead className="text-[#5f6b7f]">User</TableHead>
-                <TableHead className="text-[#5f6b7f]">Remarks</TableHead>
+              <TableRow className="border-[#E2E8F0] hover:bg-transparent">
+                <TableHead className="text-[#64748B]">Date</TableHead>
+                <TableHead className="text-[#64748B]">Item</TableHead>
+                <TableHead className="text-[#64748B]">Type</TableHead>
+                <TableHead className="text-[#64748B] text-right">Qty</TableHead>
+                <TableHead className="text-[#64748B]">Batch</TableHead>
+                <TableHead className="text-[#64748B]">Rack</TableHead>
+                <TableHead className="text-[#64748B]">Production Order</TableHead>
+                <TableHead className="text-[#64748B]">User</TableHead>
+                <TableHead className="text-[#64748B]">Remarks</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {!loading && rows.length === 0 && (
-                <TableRow><TableCell colSpan={9} className="text-[#5f6b7f] text-center py-6">No movements match these filters.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-[#64748B] text-center py-6">No movements match these filters.</TableCell></TableRow>
               )}
               {rows.map((m) => (
-                <TableRow key={m.id} className="border-[#1e2740] hover:bg-white/5">
-                  <TableCell className="text-[#a0aec0] whitespace-nowrap">{m.movement_date || (m.created_date || "").slice(0, 10)}</TableCell>
-                  <TableCell className="text-white whitespace-nowrap">{m.item_code}</TableCell>
-                  <TableCell className={`font-medium whitespace-nowrap ${TYPE_STYLES[m.type] || "text-[#a0aec0]"}`}>{m.type}</TableCell>
-                  <TableCell className="text-right text-white whitespace-nowrap">
+                <TableRow key={m.id} className="border-[#E2E8F0] hover:bg-[#F1F5F9]">
+                  <TableCell className="text-[#64748B] whitespace-nowrap">{m.movement_date || (m.created_date || "").slice(0, 10)}</TableCell>
+                  <TableCell className="text-[#0F294A] whitespace-nowrap">{m.item_code}</TableCell>
+                  <TableCell className={`font-medium whitespace-nowrap ${TYPE_STYLES[m.type] || "text-[#64748B]"}`}>{m.type}</TableCell>
+                  <TableCell className="text-right text-[#0F294A] whitespace-nowrap">
                     {m.type === "Adjustment" && Number(m.quantity) > 0 ? "+" : ""}
-                    {fmtQty(m.quantity)} <span className="text-[#5f6b7f]">{m.unit}</span>
+                    {fmtQty(m.quantity)} <span className="text-[#64748B]">{m.unit}</span>
                   </TableCell>
-                  <TableCell className="text-[#a0aec0] whitespace-nowrap">{m.batch_number || "—"}</TableCell>
-                  <TableCell className="text-[#a0aec0] whitespace-nowrap">{m.rack_location || "—"}</TableCell>
-                  <TableCell className="text-[#a0aec0] whitespace-nowrap">{m.production_order || "—"}</TableCell>
-                  <TableCell className="text-[#a0aec0] whitespace-nowrap">{m.user_name || "—"}</TableCell>
-                  <TableCell className="text-[#5f6b7f] max-w-[240px] truncate" title={m.remarks}>{m.remarks || "—"}</TableCell>
+                  <TableCell className="text-[#64748B] whitespace-nowrap">{m.batch_number || "—"}</TableCell>
+                  <TableCell className="text-[#64748B] whitespace-nowrap">{m.rack_location || "—"}</TableCell>
+                  <TableCell className="text-[#64748B] whitespace-nowrap">{m.production_order || "—"}</TableCell>
+                  <TableCell className="text-[#64748B] whitespace-nowrap">{m.user_name || "—"}</TableCell>
+                  <TableCell className="text-[#64748B] max-w-[240px] truncate" title={m.remarks}>{m.remarks || "—"}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -190,7 +190,7 @@ export default function PackagingMovements() {
         </div>
         {hasMore && (
           <div className="pt-3 text-center">
-            <Button variant="outline" onClick={loadMore} disabled={loadingMore} className="border-[#1e2740] bg-transparent text-[#a0aec0] hover:bg-white/5 hover:text-white">
+            <Button variant="outline" onClick={loadMore} disabled={loadingMore} className="border-[#E2E8F0] bg-transparent text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F294A]">
               {loadingMore ? "Loading…" : "Load more"}
             </Button>
           </div>

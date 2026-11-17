@@ -124,7 +124,7 @@ export default function FillCheckDialog({ open, onClose, products = [], records 
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className={dialogClass}>
         <DialogHeader>
-          <DialogTitle className="text-white">New Fill-Weight Check</DialogTitle>
+          <DialogTitle className="text-[#0F294A]">New Fill-Weight Check</DialogTitle>
         </DialogHeader>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -171,31 +171,31 @@ export default function FillCheckDialog({ open, onClose, products = [], records 
               <Input key={index} type="number" step="0.1" value={value} onChange={(e) => setSample(index, e.target.value)} className={inputClass} placeholder={`#${index + 1}`} />
             ))}
           </div>
-          <Button variant="outline" onClick={() => setSamples((prev) => [...prev, ""])} className="mt-2 border-dashed border-[#1e2740] bg-transparent text-[#a0aec0] hover:bg-white/5 hover:text-white">
+          <Button variant="outline" onClick={() => setSamples((prev) => [...prev, ""])} className="mt-2 border-dashed border-[#E2E8F0] bg-transparent text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F294A]">
             Add sample
           </Button>
         </div>
 
         <div className={`${panelClass} p-3 grid grid-cols-2 sm:grid-cols-4 gap-2`}>
-          <div><p className={labelClass}>Target</p><p className="text-white text-sm font-semibold">{target ? `${target} g` : "not set"}</p></div>
-          <div><p className={labelClass}>Average</p><p className="text-white text-sm font-semibold">{summary.sample_count ? `${summary.avg_g} g` : "—"}</p></div>
-          <div><p className={labelClass}>Giveaway</p><p className={`text-sm font-semibold ${summary.giveaway_g > 0 ? "text-[#ff9f43]" : "text-[#00ff9d]"}`}>{summary.sample_count ? `${summary.giveaway_g} g · ${summary.giveaway_pct}%` : "—"}</p></div>
-          <div><p className={labelClass}>Cost / batch</p><p className="text-white text-sm font-semibold">{product?.cost_per_kg && packs ? `${summary.cost_per_batch.toLocaleString("en-US")}` : "—"}</p></div>
+          <div><p className={labelClass}>Target</p><p className="text-[#0F294A] text-sm font-semibold">{target ? `${target} g` : "not set"}</p></div>
+          <div><p className={labelClass}>Average</p><p className="text-[#0F294A] text-sm font-semibold">{summary.sample_count ? `${summary.avg_g} g` : "—"}</p></div>
+          <div><p className={labelClass}>Giveaway</p><p className={`text-sm font-semibold ${summary.giveaway_g > 0 ? "text-amber-700" : "text-emerald-700"}`}>{summary.sample_count ? `${summary.giveaway_g} g · ${summary.giveaway_pct}%` : "—"}</p></div>
+          <div><p className={labelClass}>Cost / batch</p><p className="text-[#0F294A] text-sm font-semibold">{product?.cost_per_kg && packs ? `${summary.cost_per_batch.toLocaleString("en-US")}` : "—"}</p></div>
         </div>
 
         {summary.compliance_risk && (
-          <div className="rounded-lg border border-[#ff4d4d]/50 bg-[#ff4d4d]/10 px-3 py-2 space-y-2">
-            <p className="text-xs text-[#ff4d4d] font-semibold">
+          <div className="rounded-lg border border-rose-300 bg-rose-600/10 px-3 py-2 space-y-2">
+            <p className="text-xs text-rose-600 font-semibold">
               {summary.underweight_count} sample{summary.underweight_count === 1 ? "" : "s"} below the {lower} g underweight limit.
             </p>
-            <label className="flex items-center gap-2 text-xs text-[#e2e8f0]">
+            <label className="flex items-center gap-2 text-xs text-[#334155]">
               <Checkbox checked={raiseCapa} onCheckedChange={(v) => setRaiseCapa(!!v)} />
               Raise a CAPA for this compliance risk
             </label>
           </div>
         )}
-        {product && !lower && <p className="text-[11px] text-[#ff9f43]">Set the lower tolerance on this product to screen for underweight packs.</p>}
-        {error && <p className="text-sm text-[#ff4d4d]">{error}</p>}
+        {product && !lower && <p className="text-[11px] text-amber-700">Set the lower tolerance on this product to screen for underweight packs.</p>}
+        {error && <p className="text-sm text-rose-600">{error}</p>}
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose} className={subtleButton}>Cancel</Button>

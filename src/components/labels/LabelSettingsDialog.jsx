@@ -41,10 +41,10 @@ export default function LabelSettingsDialog({ open, onClose, settings, user, onS
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="bg-[#0b1018] border-[#1e2740] text-white max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="bg-white border-[#E2E8F0] text-[#0F294A] max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-white">Label Settings</DialogTitle>
-          <p className="text-xs text-[#5f6b7f]">Sizes are in millimetres, the font size in points. Only Admin can change these.</p>
+          <DialogTitle className="text-[#0F294A]">Label Settings</DialogTitle>
+          <p className="text-xs text-[#64748B]">Sizes are in millimetres, the font size in points. Only Admin can change these.</p>
         </DialogHeader>
 
         <div className="space-y-2">
@@ -58,12 +58,12 @@ export default function LabelSettingsDialog({ open, onClose, settings, user, onS
             </Select>
           </div>
 
-          <div className="rounded-lg border border-[#1e2740] overflow-hidden">
-            <div className="hidden sm:grid grid-cols-[1.4fr_repeat(4,0.7fr)_0.7fr] gap-2 px-2 py-1.5 bg-[#0e131d] text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">
+          <div className="rounded-lg border border-[#E2E8F0] overflow-hidden">
+            <div className="hidden sm:grid grid-cols-[1.4fr_repeat(4,0.7fr)_0.7fr] gap-2 px-2 py-1.5 bg-white text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">
               <span>Layout</span><span>Width mm</span><span>Height mm</span><span>Font pt</span><span>QR mm</span><span>ECC</span>
             </div>
             {layouts.map((layout) => (
-              <div key={layout.id} className="grid grid-cols-2 sm:grid-cols-[1.4fr_repeat(4,0.7fr)_0.7fr] gap-2 px-2 py-1.5 border-t border-[#131926] items-center">
+              <div key={layout.id} className="grid grid-cols-2 sm:grid-cols-[1.4fr_repeat(4,0.7fr)_0.7fr] gap-2 px-2 py-1.5 border-t border-[#E2E8F0] items-center">
                 <Input value={layout.name} onChange={(e) => patch(layout.id, "name", e.target.value)} className={`${inputClass} h-8 text-sm`} />
                 <Input type="number" min="20" step="0.5" value={layout.width_mm} onChange={(e) => patch(layout.id, "width_mm", e.target.value)} className={`${inputClass} h-8 text-sm`} />
                 <Input type="number" min="20" step="0.5" value={layout.height_mm} onChange={(e) => patch(layout.id, "height_mm", e.target.value)} className={`${inputClass} h-8 text-sm`} />

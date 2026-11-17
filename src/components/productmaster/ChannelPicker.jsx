@@ -24,12 +24,12 @@ export default function ChannelPicker({ value = [], onChange, options = [], disa
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap gap-1.5">
-        {selected.length === 0 && <span className="text-xs text-[#5f6b7f]">No channel set.</span>}
+        {selected.length === 0 && <span className="text-xs text-[#64748B]">No channel set.</span>}
         {selected.map((name) => (
-          <span key={name} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-[#00e5ff]/10 text-[#00e5ff] border border-[#00e5ff]/30">
+          <span key={name} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-[#EBF3FF] text-[#1D4ED8] border border-[#BFD7FF]">
             {name}
             {!disabled && (
-              <button type="button" onClick={() => remove(name)} className="hover:text-white">
+              <button type="button" onClick={() => remove(name)} className="hover:text-[#0F294A]">
                 <X className="w-3 h-3" />
               </button>
             )}

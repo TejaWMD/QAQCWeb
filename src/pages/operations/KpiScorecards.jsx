@@ -74,27 +74,27 @@ export default function KpiScorecards() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0e17] p-4 md:p-6 space-y-4">
+    <div className="min-h-screen bg-[#F6F8FC] p-4 md:p-6 space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="text-white text-lg font-semibold">Role KPI Scorecards</h2>
-          <p className="text-[#a0aec0] text-sm mt-1">KPIs computed automatically from module data for the selected date range.</p>
+          <h2 className="text-[#0F294A] text-lg font-semibold">Role KPI Scorecards</h2>
+          <p className="text-[#64748B] text-sm mt-1">KPIs computed automatically from module data for the selected date range.</p>
         </div>
         <div className="flex items-center gap-2">
           <div className="space-y-1">
-            <span className="text-[11px] text-[#a0aec0]">From</span>
-            <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="bg-[#0e131d] border-[#1e2740] text-white h-9 w-[150px]" />
+            <span className="text-[11px] text-[#64748B]">From</span>
+            <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="bg-white border-[#E2E8F0] text-[#0F294A] h-9 w-[150px]" />
           </div>
           <div className="space-y-1">
-            <span className="text-[11px] text-[#a0aec0]">To</span>
-            <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="bg-[#0e131d] border-[#1e2740] text-white h-9 w-[150px]" />
+            <span className="text-[11px] text-[#64748B]">To</span>
+            <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="bg-white border-[#E2E8F0] text-[#0F294A] h-9 w-[150px]" />
           </div>
         </div>
       </div>
 
       {loading && (
         <div className="flex justify-center py-12">
-          <span className="w-8 h-8 border-4 border-[#1e2740] border-t-[#00e5ff] rounded-full animate-spin" />
+          <span className="w-8 h-8 border-4 border-[#E2E8F0] border-t-[#0F294A] rounded-full animate-spin" />
         </div>
       )}
 

@@ -73,11 +73,11 @@ export default function RecipeMaster() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0e17] p-4 md:p-6 space-y-4">
+    <div className="min-h-screen bg-[#F6F8FC] p-4 md:p-6 space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-white text-lg font-semibold">Recipe Master</h2>
-          <p className="text-[#a0aec0] text-sm mt-1">Production recipes — the basis for all batch calculations.</p>
+          <h2 className="text-[#0F294A] text-lg font-semibold">Recipe Master</h2>
+          <p className="text-[#64748B] text-sm mt-1">Production recipes — the basis for all batch calculations.</p>
         </div>
         <Button variant="outline" onClick={exportRecipes} className={subtleButton}>
           <Download className="w-4 h-4 mr-1.5" /> Export
@@ -85,33 +85,33 @@ export default function RecipeMaster() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="rounded-xl border border-[#1e2740] bg-[#0e131d] px-4 py-3 flex items-center justify-between">
+        <div className="rounded-xl border border-[#E2E8F0] bg-white px-4 py-3 flex items-center justify-between">
           <div>
-            <p className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Total Recipes</p>
-            <p className="text-2xl text-white font-semibold mt-1">{rows.length}</p>
+            <p className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Total Recipes</p>
+            <p className="text-2xl text-[#0F294A] font-semibold mt-1">{rows.length}</p>
           </div>
-          <FlaskConical className="w-6 h-6 text-[#00e5ff]/70" />
+          <FlaskConical className="w-6 h-6 text-[#1D4ED8]/70" />
         </div>
-        <div className="rounded-xl border border-[#1e2740] bg-[#0e131d] px-4 py-3 flex items-center justify-between">
+        <div className="rounded-xl border border-[#E2E8F0] bg-white px-4 py-3 flex items-center justify-between">
           <div>
-            <p className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Brands</p>
-            <p className="text-2xl text-white font-semibold mt-1">{totalBrands}</p>
+            <p className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Brands</p>
+            <p className="text-2xl text-[#0F294A] font-semibold mt-1">{totalBrands}</p>
           </div>
           <Tag className="w-6 h-6 text-violet-400/70" />
         </div>
-        <div className="rounded-xl border border-[#1e2740] bg-[#0e131d] px-4 py-3 flex items-center justify-between">
+        <div className="rounded-xl border border-[#E2E8F0] bg-white px-4 py-3 flex items-center justify-between">
           <div>
-            <p className="text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold">Avg Cooking (h)</p>
-            <p className="text-2xl text-white font-semibold mt-1">{avgCooking}</p>
+            <p className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Avg Cooking (h)</p>
+            <p className="text-2xl text-[#0F294A] font-semibold mt-1">{avgCooking}</p>
           </div>
-          <Clock className="w-6 h-6 text-[#ff9f43]/70" />
+          <Clock className="w-6 h-6 text-amber-700/70" />
         </div>
       </div>
 
       {!canEdit && (
-        <div className="rounded-xl border border-[#1e2740] bg-[#101828] px-4 py-3 flex items-center gap-2">
-          <ShieldAlert className="w-4 h-4 text-[#00e5ff]" />
-          <p className="text-xs text-[#a0aec0]">Only Admin and QA can edit recipes. You can still read every version.</p>
+        <div className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-3 flex items-center gap-2">
+          <ShieldAlert className="w-4 h-4 text-[#1D4ED8]" />
+          <p className="text-xs text-[#64748B]">Only Admin and QA can edit recipes. You can still read every version.</p>
         </div>
       )}
 
@@ -121,13 +121,13 @@ export default function RecipeMaster() {
 
       {loading ? (
         <div className="flex justify-center py-12">
-          <div className="w-8 h-8 border-4 border-[#1e2740] border-t-[#00e5ff] rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-[#E2E8F0] border-t-[#0F294A] rounded-full animate-spin" />
         </div>
       ) : (
         <div className={`${panelClass} overflow-x-auto`}>
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-[10px] uppercase tracking-widest text-[#5f6b7f] border-b border-[#1e2740]">
+              <tr className="text-[10px] uppercase tracking-widest text-[#64748B] border-b border-[#E2E8F0]">
                 <th className="text-left font-semibold px-3 py-2">Recipe</th>
                 <th className="text-left font-semibold px-3 py-2">Items</th>
                 <th className="text-left font-semibold px-3 py-2">Active</th>
@@ -141,18 +141,18 @@ export default function RecipeMaster() {
             <tbody>
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-3 py-8 text-center text-[#a0aec0]">
+                  <td colSpan={8} className="px-3 py-8 text-center text-[#64748B]">
                     {recipes.length === 0 ? "No recipes yet. Add items in Product Master first." : "No recipes match this search."}
                   </td>
                 </tr>
               ) : (
                 rows.map((row) => (
-                  <tr key={row.key} className="border-b border-[#131926] hover:bg-white/5">
-                    <td className="px-3 py-2 text-white font-semibold max-w-[240px] truncate" title={row.name}>{row.name || "—"}</td>
+                  <tr key={row.key} className="border-b border-[#E2E8F0] hover:bg-[#F1F5F9]">
+                    <td className="px-3 py-2 text-[#0F294A] font-semibold max-w-[240px] truncate" title={row.name}>{row.name || "—"}</td>
                     <td className="px-3 py-2">
                       <div className="flex flex-wrap gap-1 max-w-[240px]">
                         {row.products.map((p) => (
-                          <span key={p.id} className="text-[10px] px-1.5 py-0.5 rounded bg-[#00e5ff]/10 text-[#00e5ff] border border-[#00e5ff]/30 whitespace-nowrap">
+                          <span key={p.id} className="text-[10px] px-1.5 py-0.5 rounded bg-[#EBF3FF] text-[#1D4ED8] border border-[#BFD7FF] whitespace-nowrap">
                             {p.product_code}
                           </span>
                         ))}
@@ -160,15 +160,15 @@ export default function RecipeMaster() {
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap">
                       {row.active ? (
-                        <span className="text-[#00ff9d] font-medium">v{row.active.version}</span>
+                        <span className="text-emerald-700 font-medium">v{row.active.version}</span>
                       ) : (
-                        <span className="text-[#5f6b7f]">No recipe</span>
+                        <span className="text-[#64748B]">No recipe</span>
                       )}
                     </td>
-                    <td className="px-3 py-2 text-right text-[#a0aec0]">{row.active ? (row.active.ingredients || []).length : "—"}</td>
-                    <td className="px-3 py-2 text-right text-[#a0aec0]">{row.active ? fmtQty(row.active.batch_cartons) : "—"}</td>
-                    <td className="px-3 py-2 text-right text-[#a0aec0]">{row.active?.standard_yield_pct ? fmtQty(row.active.standard_yield_pct) : "—"}</td>
-                    <td className="px-3 py-2 text-[#5f6b7f] whitespace-nowrap">
+                    <td className="px-3 py-2 text-right text-[#64748B]">{row.active ? (row.active.ingredients || []).length : "—"}</td>
+                    <td className="px-3 py-2 text-right text-[#64748B]">{row.active ? fmtQty(row.active.batch_cartons) : "—"}</td>
+                    <td className="px-3 py-2 text-right text-[#64748B]">{row.active?.standard_yield_pct ? fmtQty(row.active.standard_yield_pct) : "—"}</td>
+                    <td className="px-3 py-2 text-[#64748B] whitespace-nowrap">
                       {row.active ? `${row.active.created_by || "—"} · ${(row.active.created_date || "").slice(0, 10)}` : "—"}
                     </td>
                     <td className="px-3 py-2">
@@ -178,7 +178,7 @@ export default function RecipeMaster() {
                             variant="ghost"
                             size="icon"
                             onClick={() => setHistory({ name: row.name, products: row.products, versions: row.versions })}
-                            className="text-[#5f6b7f] hover:text-[#00e5ff] hover:bg-[#00e5ff]/10"
+                            className="text-[#64748B] hover:text-[#1D4ED8] hover:bg-[#EBF3FF]"
                             title="Version history"
                           >
                             <History className="w-4 h-4" />
@@ -189,7 +189,7 @@ export default function RecipeMaster() {
                             variant={row.active ? "ghost" : "outline"}
                             size={row.active ? "icon" : "sm"}
                             onClick={() => openEdit(row)}
-                            className={row.active ? "text-[#5f6b7f] hover:text-[#00e5ff] hover:bg-[#00e5ff]/10" : subtleButton}
+                            className={row.active ? "text-[#64748B] hover:text-[#1D4ED8] hover:bg-[#EBF3FF]" : subtleButton}
                             title={row.active ? "New version" : "Create recipe"}
                           >
                             {row.active ? <Pencil className="w-4 h-4" /> : "Create recipe"}
@@ -207,13 +207,13 @@ export default function RecipeMaster() {
 
       {canEdit && missing.length > 0 && (
         <div className={`${panelClass} p-3 space-y-2`}>
-          <p className="text-[10px] uppercase tracking-widest text-[#5f6b7f]">Items with no recipe ({missing.length})</p>
+          <p className="text-[10px] uppercase tracking-widest text-[#64748B]">Items with no recipe ({missing.length})</p>
           <div className="flex flex-wrap gap-2">
             {missing.map((p) => (
               <button
                 key={p.id}
                 onClick={() => openNew(p)}
-                className="text-xs px-2 py-1 rounded border border-[#1e2740] text-[#a0aec0] hover:border-[#00e5ff]/50 hover:text-[#00e5ff]"
+                className="text-xs px-2 py-1 rounded border border-[#E2E8F0] text-[#64748B] hover:border-[#BFD7FF] hover:text-[#1D4ED8]"
                 title={p.product_name}
               >
                 {p.product_code} · add recipe
