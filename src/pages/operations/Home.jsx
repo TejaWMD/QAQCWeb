@@ -100,42 +100,33 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between sm:justify-end gap-2 bg-slate-100 border-b border-slate-200">
-        <div className="flex flex-wrap items-center gap-2.5 sm:gap-4">
-          <div className="bg-slate-800 text-white text-xs sm:text-sm px-3.5 py-1.5 rounded-full flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-green-500 shrink-0" />
-            <span className="truncate max-w-[180px] sm:max-w-none">{lineFilter === "all" ? "All Lines" : lineFilter}</span>
-          </div>
-          <Button size="sm" onClick={() => navigate("/shift-log-draft")} className="bg-sky-600 hover:bg-sky-700 text-white">
-            <Plus className="w-4 h-4 mr-1" /> New Log
-          </Button>
-        </div>
-      </header>
-
+    <div className="min-h-screen bg-[#F6F8FC]">
       <main className="p-4 sm:p-6 max-w-7xl mx-auto">
-        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 mb-6">
-          <div>
-            <h2 className="text-xl sm:text-2xl text-slate-800 font-bold">Operations &amp; Loss Overview</h2>
-          </div>
-          {lines.length > 0 &&
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
+          <h2 className="text-xl sm:text-2xl text-[#0F294A] font-bold">Operations &amp; Loss Overview</h2>
           <div className="flex flex-wrap items-center gap-2">
-              <div className="w-full sm:w-52">
-                <Select value={lineFilter} onValueChange={setLineFilter}>
-                  <SelectTrigger className="rounded-full bg-white"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Lines</SelectItem>
-                    {productionLines.map((l) =>
-                  <SelectItem key={l} value={l}>{l}</SelectItem>
-                  )}
-                  </SelectContent>
-                </Select>
-              </div>
-              <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="w-[140px] sm:w-36 rounded-full bg-white" />
-              <span className="text-slate-500 text-xs">to</span>
-              <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="w-[140px] sm:w-36 rounded-full bg-white" />
-            </div>
-          }
+            {lines.length > 0 && (
+              <>
+                <div className="w-full sm:w-52">
+                  <Select value={lineFilter} onValueChange={setLineFilter}>
+                    <SelectTrigger className="rounded-full bg-white"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Lines</SelectItem>
+                      {productionLines.map((l) => (
+                        <SelectItem key={l} value={l}>{l}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="w-[140px] sm:w-36 rounded-full bg-white" />
+                <span className="text-slate-500 text-xs">to</span>
+                <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="w-[140px] sm:w-36 rounded-full bg-white" />
+              </>
+            )}
+            <Button size="sm" onClick={() => navigate("/shift-log-draft")} className="bg-[#0F294A] hover:bg-[#193B68] text-white rounded-full px-4">
+              <Plus className="w-4 h-4 mr-1" /> New Log
+            </Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">

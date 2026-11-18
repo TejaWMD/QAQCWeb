@@ -166,20 +166,17 @@ export default function RequestsStoppages() {
 
   return (
     <div className="min-h-screen bg-[#F6F8FC] p-4 md:p-6 space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="text-[#0F294A] text-lg font-semibold">Requests &amp; Stoppages</h2>
-          <p className="text-[#64748B] text-sm mt-1">Downtime stoppages, item / material and approval requests in one place.</p>
-        </div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-[#0F294A] text-lg font-semibold">Requests &amp; Stoppages</h2>
         <div className="flex flex-wrap items-center gap-2">
-          {isAdminUser(user) && (
+          {isAdminUser(user) && downtime.some((d) => d.is_demo) && (
             <Button
               variant="outline"
               disabled={purgingDemo}
               onClick={purgeDemo}
               className="bg-white border-amber-300 text-amber-700 hover:bg-amber-50 hover:text-amber-700"
             >
-              <Trash2 className="w-4 h-4 mr-1.5" /> Delete all demo records
+              <Trash2 className="w-4 h-4 mr-1.5" /> Clear Demo
             </Button>
           )}
           {isAdminUser(user) && (

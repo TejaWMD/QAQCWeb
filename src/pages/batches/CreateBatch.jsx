@@ -5,8 +5,8 @@ import { useAuth } from "@/lib/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertTriangle, ArrowLeft, CheckCircle2, Download, History, Printer, Settings, Star } from "lucide-react";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import { AlertTriangle, ArrowLeft, Download, Printer, Settings, Star } from "lucide-react";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
 import ProductPicker from "@/components/labels/ProductPicker";
@@ -15,6 +15,7 @@ import LabelPreview from "@/components/labels/LabelPreview";
 import LabelPrintSheet from "@/components/labels/LabelPrintSheet";
 import LabelSettingsDialog from "@/components/labels/LabelSettingsDialog";
 import { loadProducts, loadRecipes, num } from "@/lib/planning";
+import { loadProductionOrderOptions } from "@/lib/masterOptions";
 import { recipeOf } from "@/lib/productLinks";
 import { labelBlock } from "@/lib/productMaster";
 import { fmtQty } from "@/lib/production";
@@ -24,7 +25,7 @@ import {
   barcodeImageUrl, canEditLabelSettings, duplicateOf, expiryFor, fmtDay, loadBatchRecords, loadLabelSettings, logLabelAudit, normalizeBatch,
   qrImageUrl, resolveLayout, saveDefaultLayoutForProduct, traceUrlFor,
 } from "@/lib/labels";
-import { inputClass, selectClass, primaryButton, subtleButton, panelClass, labelClass } from "@/components/planning/styles";
+import { inputClass, primaryButton, subtleButton, panelClass, labelClass } from "@/components/planning/styles";
 
 const EMPTY_SETTINGS = { id: "", layouts: [], default_layout_id: "" };
 
@@ -53,16 +54,17 @@ export default function CreateBatch() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [job, setJob] = useState(null);
   const [savedPrintView, setSavedPrintView] = useState(null);
-  const [retailEanQr, setRetailEanQr] = useState(true);
-  const [templateSize, setTemplateSize] = useState("60x40");
+  const [orders, setOrders] = useState([]);
+  const [selectedOrderNumber, setSelectedOrderNumber] = useState("");
 
   const reload = useCallback(async () => {
-    const [productRows, recordRows, labelSettings, recipeRows] = await Promise.all([
-      loadProducts(), loadBatchRecords(), loadLabelSettings(), loadRecipes(),
+    const [productRows, recordRows, labelSettings, recipeRows, orderRows] = await Promise.all([
+      loadProducts(), loadBatchRecords(), loadLabelSettings(), loadRecipes(), loadProductionOrderOptions(),
     ]);
     setProducts(productRows.filter((p) => p.active !== false && !p.hidden));
     setRecipes(recipeRows);
     setRecords(recordRows);
+    setOrders(orderRows);
     setSettings(labelSettings);
     setLayoutId((prev) => prev || labelSettings.default_layout_id);
     setLoading(false);
@@ -76,6 +78,15 @@ export default function CreateBatch() {
   const selectProduct = (next) => {
     setProductId(next?.id || "");
     setLayoutId(next?.default_label_layout || settings.default_layout_id);
+  };
+
+  const selectedOrder = orders.find((o) => o.order_number === selectedOrderNumber) || null;
+  const selectOrder = (orderNumber) => {
+    setSelectedOrderNumber(orderNumber);
+    const ord = orders.find((o) => o.order_number === orderNumber);
+    if (!ord) return;
+    const matchedProd = products.find((p) => p.product_code === ord.product_code || p.product_name === ord.product_name);
+    if (matchedProd) selectProduct(matchedProd);
   };
 
   // Auto-generate Batch Number: PREFIX + DDMMYY + Alphabet Suffix (e.g. MCL200626T)
@@ -149,6 +160,7 @@ export default function CreateBatch() {
         product_id: product.id,
         product_code: product.product_code || "",
         product_name: product.product_name || "",
+        ...(selectedOrder ? { order_id: selectedOrder.id, order_number: selectedOrder.order_number, machine: selectedOrder.machine || "" } : {}),
         batch_number: batch,
         production_date: productionDate,
         expiry_date: expiryDate,
@@ -213,82 +225,7 @@ export default function CreateBatch() {
   };
 
   if (loading) {
-    if (savedPrintView) {
-    const d = savedPrintView.data;
     return (
-      <div className="min-h-screen bg-[#F6F8FC] p-4 md:p-6 space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <Link to="/batch-records" className="inline-flex items-center gap-1.5 text-sm text-[#64748B] hover:text-[#0F294A]">
-            <ArrowLeft className="w-4 h-4" /> Back to Batches
-          </Link>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={() => setSavedPrintView(null)} className={subtleButton}>
-              Create Another Batch
-            </Button>
-            <Button variant="outline" onClick={generatePdf} className={subtleButton}>
-              <Download className="w-4 h-4 mr-1.5" /> Generate PDF
-            </Button>
-            <Button onClick={() => setJob({ ...savedPrintView })} className={primaryButton}>
-              <Printer className="w-4 h-4 mr-1.5" /> Print Now
-            </Button>
-          </div>
-        </div>
-
-        <div className="max-w-3xl mx-auto space-y-4">
-          <div className="flex justify-center">
-            <div id="saved-label-card" className="bg-white text-black rounded-lg border border-slate-200 p-4 shadow-lg w-[360px] space-y-2">
-              <div className="flex items-start justify-between gap-3">
-                <div className="space-y-0.5 text-xs">
-                  <p className="font-bold text-sm leading-tight">{d.productName}</p>
-                  <p className="text-slate-700 font-medium">{d.productCode}</p>
-                  <p className="font-bold text-slate-900">{d.batchNumber}</p>
-                  <p className="text-slate-600">Exp: {fmtDay(d.expiryDate)}</p>
-                  <p className="text-slate-600">{d.pcsPerCarton} pcs/carton</p>
-                </div>
-                <img src={qrImageUrl(traceUrlFor(d.batchNumber), savedPrintView.layout.qr_ecc)} alt="QR" className="w-20 h-20 shrink-0" />
-              </div>
-              <div className="pt-1 text-center">
-                <img src={barcodeImageUrl(d.cartonBarcode || d.batchNumber)} alt="Barcode" className="w-full h-12 object-contain" />
-                <p className="text-[11px] font-mono tracking-wider text-slate-700">{d.cartonBarcode || d.batchNumber}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className={`${panelClass} p-4 space-y-3`}>
-            <p className="text-sm font-semibold text-[#0F294A]">Print Settings</p>
-            <div className="space-y-1.5">
-              <p className={labelClass}>Label Template</p>
-              <button
-                type="button"
-                onClick={() => setTemplateSize("60x40")}
-                className={`w-full text-left rounded-lg border p-3 ${templateSize === "60x40" ? "border-[#BFD7FF] bg-[#EBF3FF]" : "border-[#E2E8F0] bg-white"}`}
-              >
-                <p className="text-sm font-semibold text-[#0F294A]">60 × 40 mm</p>
-                <p className="text-xs text-[#64748B]">60 × 40 mm label rotated to 90° in top-left corner of 100 × 150 mm (landscape) page</p>
-              </button>
-            </div>
-            <label className="flex items-start gap-2.5 rounded-lg border border-[#E2E8F0] bg-white p-3 cursor-pointer">
-              <input type="checkbox" checked={retailEanQr} onChange={(e) => setRetailEanQr(e.target.checked)} className="mt-0.5 accent-[#1D4ED8]" />
-              <div>
-                <p className="text-sm font-medium text-[#0F294A]">Retail EAN-13 + QR Batch Template</p>
-                <p className="text-xs text-[#64748B]">Barcode shows only the batch number as EAN-13; the QR carries the batch number and full batch details.</p>
-              </div>
-            </label>
-            <div className="space-y-1.5">
-              <p className={labelClass}>Label Layout</p>
-              <div className="rounded-lg border border-[#BFD7FF] bg-[#EBF3FF] p-3">
-                <p className="text-sm font-semibold text-[#0F294A]">{savedPrintView.layout.name}</p>
-                <p className="text-xs text-[#64748B]">{savedPrintView.layout.width_mm} × {savedPrintView.layout.height_mm} mm · ECC {savedPrintView.layout.qr_ecc}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-        <LabelPrintSheet job={job} />
-      </div>
-    );
-  }
-
-  return (
       <div className="min-h-screen bg-[#F6F8FC] flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-[#E2E8F0] border-t-[#0F294A] rounded-full animate-spin" />
       </div>
@@ -316,7 +253,7 @@ export default function CreateBatch() {
           </div>
         </div>
 
-        <div className="max-w-3xl mx-auto space-y-4">
+        <div className="max-w-lg mx-auto space-y-4">
           <div className="flex justify-center">
             <div id="saved-label-card" className="bg-white text-black rounded-lg border border-slate-200 p-4 shadow-lg w-[360px] space-y-2">
               <div className="flex items-start justify-between gap-3">
@@ -336,33 +273,9 @@ export default function CreateBatch() {
             </div>
           </div>
 
-          <div className={`${panelClass} p-4 space-y-3`}>
-            <p className="text-sm font-semibold text-[#0F294A]">Print Settings</p>
-            <div className="space-y-1.5">
-              <p className={labelClass}>Label Template</p>
-              <button
-                type="button"
-                onClick={() => setTemplateSize("60x40")}
-                className={`w-full text-left rounded-lg border p-3 ${templateSize === "60x40" ? "border-[#BFD7FF] bg-[#EBF3FF]" : "border-[#E2E8F0] bg-white"}`}
-              >
-                <p className="text-sm font-semibold text-[#0F294A]">60 × 40 mm</p>
-                <p className="text-xs text-[#64748B]">60 × 40 mm label rotated to 90° in top-left corner of 100 × 150 mm (landscape) page</p>
-              </button>
-            </div>
-            <label className="flex items-start gap-2.5 rounded-lg border border-[#E2E8F0] bg-white p-3 cursor-pointer">
-              <input type="checkbox" checked={retailEanQr} onChange={(e) => setRetailEanQr(e.target.checked)} className="mt-0.5 accent-[#1D4ED8]" />
-              <div>
-                <p className="text-sm font-medium text-[#0F294A]">Retail EAN-13 + QR Batch Template</p>
-                <p className="text-xs text-[#64748B]">Barcode shows only the batch number as EAN-13; the QR carries the batch number and full batch details.</p>
-              </div>
-            </label>
-            <div className="space-y-1.5">
-              <p className={labelClass}>Label Layout</p>
-              <div className="rounded-lg border border-[#BFD7FF] bg-[#EBF3FF] p-3">
-                <p className="text-sm font-semibold text-[#0F294A]">{savedPrintView.layout.name}</p>
-                <p className="text-xs text-[#64748B]">{savedPrintView.layout.width_mm} × {savedPrintView.layout.height_mm} mm · ECC {savedPrintView.layout.qr_ecc}</p>
-              </div>
-            </div>
+          <div className={`${panelClass} p-3 flex items-center justify-between text-xs text-[#64748B]`}>
+            <span className="font-semibold text-[#0F294A]">{savedPrintView.layout.name}</span>
+            <span>{savedPrintView.layout.width_mm} × {savedPrintView.layout.height_mm} mm · ECC {savedPrintView.layout.qr_ecc}</span>
           </div>
         </div>
         <LabelPrintSheet job={job} />
@@ -389,6 +302,19 @@ export default function CreateBatch() {
       <div className="grid grid-cols-1 xl:grid-cols-[1.25fr_0.75fr] gap-4 items-start">
         <div className={`${panelClass} p-4 space-y-4`}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {orders.length > 0 && (
+              <div className="space-y-1 sm:col-span-2">
+                <label className={labelClass}>Production Order (optional)</label>
+                <SearchableSelect
+                  value={selectedOrderNumber}
+                  onValueChange={selectOrder}
+                  options={orders}
+                  placeholder="Link to a production order (optional)..."
+                  searchPlaceholder="Search order number or product..."
+                  clearable
+                />
+              </div>
+            )}
             <div className="space-y-1">
               <label className={labelClass}>Product</label>
               <ProductPicker products={products} value={productId} onChange={selectProduct} />
@@ -533,11 +459,9 @@ export default function CreateBatch() {
             </div>
           </div>
 
-          <div className="text-[11px] text-[#64748B] space-y-1">
-            <p className="flex items-center gap-1"><CheckCircle2 className="w-3 h-3 text-emerald-700" /> QR opens the traceability page for this batch.</p>
-            <p className="flex items-center gap-1"><History className="w-3 h-3" /> {records.length} batch record(s) saved so far.</p>
-            {quantity ? <p>Quantity: {fmtQty(quantity)} cartons</p> : null}
-          </div>
+          {quantity ? (
+            <p className="text-[11px] text-[#64748B]">Quantity: {fmtQty(quantity)} cartons</p>
+          ) : null}
         </div>
       </div>
 

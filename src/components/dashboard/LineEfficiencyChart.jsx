@@ -23,7 +23,7 @@ export default function LineEfficiencyChart({ data }) {
 
   return (
     <div className="bg-slate-50 rounded-xl border border-slate-200 p-5 flex flex-col">
-      <h3 className="font-semibold text-white">Line Efficiency Rate</h3>
+      <h3 className="font-semibold text-[#0F294A]">Line Efficiency Rate</h3>
       <p className="text-sm text-slate-500 mb-3">Actual vs target (%)</p>
       <div className="flex-1 min-h-[180px]">
         {data.length === 0 ? (

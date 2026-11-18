@@ -1,14 +1,22 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import Field from "@/components/planning/Field";
-import { DEFAULT_CUSTOMER, derivedFields, num } from "@/lib/productMaster";
+import { DEFAULT_CUSTOMER, derivedFields } from "@/lib/productMaster";
+import { loadLineTypeOptions } from "@/lib/masterOptions";
 import { inputClass, selectClass } from "@/components/planning/styles";
 
 const unique = (...lists) => [...new Set(lists.flat().filter(Boolean))];
 
 // The datasheet fields; the calculated columns are shown but never typed in.
 export default function DatasheetFields({ form, set, brands = [], customers = [], machines = [], recipeNames = [] }) {
+  const [lineTypes, setLineTypes] = useState([]);
+
+  useEffect(() => {
+    loadLineTypeOptions().then(setLineTypes).catch(() => {});
+  }, []);
+
   const derived = derivedFields({
     carton_size: form.carton_size,
     net_weight_kg: form.net_weight_kg,
@@ -41,15 +49,26 @@ export default function DatasheetFields({ form, set, brands = [], customers = []
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <Field label="Recipe Name" hint="Products sharing a name share one recipe">
-          <>
-            <Input value={form.recipe_name} onChange={(e) => set("recipe_name", e.target.value)} className={inputClass} placeholder="RASTO TRADITIONAL PASTA SAUCE" list="recipe-name-options" />
-            <datalist id="recipe-name-options">
-              {recipeNames.map((name) => <option key={name} value={name} />)}
-            </datalist>
-          </>
+          <SearchableSelect
+            value={form.recipe_name}
+            onValueChange={(v) => set("recipe_name", v)}
+            options={recipeNames}
+            placeholder="Select or enter recipe..."
+            searchPlaceholder="Search recipe..."
+            allowCustom
+            clearable
+          />
         </Field>
         <Field label="Line Type" hint="SAUCE, POUCH, SYRUP — not a machine">
-          <Input value={form.line_type} onChange={(e) => set("line_type", e.target.value)} className={inputClass} placeholder="SAUCE" />
+          <SearchableSelect
+            value={form.line_type}
+            onValueChange={(v) => set("line_type", v)}
+            options={lineTypes}
+            placeholder="Select line type..."
+            searchPlaceholder="Search line type..."
+            allowCustom
+            clearable
+          />
         </Field>
         <Field label="Cooking Time (hr)">
           <Input type="number" min="0" step="0.25" value={form.cooking_time_hr} onChange={(e) => set("cooking_time_hr", e.target.value)} className={inputClass} placeholder="1.75" />
@@ -117,14 +136,9 @@ export default function DatasheetFields({ form, set, brands = [], customers = []
         </Field>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div>
         <Field label="Remarks">
           <Input value={form.remarks} onChange={(e) => set("remarks", e.target.value)} className={inputClass} placeholder="Optional remark" />
-        </Field>
-        <Field label="Net Filling check" hint={`${num(form.carton_size)} pcs × ${num(form.net_weight_kg)} kg`}>
-          <div className="h-9 flex items-center px-3 rounded-md border border-[#E2E8F0] bg-[#F6F8FC] text-[#64748B] text-xs">
-            Cartons per batch = {num(form.batch_output_kg)} ÷ {derived.net_filling_kg || "—"} = {derived.cartons_per_batch || "—"}
-          </div>
         </Field>
       </div>
     </div>

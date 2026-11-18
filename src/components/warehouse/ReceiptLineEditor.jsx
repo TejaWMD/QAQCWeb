@@ -2,6 +2,7 @@ import React from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Trash2 } from "lucide-react";
 
 const FIELD = "bg-white border-[#E2E8F0] text-[#0F294A]";
@@ -14,9 +15,26 @@ const Field = ({ label, children, className = "" }) => (
 );
 
 // One item line on a goods receipt. Item code drives the description auto-fill.
-export default function ReceiptLineEditor({ index, line, items, units, racks, onItemCode, onChange, onRemove, onAddItem, removable }) {
+export default function ReceiptLineEditor({ index, line, items, products = [], batches = [], units, racks, onItemCode, onChange, onRemove, onAddItem, removable }) {
   const code = (line.item_code || "").trim();
   const known = items.some((i) => (i.item_code || "").toLowerCase() === code.toLowerCase());
+
+  const itemOptions = [
+    ...items.map((i) => ({
+      value: i.item_code,
+      label: i.description ? `${i.item_code} — ${i.description}` : i.item_code,
+      sublabel: i.unit ? `Warehouse · ${i.unit}` : "Warehouse",
+    })),
+    ...products.map((p) => ({
+      value: p.product_code,
+      label: `${p.product_code} — ${p.product_name}`,
+      sublabel: p.brand ? `Product Master · ${p.brand}` : "Product Master",
+    })),
+  ];
+
+  const batchOptions = line.product_id
+    ? batches.filter((b) => b.product_id === line.product_id || b.product_code === line.product_code)
+    : batches;
 
   return (
     <div className="rounded-lg border border-[#E2E8F0] bg-white p-3 space-y-3">
@@ -32,12 +50,13 @@ export default function ReceiptLineEditor({ index, line, items, units, racks, on
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <Field label="Item Code *">
-          <Input
+          <SearchableSelect
             value={line.item_code}
-            onChange={(e) => onItemCode(e.target.value)}
-            list="warehouse-item-codes"
-            placeholder="Scan or type code"
-            className={FIELD}
+            onValueChange={(v) => onItemCode(v)}
+            options={itemOptions}
+            placeholder="Select or scan item..."
+            searchPlaceholder="Search item or product code..."
+            allowCustom
           />
           {line.product_id && (
             <p className="mt-1 text-[11px] text-[#1D4ED8]">
@@ -66,11 +85,13 @@ export default function ReceiptLineEditor({ index, line, items, units, racks, on
         </Field>
 
         <Field label="Batch Number *">
-          <Input
+          <SearchableSelect
             value={line.batch_number}
-            onChange={(e) => onChange({ batch_number: e.target.value })}
-            placeholder="Batch / lot"
-            className={FIELD}
+            onValueChange={(v) => onChange({ batch_number: v })}
+            options={batchOptions}
+            placeholder="Select or enter batch..."
+            searchPlaceholder="Search batch..."
+            allowCustom
           />
         </Field>
 

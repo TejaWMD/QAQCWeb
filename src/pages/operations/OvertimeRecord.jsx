@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import { base44 } from "@/api/base44Client";
-import { Button } from "@/components/ui/button";
-import { LayoutDashboard, Timer, DollarSign, Users } from "lucide-react";
+import { Timer, DollarSign, Users } from "lucide-react";
 import { groupByDate, formatDateHeader } from "@/lib/logGrouping";
 import { otHoursAfterFive, timeOfDay } from "@/lib/otCalculations";
 import OTSpendTrendChart from "@/components/otlog/OTSpendTrendChart";
@@ -81,7 +79,9 @@ export default function OvertimeRecord() {
     const map = new Map();
     logs.forEach((l) => {
       if (!l.shift_date) return;
-      const day = new Date(l.shift_date + "T00:00:00");
+      const datePart = String(l.shift_date).slice(0, 10);
+      const day = new Date(`${datePart}T00:00:00`);
+      if (Number.isNaN(day.getTime())) return;
       day.setHours(0, 0, 0, 0);
       const key = day.toISOString();
       const otHrs = l.ot_duration_hours || 0;
@@ -116,28 +116,21 @@ export default function OvertimeRecord() {
 
   return (
     <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800 mb-1">Overtime Record</h2>
-          <p className="text-slate-500 text-sm">One row per session, from the Overtime Record — only the hours worked after 5:00 PM count as overtime.</p>
+          <h2 className="text-xl font-bold text-[#0F294A] mb-0.5">Overtime Record</h2>
+          <p className="text-[#64748B] text-sm">Hours worked after 5:00 PM per shift session.</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Select value={batchFilter || "all"} onValueChange={(v) => setBatchFilter(v === "all" ? "" : v)}>
-            <SelectTrigger className="w-44">
-              <SelectValue placeholder="All Batches" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Batches</SelectItem>
-              <SelectItem value="current">New Records</SelectItem>
-              <SelectItem value="legacy">Legacy Records</SelectItem>
-            </SelectContent>
-          </Select>
-          <Link to="/">
-            <Button variant="outline" className="border-slate-300">
-              <LayoutDashboard className="w-4 h-4 mr-1" /> Dashboard
-            </Button>
-          </Link>
-        </div>
+        <Select value={batchFilter || "all"} onValueChange={(v) => setBatchFilter(v === "all" ? "" : v)}>
+          <SelectTrigger className="w-44 bg-white">
+            <SelectValue placeholder="All Batches" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Batches</SelectItem>
+            <SelectItem value="current">New Records</SelectItem>
+            <SelectItem value="legacy">Legacy Records</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {logs.length > 0 && (

@@ -30,15 +30,11 @@ export default function CapaTracker() {
   const guard = statusChangeGuard(user, { requireEvidenceToComplete: true, managerVerifies: true });
 
   return (
-    <div className="min-h-screen bg-[#F6F8FC] p-4 md:p-6 space-y-4">
-      <div>
-        <h2 className="text-[#0F294A] text-lg font-semibold">Unified CAPA Tracker</h2>
-        <p className="text-[#64748B] text-sm mt-1">All corrective and preventive actions. Closure requires evidence; verification requires a manager.</p>
-      </div>
+    <div className="min-h-screen bg-[#F6F8FC] p-4 md:p-6">
       <RecordsTable
         entity="CAPA"
         title="Unified CAPA Tracker"
-        subtitle="Raised from defects, failed HACCP checks, downtime events and audit findings"
+        subtitle="Closure requires evidence; verification requires a manager."
         addLabel="Raise CAPA"
         columns={columns}
         fields={fields}

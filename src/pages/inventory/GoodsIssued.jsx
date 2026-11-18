@@ -7,10 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Plus, Save, QrCode } from "lucide-react";
 import OutLineRow from "@/components/packaging/OutLineRow";
 import { CameraQRScanner } from "@/components/warehouse/QRScanner";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { parseQRPayload } from "@/lib/qrParser";
 import { findProduct } from "@/lib/findProduct";
 import { fmtQty, loadPackagingSettings, loadProductionOrders, newGroupId, submitStockUse } from "@/lib/packaging";
 import { loadProducts } from "@/lib/planning";
+import { loadMachineOptions, loadProductionOrderOptions } from "@/lib/masterOptions";
 import { todayStr } from "@/lib/warehouse";
 
 let seq = 0;
@@ -34,6 +36,8 @@ export default function GoodsIssued() {
   const [items, setItems] = useState([]);
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [prodOrders, setProdOrders] = useState([]);
+  const [linesOpts, setLinesOpts] = useState([]);
   const [settings, setSettings] = useState({ threshold: 0 });
   const [date, setDate] = useState(todayStr());
   const [reference, setReference] = useState("");
@@ -102,6 +106,8 @@ export default function GoodsIssued() {
   useEffect(() => {
     load();
     loadProductionOrders().then(setOrders).catch(() => setOrders([]));
+    loadProductionOrderOptions().then(setProdOrders).catch(() => setProdOrders([]));
+    loadMachineOptions().then(setLinesOpts).catch(() => setLinesOpts([]));
     loadProducts().then((rows) => setProducts(rows.filter((p) => p.active !== false))).catch(() => setProducts([]));
   }, []);
 
@@ -171,41 +177,42 @@ export default function GoodsIssued() {
     <div className="min-h-screen bg-[#F6F8FC] p-4 md:p-6 space-y-4">
       <div>
         <h2 className="text-[#0F294A] text-lg font-semibold">Goods Issued</h2>
-        <p className="text-[#64748B] text-sm mt-1">Record packaging stock going out to production. Stock cannot go below zero.</p>
       </div>
 
       <div className="rounded-xl border border-[#E2E8F0] bg-white p-3">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1">
             <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Date</label>
-            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="bg-[#F6F8FC] border-[#E2E8F0] text-[#0F294A]" />
+            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="bg-white border-[#E2E8F0] text-[#0F294A]" />
           </div>
           <div className="space-y-1">
-            <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Issue Reference</label>
-            <Input value={reference} onChange={(e) => setReference(e.target.value)} placeholder="Optional (used when a line has no order)" className="bg-[#F6F8FC] border-[#E2E8F0] text-[#0F294A]" />
+            <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Issue Reference / Order</label>
+            <SearchableSelect
+              value={reference}
+              onValueChange={setReference}
+              options={[...prodOrders, ...orders]}
+              placeholder="Select order or enter reference..."
+              searchPlaceholder="Search order..."
+              allowCustom
+              clearable
+            />
           </div>
         </div>
       </div>
 
-      <div className="rounded-xl border border-[#E2E8F0] bg-white p-3 space-y-2">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="text-xs font-semibold text-[#0F294A] flex items-center gap-1.5">
-            <QrCode className="w-4 h-4 text-[#1D4ED8]" /> QR Code Scanner
-          </span>
-          <CameraQRScanner onDecode={handleQrScan} />
-        </div>
-        <div className="flex gap-2">
-          <Input
-            value={qrInput}
-            onChange={(e) => setQrInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter" && qrInput.trim()) { e.preventDefault(); handleQrScan(qrInput); } }}
-            placeholder="Scan with handheld scanner or paste QR payload and press Enter"
-            className="bg-[#F6F8FC] border-[#E2E8F0] text-[#0F294A]"
-          />
-          <Button type="button" variant="outline" onClick={() => qrInput.trim() && handleQrScan(qrInput)} className="border-[#E2E8F0] bg-[#F6F8FC] text-[#1D4ED8] hover:bg-[#F1F5F9]">
-            Parse QR
-          </Button>
-        </div>
+      <div className="rounded-xl border border-[#E2E8F0] bg-white p-2.5 flex flex-wrap items-center gap-2">
+        <QrCode className="w-4 h-4 text-[#1D4ED8] shrink-0" />
+        <Input
+          value={qrInput}
+          onChange={(e) => setQrInput(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter" && qrInput.trim()) { e.preventDefault(); handleQrScan(qrInput); } }}
+          placeholder="Scan or paste QR payload and press Enter"
+          className="bg-white border-[#E2E8F0] text-[#0F294A] flex-1 min-w-[200px]"
+        />
+        <Button type="button" variant="outline" size="sm" onClick={() => qrInput.trim() && handleQrScan(qrInput)} className="border-[#E2E8F0] bg-[#F6F8FC] text-[#1D4ED8] hover:bg-[#F1F5F9]">
+          Parse
+        </Button>
+        <CameraQRScanner onDecode={handleQrScan} />
       </div>
 
       <div className="space-y-2">
@@ -215,7 +222,8 @@ export default function GoodsIssued() {
             line={line}
             items={items}
             products={products}
-            orders={orders}
+            orders={[...prodOrders, ...orders]}
+            machineLines={linesOpts}
             onChange={(patch) => setLineField(line.key, patch)}
             onRemove={() => setLines((prev) => prev.filter((l) => l.key !== line.key))}
             removable={lines.length > 1}

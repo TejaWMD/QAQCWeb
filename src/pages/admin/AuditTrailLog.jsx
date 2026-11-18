@@ -3,8 +3,11 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { Download, Lock } from "lucide-react";
+import { MODULES } from "@/lib/permissions";
+import { loadUserOptions } from "@/lib/masterOptions";
 
 const ACTION_TONES = {
   Created: "text-[#1D4ED8]",
@@ -21,8 +24,10 @@ export default function AuditTrailLog() {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({ from: "", to: "", module: "", user: "", action: "all" });
+  const [userOpts, setUserOpts] = useState([]);
 
   useEffect(() => {
+    loadUserOptions().then(setUserOpts).catch(() => {});
     const load = async () => {
       try {
         const data = await base44.entities.AuditLog.list("-created_date", 500);
@@ -64,6 +69,18 @@ export default function AuditTrailLog() {
 
   const set = (key, value) => setFilters((f) => ({ ...f, [key]: value }));
 
+  const moduleOptions = useMemo(() => {
+    const fromLogs = logs.map((l) => l.module).filter(Boolean);
+    const fromConfig = MODULES.map((m) => m.label);
+    return [...new Set([...fromLogs, ...fromConfig])].sort();
+  }, [logs]);
+
+  const userFilterOptions = useMemo(() => {
+    const fromLogs = logs.map((l) => l.user_name).filter(Boolean);
+    const fromUsers = userOpts.map((u) => u.value);
+    return [...new Set([...fromUsers, ...fromLogs])].sort();
+  }, [logs, userOpts]);
+
   return (
     <div className="min-h-screen bg-[#F6F8FC] p-4 md:p-6 space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -87,13 +104,29 @@ export default function AuditTrailLog() {
           <span className="text-[11px] text-[#64748B]">To</span>
           <Input type="date" value={filters.to} onChange={(e) => set("to", e.target.value)} className="bg-white border-[#E2E8F0] text-[#0F294A] h-9 w-[150px]" />
         </div>
-        <div className="space-y-1">
+        <div className="space-y-1 w-[190px]">
           <span className="text-[11px] text-[#64748B]">Module</span>
-          <Input placeholder="Filter by module" value={filters.module} onChange={(e) => set("module", e.target.value)} className="bg-white border-[#E2E8F0] text-[#0F294A] h-9 w-[170px]" />
+          <SearchableSelect
+            value={filters.module}
+            onValueChange={(v) => set("module", v)}
+            options={moduleOptions}
+            placeholder="All modules"
+            searchPlaceholder="Search module..."
+            allowCustom
+            clearable
+          />
         </div>
-        <div className="space-y-1">
+        <div className="space-y-1 w-[190px]">
           <span className="text-[11px] text-[#64748B]">User</span>
-          <Input placeholder="Filter by user" value={filters.user} onChange={(e) => set("user", e.target.value)} className="bg-white border-[#E2E8F0] text-[#0F294A] h-9 w-[170px]" />
+          <SearchableSelect
+            value={filters.user}
+            onValueChange={(v) => set("user", v)}
+            options={userFilterOptions}
+            placeholder="All users"
+            searchPlaceholder="Search user..."
+            allowCustom
+            clearable
+          />
         </div>
         <div className="space-y-1">
           <span className="text-[11px] text-[#64748B]">Action</span>

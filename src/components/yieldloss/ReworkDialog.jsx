@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import Field from "@/components/planning/Field";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { dialogClass, inputClass, selectClass, primaryButton, subtleButton, panelClass, labelClass } from "@/components/planning/styles";
 import { useAuth } from "@/lib/AuthContext";
@@ -12,7 +13,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { base44 } from "@/api/base44Client";
 import { actingUserName } from "@/lib/permissions";
 import { num } from "@/lib/planning";
-import { productionLines } from "@/lib/shiftLogConstants";
+import { loadMachineOptions } from "@/lib/masterOptions";
 import { todayStr } from "@/lib/warehouse";
 import {
   DISPOSITIONS, SHIFTS, canApproveRework, fmtKg, logYieldAudit, nextReworkLotId, outputKgFor, reworkPctFor,
@@ -28,6 +29,12 @@ export default function ReworkDialog({ open, onClose, settings, records = [], pr
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [machineLines, setMachineLines] = useState([]);
+
+  useEffect(() => {
+    if (!open || machineLines.length) return;
+    loadMachineOptions().then(setMachineLines).catch(() => {});
+  }, [open, machineLines.length]);
 
   useEffect(() => {
     if (!open) return;
@@ -119,10 +126,13 @@ export default function ReworkDialog({ open, onClose, settings, records = [], pr
             </Select>
           </Field>
           <Field label="Line">
-            <Select value={form.production_line || undefined} onValueChange={(v) => set("production_line", v)}>
-              <SelectTrigger className={selectClass}><SelectValue placeholder="Select line" /></SelectTrigger>
-              <SelectContent>{productionLines.map((l) => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
-            </Select>
+            <SearchableSelect
+              value={form.production_line || ""}
+              onValueChange={(v) => set("production_line", v)}
+              options={machineLines}
+              placeholder="Select line"
+              searchPlaceholder="Search line..."
+            />
           </Field>
           <Field label="Source batch" className="sm:col-span-2">
             <Select value={form.source_batch || undefined} onValueChange={(v) => set("source_batch", v)}>

@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import {
   Dialog,
   DialogContent,
@@ -11,9 +12,14 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Save, Pencil } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { productionLines, productNames, wasteComponents } from "@/lib/shiftLogConstants";
+import {
+  loadBatchOptions,
+  loadMachineOptions,
+  loadProductOptions,
+  loadUserOptions,
+} from "@/lib/masterOptions";
 
 const TASK_CHECKLIST = [
   { key: "task_filled_packed", label: "Filled & Packed" },
@@ -44,6 +50,14 @@ export default function IncompleteRecordEditModal({ record, open, onClose, onSav
   const [form, setForm] = useState(null);
   const [staffNames, setStaffNames] = useState([""]);
   const [saving, setSaving] = useState(false);
+  const [opts, setOpts] = useState({ lines: [], products: [], batches: [], users: [] });
+
+  useEffect(() => {
+    if (!open || opts.lines.length) return;
+    Promise.all([loadMachineOptions(), loadProductOptions(), loadBatchOptions(), loadUserOptions()])
+      .then(([lines, products, batches, users]) => setOpts({ lines, products, batches, users }))
+      .catch(() => {});
+  }, [open, opts.lines.length]);
 
   useEffect(() => {
     if (!record) return;
@@ -135,26 +149,43 @@ export default function IncompleteRecordEditModal({ record, open, onClose, onSav
             </Select>
           </Field>
           <Field label="Line #">
-            <Select value={form.production_line} onValueChange={(v) => set("production_line", v)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent className="max-h-72">
-                {productionLines.map((l) => <SelectItem key={l} value={l}>{l}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <SearchableSelect
+              value={form.production_line}
+              onValueChange={(v) => set("production_line", v)}
+              options={opts.lines.length ? opts.lines : productionLines}
+              placeholder="Select line"
+              searchPlaceholder="Search line..."
+            />
           </Field>
           <Field label="Product" required>
-            <Select value={form.product_name} onValueChange={(v) => set("product_name", v)}>
-              <SelectTrigger><SelectValue placeholder="Select product" /></SelectTrigger>
-              <SelectContent className="max-h-72">
-                {productNames.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <SearchableSelect
+              value={form.product_name}
+              onValueChange={(v) => set("product_name", v)}
+              options={
+                opts.products.length
+                  ? opts.products.map((p) => ({
+                      value: p.product_name,
+                      label: p.product_code ? `${p.product_code} — ${p.product_name}` : p.product_name,
+                    }))
+                  : productNames
+              }
+              placeholder="Select product"
+              searchPlaceholder="Search product..."
+              allowCustom
+            />
           </Field>
           <Field label="Product Type / Size">
             <Input value={form.product_type} onChange={(e) => set("product_type", e.target.value)} placeholder="e.g. 1L, 200g" />
           </Field>
           <Field label="Lot # (Batch)" required>
-            <Input value={form.batch_number} onChange={(e) => set("batch_number", e.target.value)} />
+            <SearchableSelect
+              value={form.batch_number}
+              onValueChange={(v) => set("batch_number", v)}
+              options={opts.batches}
+              placeholder="Select or enter batch..."
+              searchPlaceholder="Search batch..."
+              allowCustom
+            />
           </Field>
           <Field label="Staff Count" required>
             <Input type="number" min="1" value={form.staff_count} onChange={(e) => set("staff_count", e.target.value)} />
@@ -176,11 +207,20 @@ export default function IncompleteRecordEditModal({ record, open, onClose, onSav
           </Field>
         </div>
 
-        <Field label="Staff Names (one per row)" required>
+        <Field label="Staff Names" required>
           <div className="space-y-2">
             {staffNames.map((name, i) => (
               <div key={i} className="flex items-center gap-2">
-                <Input value={name} onChange={(e) => setStaffNames((a) => a.map((n, idx) => idx === i ? e.target.value : n))} placeholder={`Staff name ${i + 1}`} />
+                <div className="flex-1">
+                  <SearchableSelect
+                    value={name}
+                    onValueChange={(v) => setStaffNames((a) => a.map((n, idx) => idx === i ? v : n))}
+                    options={opts.users}
+                    placeholder={`Select staff ${i + 1}`}
+                    searchPlaceholder="Search staff..."
+                    allowCustom
+                  />
+                </div>
                 {staffNames.length > 1 && (
                   <Button variant="ghost" size="icon" onClick={() => setStaffNames((a) => a.filter((_, idx) => idx !== i))} className="text-red-400 hover:text-red-600 shrink-0">
                     ✕

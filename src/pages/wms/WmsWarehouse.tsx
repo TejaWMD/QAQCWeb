@@ -12,8 +12,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import { toast } from 'sonner';
 import { QrCode, LayoutGrid, PackageMinus, ClipboardCheck, Download, Plus } from 'lucide-react';
+import { loadBatchOptions, loadProductOptions } from '@/lib/masterOptions';
 
 export default function WmsWarehouse() {
   const [tab, setTab] = useState('rack');
@@ -46,16 +48,29 @@ export default function WmsWarehouse() {
   const [stockTakeName, setStockTakeName] = useState('');
   const [activeTake, setActiveTake] = useState<any | null>(null);
   const [takeItems, setTakeItems] = useState<any[]>([]);
+  const [opts, setOpts] = useState<{ products: any[]; batches: any[]; openPls: any[] }>({
+    products: [],
+    batches: [],
+    openPls: [],
+  });
 
   const loadWms = async () => {
-    const [sRes, lRes, stRes] = await Promise.all([
+    const [sRes, lRes, stRes, plRes, prods, bats] = await Promise.all([
       supabase.from('wms_stock_items').select('*').eq('deleted', false).neq('status', 'shipped').order('scanned_at', { ascending: false }),
       supabase.from('rack_lines').select('*').eq('deleted', false).order('sort_order'),
       supabase.from('staging_areas').select('*').eq('deleted', false).order('sort_order'),
+      supabase.from('pl_outs').select('pl_number, status').eq('status', 'in_progress').order('created_at', { ascending: false }).limit(100),
+      loadProductOptions(),
+      loadBatchOptions(),
     ]);
     setStockItems(sRes.data || []);
     setRackLines(lRes.data || []);
     setStagingAreas(stRes.data || []);
+    setOpts({
+      products: prods,
+      batches: bats,
+      openPls: (plRes.data || []).map((p: any) => p.pl_number).filter(Boolean),
+    });
   };
 
   useEffect(() => {
@@ -63,6 +78,14 @@ export default function WmsWarehouse() {
   }, []);
 
   const layout = useMemo(() => buildRackLayout(rackLines), [rackLines]);
+
+  const rackOptions = useMemo(() => {
+    const slotCodes = layout.flatMap((line) =>
+      line.racks.flatMap((r) => r.slots.map((s) => s.code))
+    );
+    const areaNames = [DEFAULT_STAGING_AREA, ...stagingAreas.map((a) => a.name).filter(Boolean)];
+    return [...new Set([...areaNames, ...slotCodes])];
+  }, [layout, stagingAreas]);
 
   const itemsByRack = useMemo(() => {
     const map = new Map<string, any[]>();
@@ -334,15 +357,19 @@ export default function WmsWarehouse() {
                       <td className="p-3 text-xs font-mono">{formatQtyBreakdown(item.quantity, item.pcs_per_carton)}</td>
                       <td className="p-3"><Badge variant="outline">{item.rack || DEFAULT_STAGING_AREA}</Badge></td>
                       <td className="p-3 text-right">
-                        <Input
-                          className="w-28 inline-block h-8 text-xs font-mono"
-                          placeholder="e.g. G1A"
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              handleMoveRack(item.id, (e.target as HTMLInputElement).value.trim());
-                            }
-                          }}
-                        />
+                        <div className="w-36 inline-block text-left">
+                          <SearchableSelect
+                            value={item.rack || DEFAULT_STAGING_AREA}
+                            onValueChange={(v) => {
+                              if (v && v !== (item.rack || DEFAULT_STAGING_AREA)) {
+                                handleMoveRack(item.id, v);
+                              }
+                            }}
+                            options={rackOptions}
+                            placeholder="Move rack..."
+                            searchPlaceholder="Search rack..."
+                          />
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -372,14 +399,62 @@ export default function WmsWarehouse() {
                 <Button type="button" variant="secondary" onClick={() => handleQrDecode(qrInput)}>Decode QR</Button>
               </div>
               <form onSubmit={handleSaveScanIn} className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                <Input placeholder="Item Code / SKU" value={scanForm.item_code} onChange={(e) => setScanForm({ ...scanForm, item_code: e.target.value })} />
-                <Input placeholder="Item Name" value={scanForm.item_name} onChange={(e) => setScanForm({ ...scanForm, item_name: e.target.value })} />
-                <Input placeholder="Batch #" value={scanForm.batch_number} onChange={(e) => setScanForm({ ...scanForm, batch_number: e.target.value })} />
+                <SearchableSelect
+                  value={scanForm.item_code}
+                  onValueChange={(v) => {
+                    const match = opts.products.find((p) => p.product_code === v);
+                    setScanForm({
+                      ...scanForm,
+                      item_code: v,
+                      ...(match ? { item_name: match.product_name, pcs_per_carton: Number(match.carton_size) || scanForm.pcs_per_carton } : {}),
+                    });
+                  }}
+                  options={opts.products.map((p) => ({
+                    value: p.product_code,
+                    label: `${p.product_code} — ${p.product_name}`,
+                  }))}
+                  placeholder="Item Code / SKU"
+                  searchPlaceholder="Search product code..."
+                  allowCustom
+                />
+                <SearchableSelect
+                  value={scanForm.item_name}
+                  onValueChange={(v) => {
+                    const match = opts.products.find((p) => p.product_name === v);
+                    setScanForm({
+                      ...scanForm,
+                      item_name: v,
+                      ...(match ? { item_code: match.product_code, pcs_per_carton: Number(match.carton_size) || scanForm.pcs_per_carton } : {}),
+                    });
+                  }}
+                  options={opts.products.map((p) => ({
+                    value: p.product_name,
+                    label: p.product_name,
+                    sublabel: p.product_code,
+                  }))}
+                  placeholder="Item Name"
+                  searchPlaceholder="Search product name..."
+                  allowCustom
+                />
+                <SearchableSelect
+                  value={scanForm.batch_number}
+                  onValueChange={(v) => setScanForm({ ...scanForm, batch_number: v })}
+                  options={opts.batches}
+                  placeholder="Batch #"
+                  searchPlaceholder="Search batch..."
+                  allowCustom
+                />
                 <Input type="date" value={scanForm.expiry_date} onChange={(e) => setScanForm({ ...scanForm, expiry_date: e.target.value })} />
                 <Input type="number" placeholder="Cartons" value={scanForm.carton} onChange={(e) => setScanForm({ ...scanForm, carton: Number(e.target.value) })} />
                 <Input type="number" placeholder="Pcs / Carton" value={scanForm.pcs_per_carton} onChange={(e) => setScanForm({ ...scanForm, pcs_per_carton: Number(e.target.value) })} />
                 <Input type="number" placeholder="Loose Pcs" value={scanForm.loose_pcs} onChange={(e) => setScanForm({ ...scanForm, loose_pcs: Number(e.target.value) })} />
-                <Input placeholder="Rack (e.g. G1A)" value={scanForm.rack} onChange={(e) => setScanForm({ ...scanForm, rack: e.target.value })} />
+                <SearchableSelect
+                  value={scanForm.rack}
+                  onValueChange={(v) => setScanForm({ ...scanForm, rack: v })}
+                  options={rackOptions}
+                  placeholder="Rack (e.g. G1A)"
+                  searchPlaceholder="Search rack..."
+                />
                 <Button type="submit" className="md:col-span-4">Save Stock-In</Button>
               </form>
             </CardContent>
@@ -391,19 +466,27 @@ export default function WmsWarehouse() {
             <CardHeader><CardTitle className="text-base">Packing List Outbound Pick (Auto Carton-Breaking)</CardTitle></CardHeader>
             <CardContent>
               <form onSubmit={handlePlPick} className="grid grid-cols-1 md:grid-cols-5 gap-3">
-                <Input placeholder="PL Number (e.g. PL-2026-001)" value={plNumber} onChange={(e) => setPlNumber(e.target.value)} />
-                <select
-                  className="border rounded-md px-3 py-2 text-sm md:col-span-2"
-                  value={plPickItemId}
-                  onChange={(e) => setPlPickItemId(e.target.value)}
-                >
-                  <option value="">Select Batch & Rack...</option>
-                  {stockItems.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.item_code} · {s.batch_number} ({s.rack || DEFAULT_STAGING_AREA}) — {s.carton} ctn + {s.loose_pcs} loose
-                    </option>
-                  ))}
-                </select>
+                <SearchableSelect
+                  value={plNumber}
+                  onValueChange={setPlNumber}
+                  options={opts.openPls}
+                  placeholder="PL Number (e.g. PL-2026-001)"
+                  searchPlaceholder="Search or enter PL..."
+                  allowCustom
+                />
+                <div className="md:col-span-2">
+                  <SearchableSelect
+                    value={plPickItemId}
+                    onValueChange={setPlPickItemId}
+                    options={stockItems.map((s) => ({
+                      value: s.id,
+                      label: `${s.item_code} · ${s.batch_number} (${s.rack || DEFAULT_STAGING_AREA})`,
+                      sublabel: `${s.carton} ctn + ${s.loose_pcs} loose`,
+                    }))}
+                    placeholder="Select Batch & Rack..."
+                    searchPlaceholder="Search batch or item..."
+                  />
+                </div>
                 <Input type="number" min={0} placeholder="Cartons Out" value={plCartons} onChange={(e) => setPlCartons(Number(e.target.value))} />
                 <Input type="number" min={0} placeholder="Loose Pcs Out" value={plLoose} onChange={(e) => setPlLoose(Number(e.target.value))} />
                 <Button type="submit" className="md:col-span-5">Deduct Pick from Stock</Button>

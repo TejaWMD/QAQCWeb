@@ -1,13 +1,13 @@
-export const labelClass = "text-[10px] uppercase tracking-widest text-[#5f6b7f] font-semibold";
+export const labelClass = "text-[10px] uppercase tracking-widest text-[#64748B] font-semibold";
 
-export const inputClass = "bg-[#0a0e17] border-[#1e2740] text-white";
+export const inputClass = "bg-white border-[#E2E8F0] text-[#0F294A] placeholder:text-[#94A3B8]";
 
-export const selectClass = "bg-[#0a0e17] border-[#1e2740] text-white";
+export const selectClass = "bg-white border-[#E2E8F0] text-[#0F294A]";
 
-export const panelClass = "rounded-xl border border-[#1e2740] bg-[#0e131d]";
+export const panelClass = "rounded-xl border border-[#E2E8F0] bg-white shadow-sm";
 
-export const dialogClass = "bg-[#0b1018] border-[#1e2740] text-white max-w-2xl max-h-[90vh] overflow-y-auto";
+export const dialogClass = "bg-white border-[#E2E8F0] text-[#0F294A] max-w-2xl max-h-[90vh] overflow-y-auto";
 
-export const primaryButton = "bg-[#00e5ff] hover:bg-[#00c3d7] text-[#0a0e17] font-semibold";
+export const primaryButton = "bg-[#0F294A] hover:bg-[#193B68] text-white font-semibold";
 
-export const subtleButton = "border-[#1e2740] bg-transparent text-[#a0aec0] hover:bg-white/5 hover:text-white";
+export const subtleButton = "border-[#E2E8F0] bg-white text-[#475569] hover:bg-[#F1F5F9] hover:text-[#0F294A]";

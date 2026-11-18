@@ -3,8 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { productionLines } from "@/lib/shiftLogConstants";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { fefoBatch, fmtQty, loadItemBatches, submitStockUse } from "@/lib/packaging";
+import { loadMachineOptions, loadProductionOrderOptions } from "@/lib/masterOptions";
 
 const FIELD = "bg-white border-[#E2E8F0] text-[#0F294A]";
 
@@ -15,6 +16,15 @@ export default function StockUseDialog({ open, item, user, orders = [], threshol
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [machineLines, setMachineLines] = useState([]);
+  const [prodOrders, setProdOrders] = useState([]);
+
+  useEffect(() => {
+    if (!open || machineLines.length) return;
+    Promise.all([loadMachineOptions(), loadProductionOrderOptions()])
+      .then(([lines, po]) => { setMachineLines(lines); setProdOrders(po); })
+      .catch(() => {});
+  }, [open, machineLines.length]);
 
   useEffect(() => {
     if (!open || !item) return;
@@ -98,23 +108,25 @@ export default function StockUseDialog({ open, item, user, orders = [], threshol
           </div>
           <div className="space-y-1">
             <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Production Order</label>
-            <Select value={form.production_order || "none"} onValueChange={(v) => set("production_order", v === "none" ? "" : v)}>
-              <SelectTrigger className={FIELD}><SelectValue placeholder="None" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">None</SelectItem>
-                {orders.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <SearchableSelect
+              value={form.production_order || ""}
+              onValueChange={(v) => set("production_order", v)}
+              options={[...prodOrders, ...orders]}
+              placeholder="None"
+              searchPlaceholder="Search order..."
+              clearable
+            />
           </div>
           <div className="space-y-1">
             <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Line</label>
-            <Select value={form.production_line || "none"} onValueChange={(v) => set("production_line", v === "none" ? "" : v)}>
-              <SelectTrigger className={FIELD}><SelectValue placeholder="None" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">None</SelectItem>
-                {productionLines.map((l) => <SelectItem key={l} value={l}>{l}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <SearchableSelect
+              value={form.production_line || ""}
+              onValueChange={(v) => set("production_line", v)}
+              options={machineLines}
+              placeholder="None"
+              searchPlaceholder="Search line..."
+              clearable
+            />
           </div>
           <div className="col-span-2 space-y-1">
             <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Remarks</label>

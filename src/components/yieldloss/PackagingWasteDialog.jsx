@@ -5,13 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import Field from "@/components/planning/Field";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { dialogClass, inputClass, selectClass, primaryButton, subtleButton, panelClass, labelClass } from "@/components/planning/styles";
 import { useAuth } from "@/lib/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { base44 } from "@/api/base44Client";
 import { actingUserName } from "@/lib/permissions";
 import { num } from "@/lib/planning";
-import { productionLines } from "@/lib/shiftLogConstants";
+import { loadMachineOptions } from "@/lib/masterOptions";
 import { todayStr } from "@/lib/warehouse";
 import { SHIFTS, logYieldAudit, packagingUsedForLine, shiftEntryWaste, wasteSummary } from "@/lib/yieldLoss";
 
@@ -29,6 +30,12 @@ export default function PackagingWasteDialog({ open, onClose, settings, movement
   const [form, setForm] = useState({ waste_date: todayStr(), production_line: "", shift_type: "Morning", reason: "", film_m: "", film_kg: "", cartons: "", labels: "", pouches: "", notes: "" });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [machineLines, setMachineLines] = useState([]);
+
+  useEffect(() => {
+    if (!open || machineLines.length) return;
+    loadMachineOptions().then(setMachineLines).catch(() => {});
+  }, [open, machineLines.length]);
 
   const pulled = useMemo(
     () => shiftEntryWaste({ entries: shiftEntries, dateStr: form.waste_date, line: form.production_line, shift: form.shift_type }),
@@ -120,10 +127,13 @@ export default function PackagingWasteDialog({ open, onClose, settings, movement
             <Input type="date" value={form.waste_date} onChange={(e) => set("waste_date", e.target.value)} className={inputClass} />
           </Field>
           <Field label="Line">
-            <Select value={form.production_line || undefined} onValueChange={(v) => set("production_line", v)}>
-              <SelectTrigger className={selectClass}><SelectValue placeholder="Select line" /></SelectTrigger>
-              <SelectContent>{productionLines.map((l) => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
-            </Select>
+            <SearchableSelect
+              value={form.production_line || ""}
+              onValueChange={(v) => set("production_line", v)}
+              options={machineLines}
+              placeholder="Select line"
+              searchPlaceholder="Search line..."
+            />
           </Field>
           <Field label="Shift">
             <Select value={form.shift_type} onValueChange={(v) => set("shift_type", v)}>

@@ -20,7 +20,7 @@ export default function ScrapBreakdownChart({ data }) {
 
   return (
     <div className="bg-slate-50 rounded-xl border border-slate-200 p-5 flex flex-col">
-      <h3 className="font-semibold text-white">Packaging Scrap Breakdown</h3>
+      <h3 className="font-semibold text-[#0F294A]">Packaging Scrap Breakdown</h3>
       <p className="text-sm text-slate-500 mb-3">By Component Type</p>
       <div className="flex-1 flex items-center justify-center min-h-[180px]">
         <ResponsiveContainer width="100%" height={180}>

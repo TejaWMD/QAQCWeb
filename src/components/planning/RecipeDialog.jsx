@@ -5,9 +5,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import Field from "@/components/planning/Field";
 import IngredientEditor from "@/components/planning/IngredientEditor";
 import { logPlanningAudit, num } from "@/lib/planning";
+import { loadRecipeOptions } from "@/lib/masterOptions";
 import { saveRecipeVersion } from "@/lib/recipeMaster";
 import { todayStr } from "@/lib/warehouse";
 import { dialogClass, inputClass, primaryButton, subtleButton } from "@/components/planning/styles";
@@ -20,6 +22,12 @@ export default function RecipeDialog({ open, onClose, recipe, product, products 
   const [form, setForm] = useState({ recipe_name: "", batch_cartons: "", standard_yield_pct: "", effective_date: todayStr(), notes: "", ingredients: [] });
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [recipeNames, setRecipeNames] = useState([]);
+
+  useEffect(() => {
+    if (!open || recipeNames.length) return;
+    loadRecipeOptions().then(setRecipeNames).catch(() => {});
+  }, [open, recipeNames.length]);
 
   const linked = products.length ? products : product ? [product] : [];
   const version = num(recipe?.version) + 1;
@@ -94,7 +102,14 @@ export default function RecipeDialog({ open, onClose, recipe, product, products 
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Recipe Name" className="sm:col-span-2">
-            <Input value={form.recipe_name} onChange={(e) => set("recipe_name", e.target.value)} className={inputClass} placeholder="Recipe name from Product Master" />
+            <SearchableSelect
+              value={form.recipe_name}
+              onValueChange={(v) => set("recipe_name", v)}
+              options={recipeNames}
+              placeholder="Select or enter recipe name..."
+              searchPlaceholder="Search recipe..."
+              allowCustom
+            />
           </Field>
           <Field label="Cartons per Batch">
             <Input type="number" min="0" value={form.batch_cartons} onChange={(e) => set("batch_cartons", e.target.value)} className={inputClass} placeholder="Quantity one batch makes" />

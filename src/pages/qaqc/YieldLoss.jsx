@@ -33,11 +33,11 @@ export default function YieldLoss() {
 
   return (
     <div className="min-h-screen bg-[#F6F8FC] p-4 md:p-6 space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-[#0F294A] text-lg font-semibold">Yield &amp; Loss</h2>
-          <p className="text-[#64748B] text-sm mt-1">
-            Ingredient yield, packaging waste, giveaway and rework — measured against Product Master, Recipe Master and the stock movements.
+          <p className="text-xs text-[#64748B] mt-0.5">
+            Yield tolerance ±{settings.yield_tolerance_pct}% · Waste threshold {settings.packaging_waste_threshold_pct}% · Max rework {settings.max_rework_pct}%
           </p>
         </div>
         {canEditYieldSettings(user) && (
@@ -62,10 +62,6 @@ export default function YieldLoss() {
           </button>
         ))}
       </div>
-
-      <p className="text-[11px] text-[#64748B]">
-        Yield tolerance ±{settings.yield_tolerance_pct}% · waste threshold {settings.packaging_waste_threshold_pct}% · max rework {settings.max_rework_pct}%
-      </p>
 
       {tab === "dashboard" && <YieldLossDashboard settings={settings} />}
       {tab === "yield" && <BatchYieldTab settings={settings} />}

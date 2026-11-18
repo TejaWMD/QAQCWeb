@@ -4,8 +4,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import { toast } from 'sonner';
 import { PlusCircle, Package, BookOpen, TrendingUp, Boxes, Cpu, Trash2, AlertTriangle } from 'lucide-react';
+import {
+  loadMachineLocationOptions,
+  loadMachineOptions,
+  loadPackagingCategoryOptions,
+  loadProductSettingsOptions,
+  loadUnitOptions,
+} from '@/lib/masterOptions';
 
 type DeleteTarget = {
   type: 'product' | 'recipe' | 'forecast' | 'packaging' | 'machine';
@@ -22,6 +30,14 @@ export default function InsertData() {
   const [forecasts, setForecasts] = useState<any[]>([]);
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [opts, setOpts] = useState<{
+    brands: any[];
+    channels: any[];
+    categories: any[];
+    units: any[];
+    lineOptions: any[];
+    locations: any[];
+  }>({ brands: [], channels: [], categories: [], units: [], lineOptions: [], locations: [] });
 
   const [prod, setProd] = useState({
     product_code: '',
@@ -74,18 +90,31 @@ export default function InsertData() {
   });
 
   const loadLookups = async () => {
-    const [r, m, p, pk, f] = await Promise.all([
+    const [r, m, p, pk, f, ps, cats, units, lineOpts, locs] = await Promise.all([
       supabase.from('recipes').select('*').eq('deleted', false).order('recipe_name'),
       supabase.from('machines').select('*').eq('deleted', false).order('name'),
       supabase.from('products').select('*').eq('deleted', false).order('product_name'),
       supabase.from('packaging_items').select('*').eq('deleted', false).order('created_at', { ascending: false }),
       supabase.from('sales_planning').select('*').order('created_at', { ascending: false }).limit(50),
+      loadProductSettingsOptions(),
+      loadPackagingCategoryOptions(),
+      loadUnitOptions(),
+      loadMachineOptions(),
+      loadMachineLocationOptions(),
     ]);
     setRecipes(r.data || []);
     setMachines(m.data || []);
     setProducts(p.data || []);
     setPackagingItems(pk.data || []);
     setForecasts(f.data || []);
+    setOpts({
+      brands: ps.brands,
+      channels: ps.channels,
+      categories: cats,
+      units,
+      lineOptions: lineOpts,
+      locations: locs,
+    });
   };
 
   useEffect(() => {
@@ -306,21 +335,38 @@ export default function InsertData() {
                 </div>
                 <div>
                   <label className="text-xs text-slate-500">Brand</label>
-                  <Input value={prod.brand} onChange={(e) => setProd({ ...prod, brand: e.target.value })} placeholder="e.g. RASTO" />
+                  <SearchableSelect
+                    value={prod.brand}
+                    onValueChange={(v) => setProd({ ...prod, brand: v })}
+                    options={opts.brands}
+                    placeholder="Select brand..."
+                    searchPlaceholder="Search brand..."
+                    allowCustom
+                    clearable
+                  />
                 </div>
                 <div>
                   <label className="text-xs text-slate-500">Recipe</label>
-                  <select className="w-full border rounded-md px-3 py-2 text-sm" value={prod.recipe_id} onChange={(e) => setProd({ ...prod, recipe_id: e.target.value })}>
-                    <option value="">Select Recipe...</option>
-                    {recipes.map((r) => <option key={r.id} value={r.id}>{r.recipe_name}</option>)}
-                  </select>
+                  <SearchableSelect
+                    value={prod.recipe_id}
+                    onValueChange={(v) => setProd({ ...prod, recipe_id: v })}
+                    options={recipes.map((r) => ({ value: r.id, label: r.recipe_name }))}
+                    placeholder="Select Recipe..."
+                    searchPlaceholder="Search recipe..."
+                    clearable
+                  />
                 </div>
                 <div>
                   <label className="text-xs text-slate-500">Machine (Tank)</label>
-                  <select className="w-full border rounded-md px-3 py-2 text-sm" value={prod.default_machine} onChange={(e) => setProd({ ...prod, default_machine: e.target.value })}>
-                    <option value="">Select Machine...</option>
-                    {machines.map((m) => <option key={m.id} value={m.name}>{m.name}</option>)}
-                  </select>
+                  <SearchableSelect
+                    value={prod.default_machine}
+                    onValueChange={(v) => setProd({ ...prod, default_machine: v })}
+                    options={[...new Set([...machines.map((m) => m.name), ...opts.lineOptions.map((l) => l.value)])]}
+                    placeholder="Select Machine..."
+                    searchPlaceholder="Search machine..."
+                    allowCustom
+                    clearable
+                  />
                 </div>
                 <div>
                   <label className="text-xs text-slate-500">Pcs / Carton</label>
@@ -356,7 +402,14 @@ export default function InsertData() {
                 </div>
                 <div>
                   <label className="text-xs text-slate-500">Customer</label>
-                  <Input value={prod.customer} onChange={(e) => setProd({ ...prod, customer: e.target.value })} />
+                  <SearchableSelect
+                    value={prod.customer}
+                    onValueChange={(v) => setProd({ ...prod, customer: v })}
+                    options={opts.channels}
+                    placeholder="Select customer..."
+                    searchPlaceholder="Search customer..."
+                    allowCustom
+                  />
                 </div>
                 <div className="md:col-span-3">
                   <Button type="submit">Save Product to Supabase</Button>
@@ -394,11 +447,26 @@ export default function InsertData() {
               <form onSubmit={saveRecipe} className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="md:col-span-2">
                   <label className="text-xs text-slate-500">Recipe Name *</label>
-                  <Input value={rec.recipe_name} onChange={(e) => setRec({ ...rec, recipe_name: e.target.value })} />
+                  <SearchableSelect
+                    value={rec.recipe_name}
+                    onValueChange={(v) => setRec({ ...rec, recipe_name: v })}
+                    options={[...new Set(recipes.map((r) => r.recipe_name).filter(Boolean))]}
+                    placeholder="Select or enter recipe..."
+                    searchPlaceholder="Search recipe..."
+                    allowCustom
+                  />
                 </div>
                 <div>
                   <label className="text-xs text-slate-500">Brand</label>
-                  <Input value={rec.brand} onChange={(e) => setRec({ ...rec, brand: e.target.value })} />
+                  <SearchableSelect
+                    value={rec.brand}
+                    onValueChange={(v) => setRec({ ...rec, brand: v })}
+                    options={opts.brands}
+                    placeholder="Select brand..."
+                    searchPlaceholder="Search brand..."
+                    allowCustom
+                    clearable
+                  />
                 </div>
                 <div>
                   <label className="text-xs text-slate-500">Batch Prefix</label>
@@ -513,11 +581,25 @@ export default function InsertData() {
                 </div>
                 <div>
                   <label className="text-xs text-slate-500">Category</label>
-                  <Input value={pkg.category} onChange={(e) => setPkg({ ...pkg, category: e.target.value })} />
+                  <SearchableSelect
+                    value={pkg.category}
+                    onValueChange={(v) => setPkg({ ...pkg, category: v })}
+                    options={opts.categories}
+                    placeholder="Select category..."
+                    searchPlaceholder="Search category..."
+                    allowCustom
+                  />
                 </div>
                 <div>
                   <label className="text-xs text-slate-500">Unit</label>
-                  <Input value={pkg.unit} onChange={(e) => setPkg({ ...pkg, unit: e.target.value })} />
+                  <SearchableSelect
+                    value={pkg.unit}
+                    onValueChange={(v) => setPkg({ ...pkg, unit: v })}
+                    options={opts.units}
+                    placeholder="Select unit..."
+                    searchPlaceholder="Search unit..."
+                    allowCustom
+                  />
                 </div>
                 <div>
                   <label className="text-xs text-slate-500">Current Stock</label>
@@ -560,11 +642,26 @@ export default function InsertData() {
               <form onSubmit={saveMachine} className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="text-xs text-slate-500">Machine / Tank Name *</label>
-                  <Input value={machine.name} onChange={(e) => setMachine({ ...machine, name: e.target.value })} />
+                  <SearchableSelect
+                    value={machine.name}
+                    onValueChange={(v) => setMachine({ ...machine, name: v })}
+                    options={opts.lineOptions}
+                    placeholder="Select or enter machine..."
+                    searchPlaceholder="Search machine..."
+                    allowCustom
+                  />
                 </div>
                 <div>
                   <label className="text-xs text-slate-500">Location</label>
-                  <Input value={machine.location} onChange={(e) => setMachine({ ...machine, location: e.target.value })} />
+                  <SearchableSelect
+                    value={machine.location}
+                    onValueChange={(v) => setMachine({ ...machine, location: v })}
+                    options={opts.locations.length ? opts.locations : ['Plant 1', 'Plant 2']}
+                    placeholder="Select location..."
+                    searchPlaceholder="Search location..."
+                    allowCustom
+                    clearable
+                  />
                 </div>
                 <div>
                   <label className="text-xs text-slate-500">Capacity (CPH)</label>

@@ -96,37 +96,37 @@ export default function QaHaccp() {
 
   const checkFields = [
     { key: "check_name", label: "Check Name", type: "text", required: true },
-    { key: "production_line", label: "Production Line", type: "select", options: productionLines, required: true, default: lineDefault },
+    { key: "production_line", label: "Production Line", type: "line", options: productionLines, required: true, default: lineDefault },
     { key: "shift_date", label: "Shift Date", type: "date", required: true },
     { key: "shift_type", label: "Shift", type: "select", options: ["Morning", "Night"], default: "Morning" },
     { key: "due_date", label: "Due Date", type: "date" },
-    { key: "scheduled_time", label: "Scheduled Time (HH:MM)", type: "text" },
+    { key: "scheduled_time", label: "Scheduled Time", type: "time" },
     { key: "critical_limit", label: "Critical Limit Value", type: "text" },
     { key: "result", label: "Result", type: "select", options: ["Pending", "Pass", "Fail"], default: "Pending" },
-    { key: "checked_by", label: "Checked By", type: "text" },
-    { key: "owner", label: "Owner", type: "text" },
+    { key: "checked_by", label: "Checked By", type: "user" },
+    { key: "owner", label: "Owner", type: "user" },
     { key: "evidence_file", label: "Evidence Attachment", type: "file" },
     { key: "notes", label: "Notes", type: "textarea" },
   ];
 
   const holdFields = [
-    { key: "production_line", label: "Production Line", type: "select", options: productionLines, required: true, default: lineDefault },
+    { key: "production_line", label: "Production Line", type: "line", options: productionLines, required: true, default: lineDefault },
     { key: "shift_date", label: "Date Held", type: "date", required: true },
     { key: "product", label: "Product (Product Master)", type: "product" },
     { key: "batch_number", label: "Batch", type: "batch" },
     { key: "hold_qty", label: "Qty on Hold", type: "number" },
     { key: "hold_reason", label: "Hold Reason", type: "textarea", required: true },
-    { key: "held_by", label: "Held By", type: "text" },
-    { key: "owner", label: "Owner", type: "text" },
+    { key: "held_by", label: "Held By", type: "user" },
+    { key: "owner", label: "Owner", type: "user" },
     { key: "due_date", label: "Disposition Due", type: "date" },
-    { key: "release_approval", label: "Release Approved By", type: "text" },
+    { key: "release_approval", label: "Release Approved By", type: "user" },
     { key: "released_date", label: "Released Date", type: "date" },
     { key: "evidence_file", label: "Evidence Attachment", type: "file" },
     { key: "notes", label: "Notes", type: "textarea" },
   ];
 
   const defectFields = [
-    { key: "production_line", label: "Production Line", type: "select", options: productionLines, required: true, default: lineDefault },
+    { key: "production_line", label: "Production Line", type: "line", options: productionLines, required: true, default: lineDefault },
     { key: "shift_date", label: "Shift Date", type: "date", required: true },
     { key: "shift_type", label: "Shift", type: "select", options: ["Morning", "Night"], default: "Morning" },
     { key: "product", label: "Product (Product Master)", type: "product" },
@@ -134,8 +134,8 @@ export default function QaHaccp() {
     { key: "defect_type", label: "Defect Type", type: "text", required: true },
     { key: "defect_qty", label: "Defect Qty", type: "number" },
     { key: "severity", label: "Severity", type: "select", options: ["Minor", "Major", "Critical"], default: "Minor" },
-    { key: "detected_by", label: "Detected By", type: "text" },
-    { key: "owner", label: "Owner", type: "text" },
+    { key: "detected_by", label: "Detected By", type: "user" },
+    { key: "owner", label: "Owner", type: "user" },
     { key: "due_date", label: "Disposition Due", type: "date" },
     { key: "evidence_file", label: "Evidence Attachment", type: "file" },
     { key: "notes", label: "Notes", type: "textarea" },
@@ -145,27 +145,24 @@ export default function QaHaccp() {
     { key: "item_type", label: "Item Type", type: "select", options: ["Batch", "Ingredient"], default: "Batch" },
     { key: "product", label: "Product (Product Master)", type: "product" },
     { key: "item_name", label: "Batch Number / Ingredient", type: "text", required: true },
-    { key: "production_line", label: "Production Line", type: "select", options: productionLines, default: lineDefault },
+    { key: "production_line", label: "Production Line", type: "line", options: productionLines, default: lineDefault },
     { key: "shift_date", label: "Date", type: "date", required: true },
     { key: "due_date", label: "Due Date", type: "date" },
     { key: "verified", label: "Halal Verified", type: "checkbox" },
-    { key: "verifier", label: "Verifier", type: "text" },
-    { key: "owner", label: "Owner", type: "text" },
+    { key: "verifier", label: "Verifier", type: "user" },
+    { key: "owner", label: "Owner", type: "user" },
     { key: "certificate_file", label: "Halal Certificate", type: "file" },
     { key: "notes", label: "Notes", type: "textarea" },
   ];
 
   const tabTrigger = (value, label) => (
-    <TabsTrigger value={value} className="data-[state=active]:bg-[#0F294A] data-[state=active]:text-[#0F294A] text-[#64748B]">{label}</TabsTrigger>
+    <TabsTrigger value={value} className="data-[state=active]:bg-[#0F294A] data-[state=active]:text-white text-[#64748B]">{label}</TabsTrigger>
   );
 
   return (
     <div className="min-h-screen bg-[#F6F8FC] p-4 md:p-6 space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="text-[#0F294A] text-lg font-semibold">QA &amp; HACCP Safety</h2>
-          <p className="text-[#64748B] text-sm mt-1">CCP checks, product holds, defects and halal verification, with evidence on every record.</p>
-        </div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-[#0F294A] text-lg font-semibold">QA &amp; HACCP Safety</h2>
         {canManageQa && <RaiseCapaButton />}
       </div>
       <Tabs defaultValue={initialTab}>

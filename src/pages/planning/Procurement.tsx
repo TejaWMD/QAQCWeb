@@ -5,26 +5,34 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import { toast } from 'sonner';
 import { ShoppingCart, Truck, Users, Plus, ArrowRight } from 'lucide-react';
+import { loadMaterialAndPackagingOptions, loadUnitOptions } from '@/lib/masterOptions';
 
 export default function Procurement() {
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [requests, setRequests] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
+  const [materials, setMaterials] = useState<any[]>([]);
+  const [units, setUnits] = useState<any[]>([]);
 
   const [newSup, setNewSup] = useState({ name: '', contact_person: '', phone: '', lead_time_days: 7 });
   const [newPr, setNewPr] = useState({ material_name: '', required_quantity: 100, unit: 'pcs', supplier_id: '' });
 
   const loadAll = async () => {
-    const [s, r, o] = await Promise.all([
+    const [s, r, o, mats, u] = await Promise.all([
       supabase.from('suppliers').select('*').eq('deleted', false).order('name'),
       supabase.from('purchase_requests').select('*').eq('deleted', false).order('created_at', { ascending: false }),
       supabase.from('purchase_orders').select('*').eq('deleted', false).order('created_at', { ascending: false }),
+      loadMaterialAndPackagingOptions(),
+      loadUnitOptions(),
     ]);
     setSuppliers(s.data || []);
     setRequests(r.data || []);
     setOrders(o.data || []);
+    setMaterials(mats || []);
+    setUnits(u || []);
   };
 
   useEffect(() => {
@@ -105,10 +113,20 @@ export default function Procurement() {
             <CardHeader><CardTitle className="text-base">New Purchase Request</CardTitle></CardHeader>
             <CardContent>
               <form onSubmit={addPr} className="grid grid-cols-1 md:grid-cols-5 gap-3">
-                <Input
-                  placeholder="Material name"
+                <SearchableSelect
                   value={newPr.material_name}
-                  onChange={(e) => setNewPr({ ...newPr, material_name: e.target.value })}
+                  onValueChange={(v) => {
+                    const match = materials.find((m) => m.value === v);
+                    setNewPr((prev) => ({
+                      ...prev,
+                      material_name: v,
+                      ...(match?.unit ? { unit: match.unit } : {}),
+                    }));
+                  }}
+                  options={materials}
+                  placeholder="Select material..."
+                  searchPlaceholder="Search material..."
+                  allowCustom
                 />
                 <Input
                   type="number"
@@ -116,21 +134,22 @@ export default function Procurement() {
                   value={newPr.required_quantity}
                   onChange={(e) => setNewPr({ ...newPr, required_quantity: Number(e.target.value) })}
                 />
-                <Input
-                  placeholder="Unit (pcs/kg)"
+                <SearchableSelect
                   value={newPr.unit}
-                  onChange={(e) => setNewPr({ ...newPr, unit: e.target.value })}
+                  onValueChange={(v) => setNewPr({ ...newPr, unit: v })}
+                  options={units}
+                  placeholder="Unit"
+                  searchPlaceholder="Search unit..."
+                  allowCustom
                 />
-                <select
-                  className="border rounded-md px-3 py-2 text-sm"
+                <SearchableSelect
                   value={newPr.supplier_id}
-                  onChange={(e) => setNewPr({ ...newPr, supplier_id: e.target.value })}
-                >
-                  <option value="">Select Supplier...</option>
-                  {suppliers.map((s) => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
-                  ))}
-                </select>
+                  onValueChange={(v) => setNewPr({ ...newPr, supplier_id: v })}
+                  options={suppliers.map((s) => ({ value: s.id, label: s.name }))}
+                  placeholder="Select supplier..."
+                  searchPlaceholder="Search supplier..."
+                  clearable
+                />
                 <Button type="submit"><Plus className="w-4 h-4 mr-1" /> Create PR</Button>
               </form>
             </CardContent>

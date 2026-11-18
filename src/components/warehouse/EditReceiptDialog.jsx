@@ -1,11 +1,18 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { actingUserName } from "@/lib/permissions";
 import { canEditReceipt, eventStamp } from "@/lib/warehouse";
+import {
+  loadBatchOptions,
+  loadProductOptions,
+  loadPurchaseOrderOptions,
+  loadSupplierOptions,
+} from "@/lib/masterOptions";
 
 const FIELD = "bg-white border-[#E2E8F0] text-[#0F294A]";
 
@@ -27,7 +34,25 @@ export default function EditReceiptDialog({ record, user, units, racks, onClose,
   const [values, setValues] = useState({ ...record });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [opts, setOpts] = useState({ items: [], batches: [], suppliers: [], pos: [] });
   const editable = canEditReceipt(user, record);
+
+  useEffect(() => {
+    Promise.all([
+      base44.entities.WarehouseItem.list("-created_date", 500).catch(() => []),
+      loadProductOptions(),
+      loadBatchOptions(),
+      loadSupplierOptions(),
+      loadPurchaseOrderOptions(),
+    ]).then(([whRows, products, batches, suppliers, pos]) => {
+      const wh = Array.isArray(whRows) ? whRows : whRows?.items || [];
+      const items = [
+        ...wh.map((i) => ({ value: i.item_code, label: i.description ? `${i.item_code} — ${i.description}` : i.item_code, description: i.description })),
+        ...products.map((p) => ({ value: p.product_code, label: `${p.product_code} — ${p.product_name}`, description: p.product_name })),
+      ];
+      setOpts({ items, batches, suppliers, pos });
+    });
+  }, []);
 
   const set = (key, value) => setValues((v) => ({ ...v, [key]: value }));
 
@@ -107,7 +132,21 @@ export default function EditReceiptDialog({ record, user, units, racks, onClose,
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1">
             <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Item Code</label>
-            <Input value={values.item_code || ""} onChange={(e) => set("item_code", e.target.value)} className={FIELD} />
+            <SearchableSelect
+              value={values.item_code || ""}
+              onValueChange={(v) => {
+                const match = opts.items.find((i) => i.value === v);
+                setValues((prev) => ({
+                  ...prev,
+                  item_code: v,
+                  ...(match?.description ? { product_description: match.description } : {}),
+                }));
+              }}
+              options={opts.items}
+              placeholder="Select item code..."
+              searchPlaceholder="Search item..."
+              allowCustom
+            />
           </div>
           <div className="space-y-1">
             <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Description</label>
@@ -115,7 +154,14 @@ export default function EditReceiptDialog({ record, user, units, racks, onClose,
           </div>
           <div className="space-y-1">
             <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Batch Number</label>
-            <Input value={values.batch_number || ""} onChange={(e) => set("batch_number", e.target.value)} className={FIELD} />
+            <SearchableSelect
+              value={values.batch_number || ""}
+              onValueChange={(v) => set("batch_number", v)}
+              options={opts.batches}
+              placeholder="Select batch..."
+              searchPlaceholder="Search batch..."
+              allowCustom
+            />
           </div>
           <div className="space-y-1">
             <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Quantity</label>
@@ -141,11 +187,27 @@ export default function EditReceiptDialog({ record, user, units, racks, onClose,
           </div>
           <div className="space-y-1">
             <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Supplier</label>
-            <Input value={values.supplier || ""} onChange={(e) => set("supplier", e.target.value)} className={FIELD} />
+            <SearchableSelect
+              value={values.supplier || ""}
+              onValueChange={(v) => set("supplier", v)}
+              options={opts.suppliers}
+              placeholder="Select supplier..."
+              searchPlaceholder="Search supplier..."
+              allowCustom
+              clearable
+            />
           </div>
           <div className="space-y-1">
             <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Delivery Note</label>
-            <Input value={values.delivery_note || ""} onChange={(e) => set("delivery_note", e.target.value)} className={FIELD} />
+            <SearchableSelect
+              value={values.delivery_note || ""}
+              onValueChange={(v) => set("delivery_note", v)}
+              options={opts.pos}
+              placeholder="Select PO or enter DO..."
+              searchPlaceholder="Search PO..."
+              allowCustom
+              clearable
+            />
           </div>
           <div className="space-y-1">
             <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Remarks</label>

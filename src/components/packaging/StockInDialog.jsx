@@ -2,11 +2,13 @@ import React, { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Plus } from "lucide-react";
 import InLineRow from "@/components/packaging/InLineRow";
 import { newGroupId, receiveStock } from "@/lib/packaging";
 import { todayStr } from "@/lib/warehouse";
+import { loadPurchaseOrderOptions, loadSupplierOptions } from "@/lib/masterOptions";
 
 let seq = 0;
 const blankLine = (item) => ({
@@ -24,6 +26,14 @@ export default function StockInDialog({ open, item, items, racks, user, onClose,
   const [lines, setLines] = useState([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [opts, setOpts] = useState({ suppliers: [], pos: [] });
+
+  useEffect(() => {
+    if (!open || opts.suppliers.length) return;
+    Promise.all([loadSupplierOptions(), loadPurchaseOrderOptions()])
+      .then(([suppliers, pos]) => setOpts({ suppliers, pos }))
+      .catch(() => {});
+  }, [open, opts.suppliers.length]);
 
   useEffect(() => {
     if (!open) return;
@@ -88,9 +98,6 @@ export default function StockInDialog({ open, item, items, racks, user, onClose,
       <DialogContent className="bg-white border-[#E2E8F0] text-[#0F294A] max-h-[88vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle className="text-[#0F294A]">Stock in</DialogTitle>
-          <DialogDescription className="text-[#64748B] text-sm">
-            Adds to stock on hand and logs an In movement. Several lines can share one delivery note.
-          </DialogDescription>
         </DialogHeader>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -100,11 +107,27 @@ export default function StockInDialog({ open, item, items, racks, user, onClose,
           </div>
           <div className="space-y-1">
             <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Supplier</label>
-            <Input value={header.supplier} onChange={(e) => setHeader((h) => ({ ...h, supplier: e.target.value }))} placeholder="Optional" className="bg-white border-[#E2E8F0] text-[#0F294A]" />
+            <SearchableSelect
+              value={header.supplier}
+              onValueChange={(v) => setHeader((h) => ({ ...h, supplier: v }))}
+              options={opts.suppliers}
+              placeholder="Select supplier..."
+              searchPlaceholder="Search supplier..."
+              allowCustom
+              clearable
+            />
           </div>
           <div className="space-y-1">
-            <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Delivery Note</label>
-            <Input value={header.delivery_note} onChange={(e) => setHeader((h) => ({ ...h, delivery_note: e.target.value }))} placeholder="Optional" className="bg-white border-[#E2E8F0] text-[#0F294A]" />
+            <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Delivery Note / PO</label>
+            <SearchableSelect
+              value={header.delivery_note}
+              onValueChange={(v) => setHeader((h) => ({ ...h, delivery_note: v }))}
+              options={opts.pos}
+              placeholder="Select PO or enter DO..."
+              searchPlaceholder="Search PO..."
+              allowCustom
+              clearable
+            />
           </div>
         </div>
 

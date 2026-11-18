@@ -4,7 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { calculateOTMetrics } from "@/lib/otCalculations";
+import { taskOptions } from "@/lib/shiftLogConstants";
+import { loadMachineOptions, loadProductOptions, loadUserOptions } from "@/lib/masterOptions";
 
 const objectives = ["Production Catch-up", "Maintenance", "Cleaning", "Changeover", "Quality Issue", "Trial Run", "To complete the day's order"];
 
@@ -46,6 +49,14 @@ const defaultForm = {
 
 export default function OperationLogModal({ open, onClose, onSave, editData }) {
   const [formData, setFormData] = useState(defaultForm);
+  const [opts, setOpts] = useState({ lines: [], products: [], users: [] });
+
+  useEffect(() => {
+    if (!open || opts.lines.length) return;
+    Promise.all([loadMachineOptions(), loadProductOptions(), loadUserOptions()])
+      .then(([lines, products, users]) => setOpts({ lines, products, users }))
+      .catch(() => {});
+  }, [open, opts.lines.length]);
 
   useEffect(() => {
     if (open) {
@@ -92,19 +103,54 @@ export default function OperationLogModal({ open, onClose, onSave, editData }) {
               <Input type="date" value={formData.ot_date} onChange={(e) => update("ot_date", e.target.value)} />
             </Field>
             <Field label="Line">
-              <Input value={formData.production_line} onChange={(e) => update("production_line", e.target.value)} placeholder="Pasta Pouch Packing" />
+              <SearchableSelect
+                value={formData.production_line}
+                onValueChange={(v) => update("production_line", v)}
+                options={opts.lines}
+                placeholder="Select line..."
+                searchPlaceholder="Search line..."
+                allowCustom={opts.lines.length === 0}
+              />
             </Field>
             <Field label="Product / SKU">
-              <Input value={formData.product_sku} onChange={(e) => update("product_sku", e.target.value)} placeholder="RASTO CARBONARA POUCH 220GM" />
+              <SearchableSelect
+                value={formData.product_sku}
+                onValueChange={(v) => {
+                  const prod = opts.products.find((p) => p.product_code === v || p.product_name === v || p.value === v);
+                  update("product_sku", prod?.product_name || v);
+                }}
+                options={opts.products.map((p) => ({
+                  value: p.product_name || p.product_code,
+                  label: p.product_code ? `${p.product_code} — ${p.product_name}` : p.product_name,
+                  sublabel: p.brand,
+                }))}
+                placeholder="Select product..."
+                searchPlaceholder="Search product..."
+                allowCustom
+              />
             </Field>
             <Field label="Task">
-              <Input value={formData.task} onChange={(e) => update("task", e.target.value)} placeholder="Filling & Packing" />
+              <SearchableSelect
+                value={formData.task}
+                onValueChange={(v) => update("task", v)}
+                options={taskOptions}
+                placeholder="Select task..."
+                searchPlaceholder="Search task..."
+                allowCustom
+              />
             </Field>
             <Field label="Staff Count">
               <Input type="number" value={formData.staff_count} onChange={(e) => update("staff_count", e.target.value)} />
             </Field>
             <Field label="Name">
-              <Input value={formData.staff_name} onChange={(e) => update("staff_name", e.target.value)} placeholder="Supervisor name" />
+              <SearchableSelect
+                value={formData.staff_name}
+                onValueChange={(v) => update("staff_name", v)}
+                options={opts.users}
+                placeholder="Select staff..."
+                searchPlaceholder="Search person..."
+                allowCustom={opts.users.length === 0}
+              />
             </Field>
             <Field label="Objective">
               <Select value={formData.ot_objective} onValueChange={(v) => update("ot_objective", v)}>

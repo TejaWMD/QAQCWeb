@@ -4,8 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import { loadProductOptions, loadSupplierOptions } from "@/lib/masterOptions";
 
 const FIELD = "bg-white border-[#E2E8F0] text-[#0F294A]";
 
@@ -27,6 +29,14 @@ export default function ItemDialog({ open, item, categories, units, racks, onClo
   const [form, setForm] = useState(empty(categories, units));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [opts, setOpts] = useState({ suppliers: [], products: [] });
+
+  useEffect(() => {
+    if (!open || opts.suppliers.length) return;
+    Promise.all([loadSupplierOptions(), loadProductOptions()])
+      .then(([suppliers, products]) => setOpts({ suppliers, products }))
+      .catch(() => {});
+  }, [open, opts.suppliers.length]);
 
   useEffect(() => {
     if (!open) return;
@@ -93,9 +103,6 @@ export default function ItemDialog({ open, item, categories, units, racks, onClo
       <DialogContent className="bg-white border-[#E2E8F0] text-[#0F294A] max-h-[85vh] overflow-y-auto sm:max-w-xl">
         <DialogHeader>
           <DialogTitle className="text-[#0F294A]">{item ? "Edit packaging item" : "Add packaging item"}</DialogTitle>
-          <DialogDescription className="text-[#64748B] text-sm">
-            Quantities change only through In, Use and Check so every movement stays traceable.
-          </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -147,11 +154,30 @@ export default function ItemDialog({ open, item, categories, units, racks, onClo
             </div>
             <div className="space-y-1">
               <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Supplier</label>
-              <Input value={form.supplier} onChange={(e) => set("supplier", e.target.value)} placeholder="Optional" className={FIELD} />
+              <SearchableSelect
+                value={form.supplier}
+                onValueChange={(v) => set("supplier", v)}
+                options={opts.suppliers}
+                placeholder="Select supplier..."
+                searchPlaceholder="Search supplier..."
+                allowCustom
+                clearable
+              />
             </div>
             <div className="space-y-1">
               <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Linked Product</label>
-              <Input value={form.linked_product} onChange={(e) => set("linked_product", e.target.value)} placeholder="Product this packs (optional)" className={FIELD} />
+              <SearchableSelect
+                value={form.linked_product}
+                onValueChange={(v) => set("linked_product", v)}
+                options={opts.products.map((p) => ({
+                  value: p.product_name,
+                  label: p.product_code ? `${p.product_code} — ${p.product_name}` : p.product_name,
+                }))}
+                placeholder="Select linked product..."
+                searchPlaceholder="Search product..."
+                allowCustom
+                clearable
+              />
             </div>
             <div className="space-y-1">
               <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Qty per Finished Unit</label>

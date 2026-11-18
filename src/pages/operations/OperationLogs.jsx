@@ -164,8 +164,8 @@ export default function OperationLogs() {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800 mb-1">Operation Record</h2>
-          <p className="text-slate-500 text-sm">Day-to-day operation output &amp; process improvement record — one row per shift log session, captured from the shift log.</p>
+          <h2 className="text-xl font-bold text-[#0F294A] mb-0.5">Operation Record</h2>
+          <p className="text-[#64748B] text-sm">Shift log output and process records.</p>
         </div>
         <div className="flex items-center gap-2">
           <Select value={lineFilter || "all"} onValueChange={(v) => setLineFilter(v === "all" ? "" : v)}>

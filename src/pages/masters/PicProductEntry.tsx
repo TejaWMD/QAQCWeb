@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { toast } from 'sonner';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import './PicProductEntry.css';
 
 const BLANK_FORM: ProductInput = {
@@ -564,35 +565,37 @@ export default function PicProductEntry() {
                 <div className="pic-form-grid pic-form-grid-3">
                   <div className="pic-field-group">
                     <label className="pic-field-label">Brand</label>
-                    <input
-                      type="text"
-                      className="pic-field-input"
-                      placeholder="e.g. RASTO"
-                      list="pic-brand-list"
+                    <SearchableSelect
                       value={formData.brand}
-                      onChange={(e) => handleFormChange('brand', e.target.value)}
+                      onValueChange={(v) => handleFormChange('brand', v)}
+                      options={(settings.brands || []).map((b) => b.name).filter(Boolean)}
+                      placeholder="Select brand..."
+                      searchPlaceholder="Search brand..."
+                      allowCustom
+                      clearable
                     />
                   </div>
                   <div className="pic-field-group">
                     <label className="pic-field-label">Customer / Channel</label>
-                    <input
-                      type="text"
-                      className="pic-field-input"
-                      placeholder="e.g. GENERAL, NSK ONLY, LOTUS"
-                      list="pic-customer-list"
+                    <SearchableSelect
                       value={formData.customer}
-                      onChange={(e) => handleFormChange('customer', e.target.value)}
+                      onValueChange={(v) => handleFormChange('customer', v)}
+                      options={[...new Set(['GENERAL', ...(settings.channels || []).map((c) => c.name).filter(Boolean)])]}
+                      placeholder="Select customer..."
+                      searchPlaceholder="Search customer..."
+                      allowCustom
                     />
                   </div>
                   <div className="pic-field-group">
                     <label className="pic-field-label">Packaging Line Code</label>
-                    <input
-                      type="text"
-                      className="pic-field-input"
-                      placeholder="e.g. SAUCE, POUCH, SYRUP"
-                      list="pic-line-list"
+                    <SearchableSelect
                       value={formData.line_type}
-                      onChange={(e) => handleFormChange('line_type', e.target.value)}
+                      onValueChange={(v) => handleFormChange('line_type', v)}
+                      options={['SAUCE', 'POUCH', '1 KG', 'SYRUP', 'POWDER', 'MAYO', 'SAUCE/ MAYO', 'MANUAL']}
+                      placeholder="Select line type..."
+                      searchPlaceholder="Search line type..."
+                      allowCustom
+                      clearable
                     />
                   </div>
                 </div>
@@ -658,13 +661,14 @@ export default function PicProductEntry() {
                 <div className="pic-form-grid pic-form-grid-3">
                   <div className="pic-field-group">
                     <label className="pic-field-label">Recipe Name</label>
-                    <input
-                      type="text"
-                      className="pic-field-input"
-                      placeholder="e.g. RASTO TRADITIONAL PASTA SAUCE"
-                      list="pic-recipe-list"
+                    <SearchableSelect
                       value={formData.recipe_name}
-                      onChange={(e) => handleFormChange('recipe_name', e.target.value)}
+                      onValueChange={(v) => handleFormChange('recipe_name', v)}
+                      options={[...new Set(recipes.map((r) => r.recipe_name).filter(Boolean))]}
+                      placeholder="Select recipe..."
+                      searchPlaceholder="Search recipe..."
+                      allowCustom
+                      clearable
                     />
                   </div>
                   <div className="pic-field-group">
@@ -695,13 +699,14 @@ export default function PicProductEntry() {
                 <div className="pic-form-grid">
                   <div className="pic-field-group">
                     <label className="pic-field-label">Default Machine</label>
-                    <input
-                      type="text"
-                      className="pic-field-input"
-                      placeholder="e.g. COOKING TANK 1"
-                      list="pic-machine-list"
+                    <SearchableSelect
                       value={formData.default_machine}
-                      onChange={(e) => handleFormChange('default_machine', e.target.value)}
+                      onValueChange={(v) => handleFormChange('default_machine', v)}
+                      options={[...new Set(machines.map((m) => m.name).filter(Boolean))]}
+                      placeholder="Select machine..."
+                      searchPlaceholder="Search machine..."
+                      allowCustom
+                      clearable
                     />
                   </div>
                   <div className="pic-field-group">
@@ -750,32 +755,6 @@ export default function PicProductEntry() {
                   />
                 </div>
 
-                {/* Autocomplete Datalists */}
-                <datalist id="pic-brand-list">
-                  {(settings.brands || []).map((b) => (
-                    <option key={b.name} value={b.name} />
-                  ))}
-                </datalist>
-                <datalist id="pic-customer-list">
-                  {(settings.channels || []).map((c) => (
-                    <option key={c.name} value={c.name} />
-                  ))}
-                </datalist>
-                <datalist id="pic-recipe-list">
-                  {recipes.map((r) => (
-                    <option key={r.recipe_name} value={r.recipe_name} />
-                  ))}
-                </datalist>
-                <datalist id="pic-machine-list">
-                  {machines.map((m) => (
-                    <option key={m.name} value={m.name} />
-                  ))}
-                </datalist>
-                <datalist id="pic-line-list">
-                  {['SAUCE', 'POUCH', '1 KG', 'SYRUP', 'POWDER', 'MAYO', 'SAUCE/ MAYO', 'MANUAL'].map((l) => (
-                    <option key={l} value={l} />
-                  ))}
-                </datalist>
               </div>
 
               <div className="pic-modal-footer">

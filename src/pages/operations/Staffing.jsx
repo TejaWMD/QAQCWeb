@@ -8,14 +8,14 @@ import { productionLines, lineCode } from "@/lib/shiftLogConstants";
 const STATUSES = ["Open", "In Progress", "Overdue", "Completed", "Verified"];
 
 const fields = [
-  { key: "production_line", label: "Production Line", type: "select", options: productionLines, required: true },
+  { key: "production_line", label: "Production Line", type: "line", options: productionLines, required: true },
   { key: "shift_date", label: "Shift Date", type: "date", required: true },
   { key: "shift_type", label: "Shift", type: "select", options: ["Morning", "Night"], default: "Morning" },
   { key: "planned_headcount", label: "Planned Headcount", type: "number" },
   { key: "actual_headcount", label: "Actual Headcount", type: "number" },
   { key: "gap_logged", label: "Staffing Gap Logged", type: "checkbox" },
   { key: "gap_reason", label: "Gap Reason", type: "text" },
-  { key: "owner", label: "Owner", type: "text" },
+  { key: "owner", label: "Owner", type: "user" },
   { key: "due_date", label: "Gap Resolution Due", type: "date" },
   { key: "evidence_file", label: "Evidence Attachment", type: "file" },
   { key: "notes", label: "Notes", type: "textarea" },
@@ -41,15 +41,11 @@ export default function Staffing() {
   const guard = statusChangeGuard(user, { managerVerifies: true });
 
   return (
-    <div className="min-h-screen bg-[#F6F8FC] p-4 md:p-6 space-y-4">
-      <div>
-        <h2 className="text-[#0F294A] text-lg font-semibold">Staffing</h2>
-        <p className="text-[#64748B] text-sm mt-1">Planned versus actual headcount per line and shift, with staffing gap tracking.</p>
-      </div>
+    <div className="min-h-screen bg-[#F6F8FC] p-4 md:p-6">
       <RecordsTable
         entity="StaffingRecord"
         title="Staffing Records"
-        subtitle="Headcount and coverage gaps across all production lines"
+        subtitle="Planned vs actual headcount and coverage gaps per line and shift."
         addLabel="Add Staffing Record"
         columns={columns}
         fields={fields}

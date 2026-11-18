@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Settings2, Download, ArrowLeftRight, CheckCircle2, Boxes } from "lucide-react";
+import { Plus, Settings2, Download, CheckCircle2, Boxes } from "lucide-react";
 import ItemCard from "@/components/packaging/ItemCard";
 import ItemDialog from "@/components/packaging/ItemDialog";
 import StockInDialog from "@/components/packaging/StockInDialog";
@@ -17,6 +17,7 @@ import ItemDetailDialog from "@/components/packaging/ItemDetailDialog";
 import PackagingSettingsDialog from "@/components/packaging/PackagingSettingsDialog";
 import { actingUserName } from "@/lib/permissions";
 import { downloadCsv } from "@/lib/warehouse";
+import { loadUnitOptions } from "@/lib/masterOptions";
 import {
   DEFAULT_UNITS,
   canApproveStock,
@@ -47,6 +48,7 @@ export default function PackagingStock() {
   const [racks, setRacks] = useState([]);
   const [pendingIds, setPendingIds] = useState(new Set());
   const [settings, setSettings] = useState({ id: "", categories: [], threshold: 0 });
+  const [units, setUnits] = useState(DEFAULT_UNITS);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -83,6 +85,7 @@ export default function PackagingStock() {
   useEffect(() => {
     load();
     loadProductionOrders().then(setOrders).catch(() => setOrders([]));
+    loadUnitOptions().then((opts) => setUnits(opts.map((o) => o.value))).catch(() => {});
   }, []);
 
   const audit = async (action, recordId, details) => {
@@ -134,15 +137,11 @@ export default function PackagingStock() {
 
   const lowCount = items.filter(isLowStock).length;
   const totalUnits = items.reduce((sum, i) => sum + (Number(i.quantity) || 0), 0);
-  const units = DEFAULT_UNITS;
 
   return (
     <div className="min-h-screen bg-[#F6F8FC] p-4 md:p-6 space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="text-[#0F294A] text-lg font-semibold">Stock Counter</h2>
-          <p className="text-[#64748B] text-sm mt-1">Track inventory, usage, and low-stock alerts.</p>
-        </div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-[#0F294A] text-lg font-semibold">Stock Counter</h2>
         <div className="flex flex-wrap gap-2 w-full sm:w-auto">
           {isPackagingStaff(user) && (
             <Button onClick={() => setItemDialog({ open: true, item: null })} className="flex-1 sm:flex-none bg-[#0F294A] hover:bg-[#193B68] text-white font-semibold">
@@ -151,7 +150,7 @@ export default function PackagingStock() {
           )}
           {canManagePackaging(user) && (
             <Button variant="outline" onClick={() => setSettingsOpen(true)} className="flex-1 sm:flex-none border-[#E2E8F0] bg-white text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F294A]">
-              <Settings2 className="w-4 h-4" /> Categories
+              <Settings2 className="w-4 h-4" /> Settings
             </Button>
           )}
           <Button
@@ -160,9 +159,6 @@ export default function PackagingStock() {
             className="flex-1 sm:flex-none border-[#E2E8F0] bg-white text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F294A]"
           >
             <Download className="w-4 h-4" /> Export
-          </Button>
-          <Button asChild variant="outline" className="flex-1 sm:flex-none border-[#E2E8F0] bg-white text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F294A]">
-            <Link to="/packaging-movements"><ArrowLeftRight className="w-4 h-4" /> Movements</Link>
           </Button>
           <Button asChild variant="outline" className="flex-1 sm:flex-none border-[#E2E8F0] bg-white text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F294A]">
             <Link to="/packaging-approvals">

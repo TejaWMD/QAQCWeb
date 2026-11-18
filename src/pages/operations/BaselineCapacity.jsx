@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, Pencil, Trash2, LayoutDashboard } from "lucide-react";
+import { Search, Plus, Pencil, Trash2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import BaselineCapacityModal from "@/components/baseline/BaselineCapacityModal";
 import { pcsPerCarton } from "@/lib/packingConfig";
@@ -109,23 +108,16 @@ export default function BaselineCapacity() {
 
   return (
     <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-white mb-1 tracking-tight">Baseline Capacity Parameterization &amp; Rate Configuration Record</h2>
-          <p className="text-slate-500 text-sm">Standard setting baseline: line setup, throughput rates, manpower and changeover complexity per product.</p>
+          <h2 className="text-xl font-bold text-[#0F294A] mb-0.5">Baseline Capacity</h2>
+          <p className="text-[#64748B] text-sm">Line setup, throughput rates, manpower, and changeover standards per product.</p>
         </div>
-        <div className="flex items-center gap-2">
-          {canEnter &&
-          <Button onClick={() => {setEditRec(null);setModalOpen(true);}} className="bg-sky-600 hover:bg-sky-700 text-white">
-              <Plus className="w-4 h-4 mr-1" /> Add Record
-            </Button>
-          }
-          <Link to="/">
-            <Button variant="outline" className="border-slate-300">
-              <LayoutDashboard className="w-4 h-4 mr-1" /> Dashboard
-            </Button>
-          </Link>
-        </div>
+        {canEnter && (
+          <Button onClick={() => { setEditRec(null); setModalOpen(true); }} className="bg-[#0F294A] hover:bg-[#193B68] text-white">
+            <Plus className="w-4 h-4 mr-1" /> Add Record
+          </Button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">

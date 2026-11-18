@@ -7,11 +7,13 @@ import {
 } from "@/services/authService";
 import { useAuth } from "@/lib/AuthContext";
 import {
+  APP_ROLES,
   MODULES,
   ASSIGNABLE_MODULE_KEYS,
   isAdminUser,
   effectiveModuleKeys,
 } from "@/lib/permissions";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -539,27 +541,6 @@ export default function UserManagement() {
             <DialogTitle className="text-white">Add Registered User</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleCreateUser} className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label className="text-xs text-[#94a3b8]">User ID (optional)</Label>
-                <Input
-                  value={newUser.id}
-                  onChange={(e) => setNewUser({ ...newUser, id: e.target.value })}
-                  placeholder="e.g. usr-staff-02"
-                  className="mt-1 bg-[#0e131d] border-[#1e2740] text-white"
-                />
-              </div>
-              <div>
-                <Label className="text-xs text-[#94a3b8]">Avatar Initials</Label>
-                <Input
-                  value={newUser.avatar_initials}
-                  onChange={(e) => setNewUser({ ...newUser, avatar_initials: e.target.value })}
-                  placeholder="e.g. JD"
-                  maxLength={4}
-                  className="mt-1 bg-[#0e131d] border-[#1e2740] text-white"
-                />
-              </div>
-            </div>
             <div>
               <Label className="text-xs text-[#94a3b8]">Full Name *</Label>
               <Input
@@ -592,7 +573,7 @@ export default function UserManagement() {
                 className="mt-1 bg-[#0e131d] border-[#1e2740] text-white"
               />
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <Label className="text-xs text-[#94a3b8]">Role</Label>
                 <Select
@@ -610,21 +591,31 @@ export default function UserManagement() {
               </div>
               <div>
                 <Label className="text-xs text-[#94a3b8]">Role Label</Label>
-                <Input
-                  value={newUser.role_label}
-                  onChange={(e) => setNewUser({ ...newUser, role_label: e.target.value })}
-                  placeholder="QA Officer"
-                  className="mt-1 bg-[#0e131d] border-[#1e2740] text-white"
-                />
+                <div className="mt-1">
+                  <SearchableSelect
+                    value={newUser.role_label}
+                    onValueChange={(val) => setNewUser({ ...newUser, role_label: val })}
+                    options={[...new Set(["Administrator", ...APP_ROLES.map((r) => r.label), ...users.map((u) => u.role_label).filter(Boolean)])]}
+                    placeholder="Select role..."
+                    searchPlaceholder="Search role..."
+                    allowCustom
+                    className="bg-[#0e131d] border-[#1e2740] text-white hover:bg-[#131926] hover:text-white"
+                  />
+                </div>
               </div>
               <div>
                 <Label className="text-xs text-[#94a3b8]">Dept</Label>
-                <Input
-                  value={newUser.dept}
-                  onChange={(e) => setNewUser({ ...newUser, dept: e.target.value })}
-                  placeholder="QA/QC"
-                  className="mt-1 bg-[#0e131d] border-[#1e2740] text-white"
-                />
+                <div className="mt-1">
+                  <SearchableSelect
+                    value={newUser.dept}
+                    onValueChange={(val) => setNewUser({ ...newUser, dept: val })}
+                    options={[...new Set(["QA/QC", "Production", "Warehouse", "Planning", "Maintenance", "Management", ...users.map((u) => u.dept).filter(Boolean)])]}
+                    placeholder="Select dept..."
+                    searchPlaceholder="Search dept..."
+                    allowCustom
+                    className="bg-[#0e131d] border-[#1e2740] text-white hover:bg-[#131926] hover:text-white"
+                  />
+                </div>
               </div>
             </div>
             <DialogFooter className="pt-3">

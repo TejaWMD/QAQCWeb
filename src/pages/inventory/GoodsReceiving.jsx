@@ -11,11 +11,18 @@ import ItemListDialog from "@/components/warehouse/ItemListDialog";
 import QuickAddItemDialog from "@/components/warehouse/QuickAddItemDialog";
 import WarehouseSettingsDialog from "@/components/warehouse/WarehouseSettingsDialog";
 import { CameraQRScanner } from "@/components/warehouse/QRScanner";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { parseQRPayload } from "@/lib/qrParser";
 import { actingUserName } from "@/lib/permissions";
 import { findProduct } from "@/lib/findProduct";
 import { loadRecipes } from "@/lib/planning";
 import { productLink, recipeOf } from "@/lib/productLinks";
+import {
+  loadBatchOptions,
+  loadProductOptions,
+  loadPurchaseOrderOptions,
+  loadSupplierOptions,
+} from "@/lib/masterOptions";
 import {
   DEFAULT_UNITS,
   SETTINGS_KEY,
@@ -63,6 +70,7 @@ export default function GoodsReceiving() {
   const [itemListOpen, setItemListOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [qrInput, setQrInput] = useState("");
+  const [opts, setOpts] = useState({ suppliers: [], pos: [], products: [], batches: [] });
 
   const handleQrScan = async (rawText) => {
     const parsed = parseQRPayload(rawText);
@@ -131,7 +139,17 @@ export default function GoodsReceiving() {
     setLines((prev) => prev.map((l) => (l.unit ? l : { ...l, unit: nextUnits[0] })));
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    Promise.all([
+      loadSupplierOptions(),
+      loadPurchaseOrderOptions(),
+      loadProductOptions(),
+      loadBatchOptions(),
+    ])
+      .then(([suppliers, pos, products, batches]) => setOpts({ suppliers, pos, products, batches }))
+      .catch(() => {});
+  }, []);
 
   const setLine = (id, patch) => setLines((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)));
 
@@ -281,10 +299,9 @@ export default function GoodsReceiving() {
 
   return (
     <div className="min-h-screen bg-[#F6F8FC] p-4 md:p-6 space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-[#0F294A] text-lg font-semibold">Goods Receiving</h2>
-          <p className="text-[#64748B] text-sm mt-1">Record goods received against a delivery note — one delivery can hold several items.</p>
         </div>
         <div className="flex flex-wrap gap-2 w-full sm:w-auto">
           <Button variant="outline" onClick={() => setItemListOpen(true)} className="flex-1 sm:flex-none border-[#E2E8F0] bg-white text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F294A]">
@@ -297,10 +314,6 @@ export default function GoodsReceiving() {
           )}
         </div>
       </div>
-
-      <datalist id="warehouse-item-codes">
-        {items.map((i) => <option key={i.id} value={i.item_code}>{i.description}</option>)}
-      </datalist>
 
       <div className="rounded-xl border border-[#E2E8F0] bg-white p-3 space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -315,44 +328,44 @@ export default function GoodsReceiving() {
           </div>
           <div className="space-y-1">
             <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Supplier</label>
-            <Input
+            <SearchableSelect
               value={header.supplier}
-              onChange={(e) => setHeader((h) => ({ ...h, supplier: e.target.value }))}
-              placeholder="Optional"
-              className={FIELD}
+              onValueChange={(v) => setHeader((h) => ({ ...h, supplier: v }))}
+              options={opts.suppliers}
+              placeholder="Select supplier..."
+              searchPlaceholder="Search supplier..."
+              allowCustom
+              clearable
             />
           </div>
           <div className="space-y-1">
-            <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Delivery Note No.</label>
-            <Input
+            <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Delivery Note / PO No.</label>
+            <SearchableSelect
               value={header.delivery_note}
-              onChange={(e) => setHeader((h) => ({ ...h, delivery_note: e.target.value }))}
-              placeholder="Optional"
-              className={FIELD}
+              onValueChange={(v) => setHeader((h) => ({ ...h, delivery_note: v }))}
+              options={opts.pos}
+              placeholder="Select PO or type DO..."
+              searchPlaceholder="Search PO number..."
+              allowCustom
+              clearable
             />
           </div>
         </div>
       </div>
 
-      <div className="rounded-xl border border-[#E2E8F0] bg-white p-3 space-y-2">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="text-xs font-semibold text-[#0F294A] flex items-center gap-1.5">
-            <QrCode className="w-4 h-4 text-[#1D4ED8]" /> QR Code Scanner
-          </span>
-          <CameraQRScanner onDecode={handleQrScan} />
-        </div>
-        <div className="flex gap-2">
-          <Input
-            value={qrInput}
-            onChange={(e) => setQrInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter" && qrInput.trim()) { e.preventDefault(); handleQrScan(qrInput); } }}
-            placeholder="Scan with handheld scanner or paste QR payload and press Enter"
-            className={FIELD}
-          />
-          <Button type="button" variant="outline" onClick={() => qrInput.trim() && handleQrScan(qrInput)} className="border-[#E2E8F0] bg-[#F6F8FC] text-[#1D4ED8] hover:bg-[#F1F5F9]">
-            Parse QR
-          </Button>
-        </div>
+      <div className="rounded-xl border border-[#E2E8F0] bg-white p-2.5 flex flex-wrap items-center gap-2">
+        <QrCode className="w-4 h-4 text-[#1D4ED8] shrink-0" />
+        <Input
+          value={qrInput}
+          onChange={(e) => setQrInput(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter" && qrInput.trim()) { e.preventDefault(); handleQrScan(qrInput); } }}
+          placeholder="Scan or paste QR payload and press Enter"
+          className={`${FIELD} flex-1 min-w-[200px]`}
+        />
+        <Button type="button" variant="outline" size="sm" onClick={() => qrInput.trim() && handleQrScan(qrInput)} className="border-[#E2E8F0] bg-[#F6F8FC] text-[#1D4ED8] hover:bg-[#F1F5F9]">
+          Parse
+        </Button>
+        <CameraQRScanner onDecode={handleQrScan} />
       </div>
 
       <div className="space-y-3">
@@ -362,6 +375,8 @@ export default function GoodsReceiving() {
             index={index}
             line={line}
             items={items}
+            products={opts.products}
+            batches={opts.batches}
             units={units}
             racks={racks}
             onItemCode={(value) => handleItemCode(line.id, value)}

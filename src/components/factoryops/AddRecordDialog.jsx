@@ -9,7 +9,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import EvidenceUpload from "@/components/factoryops/EvidenceUpload";
 import ProductPicker from "@/components/labels/ProductPicker";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { batchesForProduct, loadProductLinkData } from "@/lib/productLinks";
+import { loadMachineOptions, loadUserOptions } from "@/lib/masterOptions";
 
 const initialValues = (fields) => {
   const values = {};
@@ -30,15 +32,20 @@ const initialValues = (fields) => {
 };
 
 // Generic add-record form driven by a field config: { key, label, type, options, required, showIf }
-// type: text | number | date | select | textarea | checkbox | file | product | batch
+// type: text | number | date | time | select | textarea | checkbox | file | product | batch | user | line
 // "product" picks an item from the Product Master and stores product_id / product_code /
-// product_name; "batch" suggests the batches already recorded for that product.
+// product_name; "batch" picks a batch recorded in BatchRecord; "user" picks from backend users;
+// "line" picks from backend machines.
 export default function AddRecordDialog({ open, onOpenChange, title, fields, onSubmit }) {
   const [values, setValues] = useState(() => initialValues(fields));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [link, setLink] = useState({ products: [], records: [] });
+  const [users, setUsers] = useState([]);
+  const [machines, setMachines] = useState([]);
   const needsLink = fields.some((f) => f.type === "product" || f.type === "batch");
+  const needsUsers = fields.some((f) => f.type === "user");
+  const needsLines = fields.some((f) => f.type === "line");
 
   useEffect(() => {
     if (open) {
@@ -53,6 +60,16 @@ export default function AddRecordDialog({ open, onOpenChange, title, fields, onS
       .then((data) => setLink({ products: data.products, records: data.records }))
       .catch(() => setLink({ products: [], records: [] }));
   }, [open, needsLink, link.products.length]);
+
+  useEffect(() => {
+    if (!open || !needsUsers || users.length) return;
+    loadUserOptions().then(setUsers).catch(() => setUsers([]));
+  }, [open, needsUsers, users.length]);
+
+  useEffect(() => {
+    if (!open || !needsLines || machines.length) return;
+    loadMachineOptions().then(setMachines).catch(() => setMachines([]));
+  }, [open, needsLines, machines.length]);
 
   const set = (key, value) => setValues((v) => ({ ...v, [key]: value }));
 
@@ -121,19 +138,41 @@ export default function AddRecordDialog({ open, onOpenChange, title, fields, onS
                   {f.type === "product" ? (
                     <ProductPicker products={link.products} value={values.product_id} onChange={pickProduct} />
                   ) : f.type === "batch" ? (
-                    <>
-                      <Input
-                        id={f.key}
-                        list={`batches-${f.key}`}
-                        value={values[f.key]}
-                        onChange={(e) => set(f.key, e.target.value.toUpperCase())}
-                        placeholder={values.product_id ? "Pick a recorded batch or type one" : "Choose a product first"}
-                        className="bg-white border-[#E2E8F0] text-[#0F294A]"
-                      />
-                      <datalist id={`batches-${f.key}`}>
-                        {batchesForProduct(link.records, values.product_id).map((b) => <option key={b} value={b} />)}
-                      </datalist>
-                    </>
+                    <SearchableSelect
+                      id={f.key}
+                      value={values[f.key]}
+                      onValueChange={(v) => set(f.key, v.toUpperCase())}
+                      options={
+                        values.product_id
+                          ? batchesForProduct(link.records, values.product_id)
+                          : [...new Set(link.records.map((r) => r.batch_number).filter(Boolean))]
+                      }
+                      placeholder={values.product_id ? "Select batch..." : "Select batch or pick product first"}
+                      searchPlaceholder="Search batch number..."
+                      allowCustom
+                      clearable
+                    />
+                  ) : f.type === "user" ? (
+                    <SearchableSelect
+                      id={f.key}
+                      value={values[f.key]}
+                      onValueChange={(v) => set(f.key, v)}
+                      options={[...(f.extraOptions || []), ...users]}
+                      placeholder={`Select ${f.label}`}
+                      searchPlaceholder="Search person..."
+                      allowCustom={users.length === 0 || !!f.allowCustom}
+                      clearable={!f.required}
+                    />
+                  ) : f.type === "line" ? (
+                    <SearchableSelect
+                      id={f.key}
+                      value={values[f.key]}
+                      onValueChange={(v) => set(f.key, v)}
+                      options={machines.length ? machines : f.options || []}
+                      placeholder={`Select ${f.label}`}
+                      searchPlaceholder="Search production line..."
+                      clearable={!f.required}
+                    />
                   ) : f.type === "select" ? (
                     <Select value={values[f.key] || undefined} onValueChange={(v) => set(f.key, v)}>
                       <SelectTrigger id={f.key} className="bg-white border-[#E2E8F0] text-[#0F294A]">
@@ -167,7 +206,7 @@ export default function AddRecordDialog({ open, onOpenChange, title, fields, onS
                   ) : (
                     <Input
                       id={f.key}
-                      type={f.type === "number" ? "number" : f.type === "date" ? "date" : "text"}
+                      type={f.type === "number" ? "number" : f.type === "date" ? "date" : f.type === "time" ? "time" : "text"}
                       value={values[f.key]}
                       onChange={(e) => set(f.key, f.type === "number" ? (e.target.value === "" ? "" : Number(e.target.value)) : e.target.value)}
                       required={f.required}

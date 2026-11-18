@@ -1,46 +1,46 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Plus, Trash2 } from "lucide-react";
-import { num } from "@/lib/planning";
-import { inputClass, selectClass } from "@/components/planning/styles";
+import { INGREDIENT_UNITS, num } from "@/lib/planning";
+import { inputClass } from "@/components/planning/styles";
 
 // Ingredient rows for a recipe. Materials come from the warehouse item list when
-// it has any; otherwise the ingredient name is typed in.
+// it has any; otherwise an ingredient name can be chosen or entered.
 export default function IngredientEditor({ value = [], onChange, materials = [] }) {
   const update = (idx, patch) => onChange(value.map((row, i) => (i === idx ? { ...row, ...patch } : row)));
   const remove = (idx) => onChange(value.filter((_, i) => i !== idx));
   const add = () => onChange([...value, { material_id: "", item_code: "", material_name: "", unit: "kg", quantity_per_batch: "" }]);
 
-  const pickMaterial = (idx, materialId) => {
-    const m = materials.find((x) => x.id === materialId);
-    if (!m) return;
-    update(idx, { material_id: m.id, item_code: m.item_code, material_name: m.description || m.item_code, unit: m.unit || "" });
+  const pickMaterial = (idx, nextVal) => {
+    const m = materials.find((x) => x.id === nextVal || x.description === nextVal || x.item_code === nextVal);
+    if (m) {
+      update(idx, { material_id: m.id, item_code: m.item_code, material_name: m.description || m.item_code, unit: m.unit || "kg" });
+    } else {
+      update(idx, { material_id: "", item_code: "", material_name: nextVal });
+    }
   };
+
+  const materialOptions = materials.map((m) => ({
+    value: m.id,
+    label: m.description ? `${m.item_code} · ${m.description}` : m.item_code,
+    sublabel: m.unit || undefined,
+  }));
 
   return (
     <div className="space-y-2">
       {value.length === 0 && <p className="text-xs text-[#64748B]">No ingredients yet.</p>}
       {value.map((row, idx) => (
-        <div key={idx} className="grid grid-cols-[1fr_96px_68px_36px] gap-2 items-center">
-          {materials.length > 0 ? (
-            <Select value={row.material_id || undefined} onValueChange={(v) => pickMaterial(idx, v)}>
-              <SelectTrigger className={selectClass}><SelectValue placeholder="Select material" /></SelectTrigger>
-              <SelectContent>
-                {materials.map((m) => (
-                  <SelectItem key={m.id} value={m.id}>{m.item_code} · {m.description}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          ) : (
-            <Input
-              value={row.material_name}
-              onChange={(e) => update(idx, { material_name: e.target.value })}
-              className={inputClass}
-              placeholder="Ingredient name"
-            />
-          )}
+        <div key={idx} className="grid grid-cols-[1fr_96px_88px_36px] gap-2 items-center">
+          <SearchableSelect
+            value={row.material_id || row.material_name || ""}
+            onValueChange={(v) => pickMaterial(idx, v)}
+            options={materialOptions}
+            placeholder="Select material..."
+            searchPlaceholder="Search material..."
+            allowCustom
+          />
           <Input
             type="number"
             min="0"
@@ -50,7 +50,14 @@ export default function IngredientEditor({ value = [], onChange, materials = [] 
             className={inputClass}
             placeholder="Qty / batch"
           />
-          <Input value={row.unit} onChange={(e) => update(idx, { unit: e.target.value })} className={inputClass} placeholder="Unit" />
+          <SearchableSelect
+            value={row.unit || "kg"}
+            onValueChange={(v) => update(idx, { unit: v })}
+            options={INGREDIENT_UNITS}
+            placeholder="Unit"
+            searchPlaceholder="Unit..."
+            allowCustom
+          />
           <Button variant="ghost" size="icon" onClick={() => remove(idx)} className="text-[#64748B] hover:text-rose-600 hover:bg-rose-600/10">
             <Trash2 className="w-4 h-4" />
           </Button>

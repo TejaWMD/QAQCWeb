@@ -4,7 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/use-toast";
-import { Download, Plus, Settings, Trash2, Upload } from "lucide-react";
+import { Plus, Settings, Trash2, Upload } from "lucide-react";
 import ProductTable from "@/components/productmaster/ProductTable";
 import CompletenessTab from "@/components/productmaster/CompletenessTab";
 import ImportsTab from "@/components/productmaster/ImportsTab";
@@ -13,7 +13,7 @@ import ProductImportWizard from "@/components/productmaster/ProductImportWizard"
 import MasterSettingsDialog from "@/components/productmaster/MasterSettingsDialog";
 import RecentlyDeletedProducts from "@/components/productmaster/RecentlyDeletedProducts";
 import {
-  activeNames, canManageProducts, downloadBlankTemplate, loadProductSettings, productCompleteness, productStatus,
+  activeNames, canManageProducts, loadProductSettings, productCompleteness, productStatus,
 } from "@/lib/productMaster";
 import { deleteProduct, setProductStatus, usageSummary } from "@/lib/productLifecycle";
 import { loadRecipes } from "@/lib/recipeMaster";
@@ -106,17 +106,9 @@ export default function ProductMaster() {
 
   return (
     <div className="min-h-screen bg-[#F6F8FC] p-4 md:p-6 space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="text-[#0F294A] text-lg font-semibold">Product Master</h2>
-          <p className="text-[#64748B] text-sm mt-1">
-            The single source of truth for every product: Item Code, carton description, recipe, line type, calculated filling and cartons per batch.
-          </p>
-        </div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-[#0F294A] text-lg font-semibold">Product Master</h2>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={downloadBlankTemplate} className={subtleButton}>
-            <Download className="w-4 h-4 mr-1.5" /> Blank template
-          </Button>
           {admin && (
             <>
               <Button variant="outline" onClick={() => setSettingsOpen(true)} className={subtleButton}>

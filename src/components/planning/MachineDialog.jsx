@@ -8,8 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import Field from "@/components/planning/Field";
 import { MACHINE_STATUSES, logPlanningAudit, num } from "@/lib/planning";
+import { loadMachineLocationOptions } from "@/lib/masterOptions";
 import { dialogClass, inputClass, selectClass, primaryButton, subtleButton } from "@/components/planning/styles";
 
 // Machine names are picked from the production line names the downtime page uses,
@@ -20,9 +22,11 @@ export default function MachineDialog({ open, onClose, machine, availableNames =
   const [form, setForm] = useState({ name: "", location: "", capacity_cph: "", status: "Active", notes: "" });
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [locations, setLocations] = useState([]);
 
   useEffect(() => {
     if (!open) return;
+    loadMachineLocationOptions().then(setLocations).catch(() => {});
     setError("");
     setForm(
       machine
@@ -93,7 +97,14 @@ export default function MachineDialog({ open, onClose, machine, availableNames =
           </Field>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Field label="Location">
-              <Input value={form.location} onChange={(e) => set("location", e.target.value)} className={inputClass} placeholder="Plant 1" />
+              <SearchableSelect
+                value={form.location}
+                onValueChange={(v) => set("location", v)}
+                options={locations.length ? locations : ["Plant 1", "Plant 2"]}
+                placeholder="Select location..."
+                searchPlaceholder="Search or enter location..."
+                allowCustom
+              />
             </Field>
             <Field label="Capacity (cartons per hour)">
               <Input type="number" min="0" value={form.capacity_cph} onChange={(e) => set("capacity_cph", e.target.value)} className={inputClass} placeholder="1200" />

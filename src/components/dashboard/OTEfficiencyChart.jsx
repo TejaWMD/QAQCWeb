@@ -4,7 +4,7 @@ import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Respons
 export default function OTEfficiencyChart({ data }) {
   return (
     <div className="bg-slate-50 rounded-xl border border-slate-200 p-5 flex flex-col">
-      <h3 className="font-semibold text-white">OT Man-Hours vs Output</h3>
+      <h3 className="font-semibold text-[#0F294A]">OT Man-Hours vs Output</h3>
       <p className="text-sm text-slate-500 mb-3">Labor Efficiency</p>
       <div className="flex-1 min-h-[180px]">
         <ResponsiveContainer width="100%" height={180}>

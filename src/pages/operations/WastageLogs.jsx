@@ -69,7 +69,9 @@ export default function WastageLogs() {
   const dayMap = new Map();
   logs.forEach((l) => {
     if (!l.shift_date) return;
-    const day = new Date(l.shift_date + "T00:00:00");
+    const datePart = String(l.shift_date).slice(0, 10);
+    const day = new Date(`${datePart}T00:00:00`);
+    if (Number.isNaN(day.getTime())) return;
     day.setHours(0, 0, 0, 0);
     const key = day.toISOString();
     const t = rowWaste(l);
@@ -83,8 +85,8 @@ export default function WastageLogs() {
   return (
     <div className="p-6">
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-slate-800 mb-1">Wastage Record</h2>
-        <p className="text-slate-500 text-sm">Component wastage from shift log entries, plus rejected / wasted quantities branched from operation records.</p>
+        <h2 className="text-xl font-bold text-[#0F294A] mb-0.5">Wastage Record</h2>
+        <p className="text-[#64748B] text-sm">Component wastage and rejected quantities from shift and operation logs.</p>
       </div>
 
       {logs.length === 0 ? (

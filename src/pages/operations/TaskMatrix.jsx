@@ -15,11 +15,18 @@ import TaskCellDialog from "@/components/factoryops/TaskCellDialog";
 
 const STATUS_ORDER = ["Open", "In Progress", "Overdue", "Completed", "Verified"];
 
+const TEAMS = [
+  "Packaging Supervisor",
+  "Production Planner",
+  "Production Supervisor",
+  "QA/QC Team",
+];
+
 const addFields = [
   { key: "title", label: "Task", type: "text", required: true },
   { key: "module", label: "Module", type: "select", options: ["Task Matrix", "Production", "QA & HACCP", "Downtime", "Staffing"], default: "Task Matrix" },
-  { key: "production_line", label: "Production Line", type: "select", options: productionLines },
-  { key: "owner", label: "Supervisor (Owner)", type: "text" },
+  { key: "production_line", label: "Production Line", type: "line", options: productionLines },
+  { key: "owner", label: "Supervisor (Owner)", type: "user", extraOptions: TEAMS },
   { key: "shift_date", label: "Shift Date", type: "date", required: true },
   { key: "due_date", label: "Due Date", type: "date" },
   { key: "priority", label: "Priority", type: "select", options: ["Low", "Medium", "High"], default: "Medium" },
@@ -30,13 +37,6 @@ const eventStamp = () => {
   const d = new Date();
   return `${d.toISOString().slice(0, 10)} ${d.toTimeString().slice(0, 8)}`;
 };
-
-const TEAMS = [
-  "Packaging Supervisor",
-  "Production Planner",
-  "Production Supervisor",
-  "QA/QC Team",
-];
 
 // Supervisor Task Matrix: Team Productivity KPIs + To-Do List of the Day, plus Matrix View.
 export default function TaskMatrix() {

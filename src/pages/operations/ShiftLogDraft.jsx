@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 import { Calendar, Plus, Trash2, Timer, Save, ClipboardList, AlertTriangle, Recycle, CheckCircle2, Gauge } from "lucide-react";
@@ -13,6 +14,12 @@ import IncompleteDataAlert from "@/components/shiftlog/IncompleteDataAlert";
 import WastageGroupTable from "@/components/shiftlog/WastageGroupTable";
 import WastagePickerRow from "@/components/shiftlog/WastagePickerRow";
 import { pcsPerCarton } from "@/lib/packingConfig";
+import {
+  loadBatchOptions,
+  loadMachineOptions,
+  loadProductOptions,
+  loadUserOptions,
+} from "@/lib/masterOptions";
 
 const primaryContainers = ["bottle", "jar", "plastic", "pouch", "foil", "cup", "tub", "packet"];
 const closures = ["cap", "lid"];
@@ -95,11 +102,15 @@ export default function ShiftLogDraft() {
   const [primaryContainer, setPrimaryContainer] = useState("");
   const [closure, setClosure] = useState("");
   const [outputUnit, setOutputUnit] = useState("units");
+  const [opts, setOpts] = useState({ lines: [], products: [], batches: [], users: [] });
 
   useEffect(() => {
     base44.entities.ShiftLog.filter({}, { sort: "-created_date", limit: 100 }).
     then(({ items }) => setLogRecords(items)).
     catch(() => {});
+    Promise.all([loadMachineOptions(), loadProductOptions(), loadBatchOptions(), loadUserOptions()])
+      .then(([lines, products, batches, users]) => setOpts({ lines, products, batches, users }))
+      .catch(() => {});
   }, []);
 
   const handleDeleteLog = async (record) => {
@@ -150,11 +161,21 @@ export default function ShiftLogDraft() {
   const totalWaste = wasteComponents.reduce((s, c) => s + (Number(form[`${c.key}_waste`]) || 0), 0);
   const totalUsed = wasteComponents.reduce((s, c) => s + (Number(form[`${c.key}_used`]) || 0), 0);
 
-  // Pcs per carton is read off the product name, e.g. "... 100G X 14 X 4" -> 56
+  // Pcs per carton & size from Product Master or product name string
   useEffect(() => {
     if (!form.product_name) return;
-    setForm((f) => ({ ...f, pcs_per_carton: pcsPerCarton(form.product_name) || "" }));
-  }, [form.product_name]);
+    const match = opts.products.find((p) => p.product_name === form.product_name);
+    const pcs = Number(match?.carton_size) || pcsPerCarton(form.product_name) || "";
+    const packType =
+      match?.pack_size ||
+      (match?.size_value ? `${match.size_value}${match.size_unit || ""}` : "") ||
+      "";
+    setForm((f) => ({
+      ...f,
+      pcs_per_carton: pcs,
+      product_type: f.product_type || packType,
+    }));
+  }, [form.product_name, opts.products]);
 
   // Auto-calc Used for the selected primary container and closure from the batch output
   useEffect(() => {
@@ -261,12 +282,12 @@ export default function ShiftLogDraft() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="px-6 py-4 flex items-center justify-between bg-white border-b border-slate-200 sticky top-0 z-10">
+      <header className="px-6 py-4 flex items-center justify-between bg-[#F6F8FC] border-b border-slate-200 sticky top-0 z-10">
         <div className="flex items-center gap-3">
-          <ClipboardList className="w-6 h-6 text-sky-600" />
+          <ClipboardList className="w-6 h-6 text-[#0F294A]" />
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">Daily Packaging Line Record</h1>
-            <p className="text-xs text-[#94a3b8]">Draft Rev 01 — Packaging Activity / Downtime / Material Traceability</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-[#0F294A] tracking-tight">Daily Packaging Line Record</h1>
+            <p className="text-xs text-[#64748B]">Packaging Activity, Downtime &amp; Material Traceability</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -292,7 +313,6 @@ export default function ShiftLogDraft() {
           <div className="px-5 py-3 bg-[#0e131d] border-b border-[#1e2740] text-white flex items-center gap-2">
             <span className="bg-[#00e5ff] text-[#0a0e17] w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold">1</span>
             <h2 className="text-sm font-semibold tracking-wide">PACKAGING ACTIVITY</h2>
-            <span className="text-[#94a3b8] text-xs">/ Aktiviti Pengemasan / पैकेजिंग गतिविधि</span>
           </div>
           <div className="p-5 space-y-5">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -313,20 +333,31 @@ export default function ShiftLogDraft() {
                 </Select>
               </Field>
               <Field label="Line #">
-                <Select value={form.production_line} onValueChange={(v) => set("production_line", v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent className="max-h-72">
-                    {productionLines.map((l) => <SelectItem key={l} value={l}>{l}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <SearchableSelect
+                  value={form.production_line}
+                  onValueChange={(v) => set("production_line", v)}
+                  options={opts.lines.length ? opts.lines : productionLines}
+                  placeholder="Select line"
+                  searchPlaceholder="Search line..."
+                />
               </Field>
               <Field label="Product" required>
-                <Select value={form.product_name} onValueChange={(v) => set("product_name", v)}>
-                  <SelectTrigger><SelectValue placeholder="Select product" /></SelectTrigger>
-                  <SelectContent className="max-h-72">
-                    {productNames.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <SearchableSelect
+                  value={form.product_name}
+                  onValueChange={(v) => set("product_name", v)}
+                  options={
+                    opts.products.length
+                      ? opts.products.map((p) => ({
+                          value: p.product_name,
+                          label: p.product_code ? `${p.product_code} — ${p.product_name}` : p.product_name,
+                          sublabel: p.brand,
+                        }))
+                      : productNames
+                  }
+                  placeholder="Select product"
+                  searchPlaceholder="Search product..."
+                  allowCustom
+                />
               </Field>
               <Field label="Planned Qty (Carton)" required>
                 <Input type="number" min="0" value={form.planned_cartons} onChange={(e) => set("planned_cartons", e.target.value)} placeholder="0" />
@@ -338,18 +369,34 @@ export default function ShiftLogDraft() {
                 <Input value={totalPlanned.toLocaleString()} readOnly className="bg-slate-50 font-semibold text-slate-700" />
               </Field>
               <Field label="Lot # (Batch)" required>
-                <Input value={form.batch_number} onChange={(e) => set("batch_number", e.target.value)} placeholder="e.g. BN20261016" />
+                <SearchableSelect
+                  value={form.batch_number}
+                  onValueChange={(v) => set("batch_number", v)}
+                  options={opts.batches}
+                  placeholder="Select or enter batch..."
+                  searchPlaceholder="Search batch..."
+                  allowCustom
+                />
               </Field>
               <Field label="Staff Count" required>
                 <Input type="number" min="0" value={form.staff_count} onChange={(e) => set("staff_count", Number(e.target.value))} />
               </Field>
             </div>
 
-            <Field label="Staff Names (one per row)" required>
+            <Field label="Staff Names" required>
               <div className="space-y-2">
                 {staffNames.map((name, i) =>
                 <div key={i} className="flex items-center gap-2">
-                    <Input value={name} onChange={(e) => updateName(i, e.target.value)} placeholder={`Staff name ${i + 1}`} />
+                    <div className="flex-1">
+                      <SearchableSelect
+                        value={name}
+                        onValueChange={(v) => updateName(i, v)}
+                        options={opts.users}
+                        placeholder={`Select staff ${i + 1}`}
+                        searchPlaceholder="Search staff..."
+                        allowCustom
+                      />
+                    </div>
                     {staffNames.length > 1 &&
                   <Button variant="ghost" size="icon" onClick={() => removeName(i)} className="text-red-400 hover:text-red-600 shrink-0">
                         <Trash2 className="w-4 h-4" />
@@ -477,7 +524,6 @@ export default function ShiftLogDraft() {
           <div className="px-5 py-3 bg-[#0e131d] border-b border-[#1e2740] text-white flex items-center gap-2">
             <span className="bg-[#ff9f43] text-[#0a0e17] w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold">2</span>
             <h2 className="text-sm font-semibold tracking-wide">DOWNTIME RECORD</h2>
-            <span className="text-[#94a3b8] text-xs">/ Catatan Downtime / डाउनटाइम रिकॉर्ड</span>
           </div>
           <div className="p-5">
             <div className="border border-slate-200 rounded-lg overflow-x-auto">
@@ -540,7 +586,6 @@ export default function ShiftLogDraft() {
           <div className="px-5 py-3 bg-[#0e131d] border-b border-[#1e2740] text-white flex items-center gap-2">
             <span className="bg-[#ff4d4d] text-white w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold">3</span>
             <h2 className="text-sm font-semibold tracking-wide">PACKAGING MATERIAL TRACEABILITY / WASTAGE</h2>
-            <span className="text-[#94a3b8] text-xs">/ ट्रेसेबिलिटी</span>
           </div>
           <div className="p-5">
             <p className="text-xs text-red-500 mb-3">* At least 1 component (Used or Wasted) must be filled.</p>

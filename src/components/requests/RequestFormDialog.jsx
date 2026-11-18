@@ -8,8 +8,17 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { productionLines } from "@/lib/shiftLogConstants";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import EvidenceUploader from "@/components/requests/EvidenceUploader";
+import {
+  loadBatchOptions,
+  loadMachineOptions,
+  loadMaterialAndPackagingOptions,
+  loadProductHoldOptions,
+  loadProductionOrderOptions,
+  loadProductOptions,
+  loadUserOptions,
+} from "@/lib/masterOptions";
 import {
   REQUEST_TYPES,
   DOWNTIME_TYPE,
@@ -39,12 +48,12 @@ const visibleKeysFor = (type, values) => {
   return [...keysOf(APPROVAL_TYPE), ...(APPROVAL_CONDITIONAL_FIELDS[values.approval_type] || [])];
 };
 
-// How each field renders; select options come from the admin-editable config.
+// How each field renders; select options come from the admin-editable config and backend masters.
 const fieldDefs = (config) => ({
   shift_date: { type: "date" },
   shift_type: { type: "select", options: ["Morning", "Night"], default: "Morning" },
-  start_time: { type: "text" },
-  end_time: { type: "text" },
+  start_time: { type: "time" },
+  end_time: { type: "time" },
   duration_min: { type: "number" },
   category: { type: "select", options: config.categories, default: "Mechanical" },
   reason: { type: "textarea" },
@@ -52,7 +61,7 @@ const fieldDefs = (config) => ({
   product_affected: { type: "select", options: ["No", "Yes"], default: "No" },
   notes: { type: "textarea" },
   is_demo: { type: "checkbox" },
-  item_name: { type: "text" },
+  item_name: { type: "material" },
   quantity: { type: "number" },
   urgency: { type: "select", options: config.urgencies, default: "Normal" },
   needed_by_date: { type: "date" },
@@ -60,9 +69,9 @@ const fieldDefs = (config) => ({
   estimated_cost: { type: "number" },
   approval_type: { type: "select", options: config.approval_types },
   description: { type: "textarea" },
-  product_sku: { type: "text" },
-  batch_number: { type: "text" },
-  order_number: { type: "text" },
+  product_sku: { type: "product" },
+  batch_number: { type: "batch" },
+  order_number: { type: "order" },
   quantity_affected: { type: "number" },
   proposed_action: { type: "select", options: config.proposed_actions },
   impact_if_not_approved: { type: "textarea" },
@@ -80,8 +89,8 @@ const fieldDefs = (config) => ({
   ot_date: { type: "date" },
   rework_reason: { type: "textarea" },
   rework_method: { type: "text" },
-  qa_signoff: { type: "text" },
-  hold_reference: { type: "text" },
+  qa_signoff: { type: "user" },
+  hold_reference: { type: "hold" },
   qa_decision: { type: "text" },
   purchase_amount: { type: "number" },
   sop_reference: { type: "text" },
@@ -99,6 +108,30 @@ export default function RequestFormDialog({ open, onOpenChange, user, config = D
   const [evidenceFiles, setEvidenceFiles] = useState([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [opts, setOpts] = useState({
+    lines: [],
+    products: [],
+    batches: [],
+    orders: [],
+    materials: [],
+    users: [],
+    holds: [],
+  });
+
+  useEffect(() => {
+    if (!open || opts.lines.length) return;
+    Promise.all([
+      loadMachineOptions(),
+      loadProductOptions(),
+      loadBatchOptions(),
+      loadProductionOrderOptions(),
+      loadMaterialAndPackagingOptions(),
+      loadUserOptions(),
+      loadProductHoldOptions(),
+    ]).then(([lines, products, batches, orders, materials, users, holds]) => {
+      setOpts({ lines, products, batches, orders, materials, users, holds });
+    }).catch(() => {});
+  }, [open, opts.lines.length]);
 
   const defs = useMemo(() => fieldDefs(config), [config]);
 
@@ -343,6 +376,72 @@ export default function RequestFormDialog({ open, onOpenChange, user, config = D
               ))}
             </SelectContent>
           </Select>
+        ) : def.type === "product" ? (
+          <SearchableSelect
+            id={key}
+            value={values[key] ?? ""}
+            onValueChange={(v) => set(key, v)}
+            options={opts.products}
+            placeholder="Select product..."
+            searchPlaceholder="Search product..."
+            allowCustom={opts.products.length === 0}
+            clearable={!required}
+          />
+        ) : def.type === "batch" ? (
+          <SearchableSelect
+            id={key}
+            value={values[key] ?? ""}
+            onValueChange={(v) => set(key, v)}
+            options={opts.batches}
+            placeholder="Select batch..."
+            searchPlaceholder="Search batch number..."
+            allowCustom
+            clearable={!required}
+          />
+        ) : def.type === "order" ? (
+          <SearchableSelect
+            id={key}
+            value={values[key] ?? ""}
+            onValueChange={(v) => set(key, v)}
+            options={opts.orders}
+            placeholder="Select production order..."
+            searchPlaceholder="Search order..."
+            allowCustom
+            clearable={!required}
+          />
+        ) : def.type === "material" ? (
+          <SearchableSelect
+            id={key}
+            value={values[key] ?? ""}
+            onValueChange={(v) => set(key, v)}
+            options={opts.materials}
+            placeholder="Select material / item..."
+            searchPlaceholder="Search item..."
+            allowCustom
+            clearable={!required}
+          />
+        ) : def.type === "user" ? (
+          <SearchableSelect
+            id={key}
+            value={values[key] ?? ""}
+            onValueChange={(v) => set(key, v)}
+            options={opts.users}
+            placeholder={`Select ${label}`}
+            searchPlaceholder="Search person..."
+            allowCustom={opts.users.length === 0}
+            clearable={!required}
+          />
+        ) : def.type === "hold" ? (
+          <SearchableSelect
+            id={key}
+            value={values[key] ?? ""}
+            onValueChange={(v) => set(key, v)}
+            options={opts.holds}
+            placeholder="Select hold reference..."
+            searchPlaceholder="Search held batch..."
+            allowCustom
+            clearable={!required}
+          />
         ) : def.type === "textarea" ? (
           <Textarea
             id={key}
@@ -353,7 +452,7 @@ export default function RequestFormDialog({ open, onOpenChange, user, config = D
         ) : (
           <Input
             id={key}
-            type={def.type === "number" ? "number" : def.type === "date" ? "date" : def.type === "datetime" ? "datetime-local" : "text"}
+            type={def.type === "number" ? "number" : def.type === "date" ? "date" : def.type === "time" ? "time" : def.type === "datetime" ? "datetime-local" : "text"}
             value={values[key] ?? ""}
             onChange={(e) => set(key, def.type === "number" ? (e.target.value === "" ? "" : Number(e.target.value)) : e.target.value)}
             className="bg-white border-[#E2E8F0] text-[#0F294A]"
@@ -390,22 +489,19 @@ export default function RequestFormDialog({ open, onOpenChange, user, config = D
             <Label className="text-xs text-[#64748B]">
               Production Line / Area <span className="text-rose-600">*</span>
             </Label>
-            <Select value={values.production_line || undefined} onValueChange={(v) => set("production_line", v)}>
-              <SelectTrigger className="bg-white border-[#E2E8F0] text-[#0F294A]">
-                <SelectValue placeholder="Select Production Line" />
-              </SelectTrigger>
-              <SelectContent>
-                {productionLines.map((l) => (
-                  <SelectItem key={l} value={l}>{l}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SearchableSelect
+              value={values.production_line || ""}
+              onValueChange={(v) => set("production_line", v)}
+              options={opts.lines}
+              placeholder="Select Production Line"
+              searchPlaceholder="Search line..."
+            />
           </div>
 
           <div className="space-y-1.5">
             <Label className="text-xs text-[#64748B]">Requester</Label>
-            <p className="text-sm text-[#334155] bg-white border border-[#E2E8F0] rounded-md px-3 py-2">
-              {requesterName || "—"} <span className="text-[#64748B] text-xs">(auto-filled from login)</span>
+            <p className="text-sm text-[#334155] bg-[#F8FAFC] border border-[#E2E8F0] rounded-md px-3 py-2">
+              {requesterName || "—"}
             </p>
           </div>
 

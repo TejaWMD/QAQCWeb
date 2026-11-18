@@ -87,7 +87,11 @@ export const atMinuteOfDay = (dateStr, minutes) => {
   return new Date(y, m - 1, d, 0, minutes, 0, 0).toISOString();
 };
 
-export const addMinutes = (iso, minutes) => new Date(new Date(iso).getTime() + minutes * 60000).toISOString();
+export const addMinutes = (iso, minutes) => {
+  const base = new Date(iso);
+  if (Number.isNaN(base.getTime())) return "";
+  return new Date(base.getTime() + minutes * 60000).toISOString();
+};
 
 export const fmtTime = (iso) => {
   const d = new Date(iso);

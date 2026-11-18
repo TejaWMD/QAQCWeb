@@ -76,7 +76,7 @@ export default function HistoryTable({ rows, loading }) {
               </tr>
               {group.items.map((row) => (
                 <React.Fragment key={row.id}>
-                  <tr className="border-b border-[#161d2b] hover:bg-white/[0.03] cursor-pointer" onClick={() => toggle(row.id)}>
+                  <tr className="border-b border-[#E2E8F0] hover:bg-[#F8FAFC] cursor-pointer" onClick={() => toggle(row.id)}>
                     <td className="px-2 py-2 text-[#64748B]">
                       {open[row.id] ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
                     </td>
@@ -94,7 +94,7 @@ export default function HistoryTable({ rows, loading }) {
                     <td className="px-3 py-2 text-sm text-[#64748B] max-w-[460px] truncate" title={row.details}>{row.details || "—"}</td>
                   </tr>
                   {open[row.id] && (
-                    <tr className="border-b border-[#161d2b]">
+                    <tr className="border-b border-[#E2E8F0]">
                       <td colSpan={6} className="p-0"><DetailLines row={row} /></td>
                     </tr>
                   )}

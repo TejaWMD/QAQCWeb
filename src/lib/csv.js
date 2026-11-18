@@ -64,7 +64,6 @@ export function coerceValue(field, raw) {
   }
 
   if (type === "datetime") {
-    if (/^\d{4}-\d{2}-\d{2}T/.test(value)) return { value: new Date(value).toISOString() };
     const d = new Date(value);
     if (!isNaN(d.getTime())) return { value: d.toISOString() };
     return { error: `"${value}" is not a valid date/time` };

@@ -5,7 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { SlidersHorizontal, X } from "lucide-react";
+import { loadMachineOptions, loadProductOptions } from "@/lib/masterOptions";
 
 const Section = ({ title, children }) => (
   <div className="mt-4 first:mt-0">
@@ -32,10 +34,18 @@ const defaults = {
 export default function BaselineCapacityModal({ open, onClose, onSave, editData }) {
   const [form, setForm] = useState(defaults);
   const [saving, setSaving] = useState(false);
+  const [opts, setOpts] = useState({ products: [], lines: [] });
 
   useEffect(() => {
     if (open) setForm(editData ? { ...defaults, ...editData } : defaults);
   }, [open, editData]);
+
+  useEffect(() => {
+    if (!open || opts.products.length) return;
+    Promise.all([loadProductOptions(), loadMachineOptions()])
+      .then(([products, lines]) => setOpts({ products, lines }))
+      .catch(() => {});
+  }, [open, opts.products.length]);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -74,8 +84,29 @@ export default function BaselineCapacityModal({ open, onClose, onSave, editData 
         <div className="px-5 py-4 max-h-[60vh] overflow-y-auto">
           <Section title="Product & Line">
             <div className="grid grid-cols-2 gap-4">
-              <Field label="Product Name"><Input value={form.product_name} onChange={(e) => set("product_name", e.target.value)} /></Field>
-              <Field label="Packing Line Code"><Input value={form.packing_line_code} onChange={(e) => set("packing_line_code", e.target.value)} /></Field>
+              <Field label="Product Name">
+                <SearchableSelect
+                  value={form.product_name}
+                  onValueChange={(v) => set("product_name", v)}
+                  options={opts.products.map((p) => ({
+                    value: p.product_name,
+                    label: p.product_code ? `${p.product_code} — ${p.product_name}` : p.product_name,
+                  }))}
+                  placeholder="Select product..."
+                  searchPlaceholder="Search product..."
+                  allowCustom
+                />
+              </Field>
+              <Field label="Packing Line Code">
+                <SearchableSelect
+                  value={form.packing_line_code}
+                  onValueChange={(v) => set("packing_line_code", v)}
+                  options={opts.lines}
+                  placeholder="Select line..."
+                  searchPlaceholder="Search line..."
+                  allowCustom
+                />
+              </Field>
               <Field label="Thermal State / Viscosity Index"><Input value={form.thermal_state} onChange={(e) => set("thermal_state", e.target.value)} /></Field>
               <Field label="Line Setup"><Input value={form.line_setup} onChange={(e) => set("line_setup", e.target.value)} /></Field>
             </div>
