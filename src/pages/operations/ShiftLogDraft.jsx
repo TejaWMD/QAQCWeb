@@ -281,27 +281,27 @@ export default function ShiftLogDraft() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="px-6 py-4 flex items-center justify-between bg-[#F6F8FC] border-b border-slate-200 sticky top-0 z-10">
-        <div className="flex items-center gap-3">
-          <ClipboardList className="w-6 h-6 text-[#0F294A]" />
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-[#0F294A] tracking-tight">Daily Packaging Line Record</h1>
-            <p className="text-xs text-[#64748B]">Packaging Activity, Downtime &amp; Material Traceability</p>
+    <div className="min-h-screen bg-[#F6F8FC] p-4 sm:p-6 w-full space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <ClipboardList className="w-6 h-6 text-[#0F294A] shrink-0" />
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-[#0F294A] tracking-tight truncate">Daily Packaging Line Record</h1>
+            <p className="text-xs sm:text-sm text-[#64748B] truncate">Packaging Activity, Downtime &amp; Material Traceability</p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ${status === "complete" ? "text-green-700 bg-green-50" : "text-amber-700 bg-amber-50"}`}>
+        <div className="flex items-center gap-2 sm:gap-3 ml-auto">
+          <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap ${status === "complete" ? "text-green-700 bg-green-50 border border-green-200" : "text-amber-700 bg-amber-50 border border-amber-200"}`}>
             <CheckCircle2 className="w-3.5 h-3.5" />
             {status === "complete" ? "Complete" : `Incomplete (${checkedCount}/4)`}
           </span>
-          <Button onClick={handleSave} disabled={saving} className="bg-sky-600 hover:bg-sky-700 text-white">
+          <Button onClick={handleSave} disabled={saving} className="bg-[#0F294A] hover:bg-[#193B68] text-white whitespace-nowrap">
             <Save className="w-4 h-4 mr-1" /> {saving ? "Saving..." : "Save Log"}
           </Button>
         </div>
-      </header>
+      </div>
 
-      <main className="p-6 max-w-6xl mx-auto space-y-6">
+      <div className="space-y-6">
         <IncompleteDataAlert
           records={logRecords}
           onDelete={handleDeleteLog}
@@ -314,11 +314,11 @@ export default function ShiftLogDraft() {
             <span className="bg-[#00e5ff] text-[#0a0e17] w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold">1</span>
             <h2 className="text-sm font-semibold tracking-wide">PACKAGING ACTIVITY</h2>
           </div>
-          <div className="p-5 space-y-5">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="p-4 sm:p-5 space-y-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <Field label="Date">
                 <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none z-10" />
+                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                   <Input type="date" value={form.shift_date} onChange={(e) => set("shift_date", e.target.value)} className="pl-9" />
                 </div>
                 {dayName && <p className="text-xs text-sky-600 mt-1 font-medium">{dayName}</p>}
@@ -379,7 +379,13 @@ export default function ShiftLogDraft() {
                 />
               </Field>
               <Field label="Staff Count" required>
-                <Input type="number" min="0" value={form.staff_count} onChange={(e) => set("staff_count", Number(e.target.value))} />
+                <Input
+                  type="number"
+                  min="0"
+                  placeholder="0"
+                  value={form.staff_count === 0 || form.staff_count === "" || form.staff_count == null ? "" : form.staff_count}
+                  onChange={(e) => set("staff_count", e.target.value === "" ? "" : Number(e.target.value))}
+                />
               </Field>
             </div>
 
@@ -412,7 +418,7 @@ export default function ShiftLogDraft() {
 
             <div>
               <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Task Checklist <span className="text-red-500 normal-case">*</span></p>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-3 bg-slate-50 border border-slate-200 rounded-lg p-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 border border-slate-200 rounded-lg p-4">
                 {taskChecklist.map((t) =>
                 <label key={t.key} className="flex items-center gap-2 cursor-pointer">
                     <Checkbox checked={form[t.key]} onCheckedChange={(c) => set(t.key, c === true)} />
@@ -495,7 +501,7 @@ export default function ShiftLogDraft() {
               </Button>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <Field label="Break Duration">
                 <Select value={String(form.break_duration)} onValueChange={(v) => set("break_duration", Number(v))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
@@ -638,7 +644,7 @@ export default function ShiftLogDraft() {
           <span className="flex items-center gap-1"><AlertTriangle className="w-4 h-4 text-amber-400" /> Downtime: <span className="font-bold text-amber-400">{totalDowntime} min</span></span>
           <span className="flex items-center gap-1"><Gauge className="w-4 h-4 text-violet-400" /> UPM: <span className="font-bold text-violet-400">{totalUpm.toFixed(2)}</span></span>
         </div>
-      </main>
+      </div>
     </div>);
 
 }

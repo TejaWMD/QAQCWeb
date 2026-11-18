@@ -83,7 +83,7 @@ export default function WastageLogs() {
   const dateGroups = groupByDate(logs, "shift_date");
 
   return (
-    <div className="p-6">
+    <div className="min-h-screen bg-[#F6F8FC] p-4 sm:p-6 w-full">
       <div className="mb-6">
         <h2 className="text-xl font-bold text-[#0F294A] mb-0.5">Wastage Record</h2>
         <p className="text-[#64748B] text-sm">Component wastage and rejected quantities from shift and operation logs.</p>
@@ -113,7 +113,7 @@ export default function WastageLogs() {
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-6">
             <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 p-4">
               <h3 className="text-sm font-semibold text-slate-700 mb-2">Wastage by Component</h3>
-              <div className="h-64"><WastageBreakdownChart data={componentTotals} /></div>
+              <WastageBreakdownChart data={componentTotals} />
             </div>
             <div className="lg:col-span-3 bg-white rounded-xl border border-slate-200 p-4">
               <div className="flex items-center justify-between mb-2">

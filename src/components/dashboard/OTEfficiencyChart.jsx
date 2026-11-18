@@ -8,15 +8,15 @@ export default function OTEfficiencyChart({ data }) {
       <p className="text-sm text-slate-500 mb-3">Labor Efficiency</p>
       <div className="flex-1 min-h-[180px]">
         <ResponsiveContainer width="100%" height={180}>
-          <ComposedChart data={data}>
+          <ComposedChart data={data} margin={{ top: 10, right: 0, left: -16, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-            <XAxis dataKey="line" tick={{ fontSize: 12, fill: "#64748b" }} axisLine={false} tickLine={false} />
-            <YAxis yAxisId="left" domain={[0, 1]} tick={{ fontSize: 12, fill: "#64748b" }} axisLine={false} tickLine={false} />
-            <YAxis yAxisId="right" orientation="right" domain={[0, 100]} tick={{ fontSize: 12, fill: "#64748b" }} axisLine={false} tickLine={false} unit="%" />
+            <XAxis dataKey="line" tick={{ fontSize: 11, fill: "#64748b" }} axisLine={false} tickLine={false} />
+            <YAxis yAxisId="left" domain={[0, "auto"]} tick={{ fontSize: 11, fill: "#64748b" }} axisLine={false} tickLine={false} />
+            <YAxis yAxisId="right" orientation="right" domain={[0, 100]} tick={{ fontSize: 11, fill: "#64748b" }} axisLine={false} tickLine={false} unit="%" />
             <Tooltip />
-            <Legend wrapperStyle={{ fontSize: 12 }} />
-            <Bar yAxisId="left" dataKey="otHours" name="OT Man-Hours" fill="#f97316" radius={[4, 4, 0, 0]} />
-            <Line yAxisId="right" type="monotone" dataKey="achieve" name="Achievement %" stroke="#22c55e" strokeWidth={2} dot={{ r: 3 }} />
+            <Legend wrapperStyle={{ fontSize: 11 }} />
+            <Bar yAxisId="left" dataKey="otHours" name="OT Hrs" fill="#f97316" radius={[4, 4, 0, 0]} />
+            <Line yAxisId="right" type="monotone" dataKey="achieve" name="Achieve %" stroke="#22c55e" strokeWidth={2} dot={{ r: 3 }} />
           </ComposedChart>
         </ResponsiveContainer>
       </div>

@@ -9,40 +9,48 @@ export default function WastageGroupTable({ title, components, form, set }) {
           {title}
         </div>
       )}
-      <table className="w-full text-sm">
-        <thead className="bg-slate-50 border-b border-slate-200">
-          <tr>
-            <th className="px-3 py-2 text-left font-medium text-slate-600">Component</th>
-            <th className="px-3 py-2 text-right font-medium text-slate-600 w-28">Used</th>
-            <th className="px-3 py-2 text-right font-medium text-slate-600 w-28">Wasted</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-100">
-          {components.map((c) => (
-            <tr key={c.key}>
-              <td className="px-3 py-1.5 text-slate-700">{c.label}</td>
-              <td className="px-2 py-1.5">
-                <Input
-                  type="number"
-                  value={form[`${c.key}_used`]}
-                  onChange={(e) => set(`${c.key}_used`, Number(e.target.value))}
-                  className="h-8 text-right"
-                  placeholder="0"
-                />
-              </td>
-              <td className="px-2 py-1.5">
-                <Input
-                  type="number"
-                  value={form[`${c.key}_waste`]}
-                  onChange={(e) => set(`${c.key}_waste`, Number(e.target.value))}
-                  className="h-8 text-right"
-                  placeholder="0"
-                />
-              </td>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50 border-b border-slate-200">
+            <tr>
+              <th className="px-3 py-2 text-left font-medium text-slate-600">Component</th>
+              <th className="px-3 py-2 text-right font-medium text-slate-600 w-28">Used</th>
+              <th className="px-3 py-2 text-right font-medium text-slate-600 w-28">Wasted</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {components.map((c) => {
+              const usedVal = form[`${c.key}_used`];
+              const wasteVal = form[`${c.key}_waste`];
+              return (
+                <tr key={c.key}>
+                  <td className="px-3 py-1.5 text-slate-700 min-w-[140px]">{c.label}</td>
+                  <td className="px-2 py-1.5">
+                    <Input
+                      type="number"
+                      min="0"
+                      value={usedVal === 0 || usedVal === "" || usedVal == null ? "" : usedVal}
+                      onChange={(e) => set(`${c.key}_used`, e.target.value === "" ? "" : Number(e.target.value))}
+                      className="h-8 text-right min-w-[80px]"
+                      placeholder="0"
+                    />
+                  </td>
+                  <td className="px-2 py-1.5">
+                    <Input
+                      type="number"
+                      min="0"
+                      value={wasteVal === 0 || wasteVal === "" || wasteVal == null ? "" : wasteVal}
+                      onChange={(e) => set(`${c.key}_waste`, e.target.value === "" ? "" : Number(e.target.value))}
+                      className="h-8 text-right min-w-[80px]"
+                      placeholder="0"
+                    />
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

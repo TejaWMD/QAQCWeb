@@ -101,10 +101,10 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#F6F8FC]">
-      <main className="p-4 sm:p-6 max-w-7xl mx-auto">
+      <main className="p-4 sm:p-6 w-full">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
           <h2 className="text-xl sm:text-2xl text-[#0F294A] font-bold">Operations &amp; Loss Overview</h2>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
             {lines.length > 0 && (
               <>
                 <div className="w-full sm:w-52">
@@ -118,9 +118,11 @@ export default function Home() {
                     </SelectContent>
                   </Select>
                 </div>
-                <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="w-[140px] sm:w-36 rounded-full bg-white" />
-                <span className="text-slate-500 text-xs">to</span>
-                <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="w-[140px] sm:w-36 rounded-full bg-white" />
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="flex-1 sm:w-36 rounded-full bg-white" />
+                  <span className="text-slate-500 text-xs shrink-0">to</span>
+                  <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="flex-1 sm:w-36 rounded-full bg-white" />
+                </div>
               </>
             )}
             <Button size="sm" onClick={() => navigate("/shift-log-draft")} className="bg-[#0F294A] hover:bg-[#193B68] text-white rounded-full px-4">

@@ -37,10 +37,10 @@ export default function ProductionLineLogs() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F6F8FC]">
+    <div className="min-h-screen bg-[#F6F8FC] w-full">
       <Tabs value={tab} onValueChange={onTabChange} className="w-full">
-        <div className="sticky top-0 z-20 bg-[#F6F8FC] backdrop-blur border-b border-[#E2E8F0] px-4 md:px-6 py-3">
-          <TabsList className="bg-[#F1F5F9] border border-[#E2E8F0] h-auto p-1 flex gap-1 w-max max-w-full overflow-x-auto">
+        <div className="px-4 sm:px-6 pt-4 sm:pt-6">
+          <TabsList className="bg-[#F1F5F9] border border-[#E2E8F0] h-auto p-1 flex gap-1 w-full sm:w-max max-w-full overflow-x-auto">
             {TABS.map((t) => (
               <TabsTrigger
                 key={t.value}

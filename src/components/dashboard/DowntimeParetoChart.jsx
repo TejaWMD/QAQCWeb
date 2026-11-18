@@ -16,18 +16,20 @@ export default function DowntimeParetoChart({ data }) {
           <div className="h-[200px] flex items-center justify-center text-slate-400 text-sm">No downtime reasons recorded yet</div>
         ) : (
           <ResponsiveContainer width="100%" height={200}>
-            <ComposedChart data={data} margin={{ top: 8, right: 4, left: -18 }}>
+            <ComposedChart data={data} margin={{ top: 10, right: 4, left: -16, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-              <XAxis dataKey="reason" interval={0} tick={{ fontSize: 11, fill: "#64748b" }} axisLine={false} tickLine={false} />
-              <YAxis yAxisId="left" tick={{ fontSize: 12, fill: "#64748b" }} axisLine={false} tickLine={false} />
-              <YAxis yAxisId="right" orientation="right" domain={[0, 100]} unit="%" tick={{ fontSize: 12, fill: "#64748b" }} axisLine={false} tickLine={false} />
+              <XAxis
+                dataKey="reason"
+                interval="preserveStartEnd"
+                tickFormatter={(v) => (v && v.length > 10 ? `${v.slice(0, 9)}…` : v)}
+                tick={{ fontSize: 11, fill: "#64748b" }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <YAxis yAxisId="left" tick={{ fontSize: 11, fill: "#64748b" }} axisLine={false} tickLine={false} />
+              <YAxis yAxisId="right" orientation="right" domain={[0, 100]} unit="%" tick={{ fontSize: 11, fill: "#64748b" }} axisLine={false} tickLine={false} />
               <Tooltip formatter={(v, name) => (name === "Cumulative %" ? [`${v}%`, name] : [`${v} min`, name])} />
-              <ReferenceLine
-                yAxisId="right"
-                y={80}
-                stroke="#f97316"
-                strokeDasharray="4 4"
-                label={{ value: "80% LINE", position: "insideTopRight", fill: "#f97316", fontSize: 11 }} />
+              <ReferenceLine yAxisId="right" y={80} stroke="#f97316" strokeDasharray="4 4" />
               <Bar yAxisId="left" dataKey="minutes" name="Downtime" radius={[4, 4, 0, 0]}>
                 {data.map((d, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
               </Bar>

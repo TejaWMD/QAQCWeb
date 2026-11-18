@@ -115,14 +115,14 @@ export default function OvertimeRecord() {
   const fmtTime = (t) => (t ? new Date(`2000-01-01T${t}`).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }) : "—");
 
   return (
-    <div className="p-6">
+    <div className="min-h-screen bg-[#F6F8FC] p-4 sm:p-6 w-full">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div>
           <h2 className="text-xl font-bold text-[#0F294A] mb-0.5">Overtime Record</h2>
           <p className="text-[#64748B] text-sm">Hours worked after 5:00 PM per shift session.</p>
         </div>
         <Select value={batchFilter || "all"} onValueChange={(v) => setBatchFilter(v === "all" ? "" : v)}>
-          <SelectTrigger className="w-44 bg-white">
+          <SelectTrigger className="w-full sm:w-44 bg-white">
             <SelectValue placeholder="All Batches" />
           </SelectTrigger>
           <SelectContent>

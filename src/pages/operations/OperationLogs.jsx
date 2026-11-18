@@ -153,7 +153,7 @@ export default function OperationLogs() {
     return (
       <span className="inline-flex items-center gap-1.5">
         <span>{v.toLocaleString()}</span>
-        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${unit === "units" ? "bg-sky-100 text-sky-700" : "bg-amber-100 text-amber-700"}`}>
+        <span className={`text-[10px] font-semibold ${unit === "units" ? "text-sky-700" : "text-amber-700"}`}>
           {unit}
         </span>
       </span>
@@ -161,15 +161,15 @@ export default function OperationLogs() {
   };
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
+    <div className="min-h-screen bg-[#F6F8FC] p-4 sm:p-6 w-full">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-6 gap-4">
         <div>
           <h2 className="text-xl font-bold text-[#0F294A] mb-0.5">Operation Record</h2>
           <p className="text-[#64748B] text-sm">Shift log output and process records.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
           <Select value={lineFilter || "all"} onValueChange={(v) => setLineFilter(v === "all" ? "" : v)}>
-            <SelectTrigger className="w-56">
+            <SelectTrigger className="w-full sm:w-52 bg-white">
               <SelectValue placeholder="All Lines" />
             </SelectTrigger>
             <SelectContent>
@@ -180,7 +180,7 @@ export default function OperationLogs() {
             </SelectContent>
           </Select>
           <Select value={batchFilter || "all"} onValueChange={(v) => setBatchFilter(v === "all" ? "" : v)}>
-            <SelectTrigger className="w-44">
+            <SelectTrigger className="w-full sm:w-44 bg-white">
               <SelectValue placeholder="All Batches" />
             </SelectTrigger>
             <SelectContent>
@@ -189,9 +189,11 @@ export default function OperationLogs() {
               <SelectItem value="legacy">Legacy Records</SelectItem>
             </SelectContent>
           </Select>
-          <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="w-40" />
-          <span className="text-slate-400 text-sm">to</span>
-          <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="w-40" />
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="flex-1 sm:w-36 bg-white" />
+            <span className="text-slate-400 text-sm shrink-0">to</span>
+            <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="flex-1 sm:w-36 bg-white" />
+          </div>
           {(dateFrom || dateTo || lineFilter || batchFilter) && (
             <Button variant="ghost" size="sm" onClick={() => { setDateFrom(""); setDateTo(""); setLineFilter(""); setBatchFilter(""); }} className="text-slate-500">
               Clear
@@ -253,7 +255,7 @@ export default function OperationLogs() {
                   <th className="px-3 py-3 font-medium sticky top-0 z-20 bg-slate-50">End</th>
                   <th className="px-3 py-3 font-medium text-right sticky top-0 z-20 bg-slate-50">OT Hrs</th>
                   <th className="px-3 py-3 font-medium text-right sticky top-0 z-20 bg-slate-50">OT Man-Hrs</th>
-                  <th className="px-3 py-3 font-medium text-right sticky top-0 z-20 bg-[#fff7d6]">Actual Unit Per Minute / Carton Per Minute</th>
+                  <th className="px-3 py-3 font-medium text-right sticky top-0 z-20 bg-slate-50">Actual Unit Per Minute / Carton Per Minute</th>
                   <th className="px-3 py-3 font-medium text-right sticky top-0 z-20 bg-slate-50">OT Spend</th>
                   <th className="px-3 py-3 font-medium text-right sticky top-0 z-20 bg-slate-50">Pcs / Carton</th>
                   <th className="px-3 py-3 font-medium text-right sticky top-0 z-20 bg-slate-50">Planned Cartons</th>
@@ -292,7 +294,7 @@ export default function OperationLogs() {
                       <td className="px-3 py-3 text-slate-600">{fmtTime(log.ot_end)}</td>
                       <td className="px-3 py-3 text-right text-slate-700">{m.ot_duration_hours.toFixed(2)}</td>
                       <td className="px-3 py-3 text-right text-slate-700">{m.ot_man_hours.toFixed(1)}</td>
-                      <td className="px-3 py-3 text-right text-slate-700 bg-[#fff7d6] font-semibold">{m.actual_upm.toFixed(2)}</td>
+                      <td className="px-3 py-3 text-right text-slate-700 font-semibold">{m.actual_upm.toFixed(2)}</td>
                       <td className="px-3 py-3 text-right text-amber-600">RM {m.expenditure_ot_man_hr.toFixed(2)}</td>
                       <td className="px-3 py-3 text-right text-slate-700">{log.pcs_per_carton ? log.pcs_per_carton.toLocaleString() : "—"}</td>
                       <td className="px-3 py-3 text-right text-slate-700">{log.planned_cartons ? log.planned_cartons.toLocaleString() : "—"}</td>

@@ -107,7 +107,7 @@ export default function BaselineCapacity() {
   const or = (v) => v === null || v === undefined || v === "" ? "—" : v;
 
   return (
-    <div className="p-6">
+    <div className="min-h-screen bg-[#F6F8FC] p-4 sm:p-6 w-full">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div>
           <h2 className="text-xl font-bold text-[#0F294A] mb-0.5">Baseline Capacity</h2>
@@ -135,8 +135,8 @@ export default function BaselineCapacity() {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 px-4 py-3 flex items-center gap-3 mb-4">
-        <div className="relative flex-1 max-w-xs">
+      <div className="bg-white rounded-xl border border-slate-200 px-4 py-3 flex flex-wrap items-center gap-3 mb-4">
+        <div className="relative flex-1 min-w-[200px] sm:max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <Input
             value={search}
@@ -145,7 +145,7 @@ export default function BaselineCapacity() {
             className="pl-9" />
           
         </div>
-        <div className="w-48">
+        <div className="w-full sm:w-48">
           <Select value={lineFilter} onValueChange={setLineFilter}>
             <SelectTrigger><SelectValue placeholder="All lines" /></SelectTrigger>
             <SelectContent>
