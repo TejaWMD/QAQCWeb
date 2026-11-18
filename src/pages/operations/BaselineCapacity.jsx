@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
@@ -48,19 +49,30 @@ export default function BaselineCapacity() {
   }, []);
 
   const handleSave = async (formData) => {
-    if (editRec) {
-      await base44.entities.BaselineCapacity.update(editRec.id, formData);
-    } else {
-      await base44.entities.BaselineCapacity.create(formData);
+    try {
+      if (editRec) {
+        await base44.entities.BaselineCapacity.update(editRec.id, formData);
+        toast.success("Baseline capacity updated.");
+      } else {
+        await base44.entities.BaselineCapacity.create(formData);
+        toast.success("Baseline capacity added.");
+      }
+      setModalOpen(false);
+      setEditRec(null);
+      load();
+    } catch (err) {
+      toast.error(err?.message || "Failed to save baseline capacity.");
     }
-    setModalOpen(false);
-    setEditRec(null);
-    load();
   };
 
   const handleDelete = async (id) => {
-    await base44.entities.BaselineCapacity.delete(id);
-    load();
+    try {
+      await base44.entities.BaselineCapacity.delete(id);
+      toast.success("Baseline capacity deleted.");
+      load();
+    } catch (err) {
+      toast.error(err?.message || "Failed to delete baseline capacity.");
+    }
   };
 
   if (loading) {
@@ -99,7 +111,7 @@ export default function BaselineCapacity() {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-bold mb-1 [font-family:'Rubik_Mono_One',_system-ui] bg-[#064382] text-[#ead7d7]">Baseline Capacity Parameterization &amp; Rate Configuration Record</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-white mb-1 tracking-tight">Baseline Capacity Parameterization &amp; Rate Configuration Record</h2>
           <p className="text-slate-500 text-sm">Standard setting baseline: line setup, throughput rates, manpower and changeover complexity per product.</p>
         </div>
         <div className="flex items-center gap-2">

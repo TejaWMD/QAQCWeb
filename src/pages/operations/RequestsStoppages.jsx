@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { actingUserName, isAdminUser } from "@/lib/permissions";
@@ -123,19 +124,29 @@ export default function RequestsStoppages() {
   };
 
   const changeStatus = async (row, status) => {
-    const prev = row.status || "";
-    const entity = row._type === DOWNTIME_TYPE ? "Downtime" : "Request";
-    await base44.entities[entity].update(row.id, { status });
-    await audit("Updated", row.id, `Status changed to "${status}"`, prev, status);
-    await load(true);
+    try {
+      const prev = row.status || "";
+      const entity = row._type === DOWNTIME_TYPE ? "Downtime" : "Request";
+      await base44.entities[entity].update(row.id, { status });
+      await audit("Updated", row.id, `Status changed to "${status}"`, prev, status);
+      toast.success(`Status updated to "${status}".`);
+      await load(true);
+    } catch (err) {
+      toast.error(err?.message || "Failed to update status.");
+    }
   };
 
   const remove = async (row) => {
     if (!window.confirm("Delete this record?")) return;
-    const entity = row._type === DOWNTIME_TYPE ? "Downtime" : "Request";
-    await base44.entities[entity].delete(row.id);
-    await audit("Deleted", row.id, "Record deleted");
-    await load(true);
+    try {
+      const entity = row._type === DOWNTIME_TYPE ? "Downtime" : "Request";
+      await base44.entities[entity].delete(row.id);
+      await audit("Deleted", row.id, "Record deleted");
+      toast.success("Record deleted successfully.");
+      await load(true);
+    } catch (err) {
+      toast.error(err?.message || "Failed to delete record.");
+    }
   };
 
   const purgeDemo = async () => {
@@ -144,7 +155,10 @@ export default function RequestsStoppages() {
     try {
       await base44.entities.Downtime.deleteMany({ is_demo: true });
       await audit("Deleted", "", "All demo / test downtime records deleted");
+      toast.success("Demo downtime records deleted.");
       await load(true);
+    } catch (err) {
+      toast.error(err?.message || "Failed to delete demo records.");
     } finally {
       setPurgingDemo(false);
     }

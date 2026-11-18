@@ -265,8 +265,8 @@ export default function ShiftLogDraft() {
         <div className="flex items-center gap-3">
           <ClipboardList className="w-6 h-6 text-sky-600" />
           <div>
-            <h1 className="text-lg font-semibold text-slate-800 [font-family:'Rubik_Mono_One',_system-ui]">Daily Packaging Line Record</h1>
-            <p className="text-xs text-slate-400">Draft Rev 01 — Packaging Activity / Downtime / Material Traceability</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">Daily Packaging Line Record</h1>
+            <p className="text-xs text-[#94a3b8]">Draft Rev 01 — Packaging Activity / Downtime / Material Traceability</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -289,10 +289,10 @@ export default function ShiftLogDraft() {
 
         {/* SECTION 1 */}
         <section className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-          <div className="px-5 py-3 bg-slate-900 text-white flex items-center gap-2">
-            <span className="bg-sky-600 w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold">1</span>
-            <h2 className="text-sm font-semibold [font-family:'Bungee',_system-ui]">PACKAGING ACTIVITY</h2>
-            <span className="text-slate-400 text-xs">/ Aktivitas Pengemasan / पैकेजिंग गतिविधि</span>
+          <div className="px-5 py-3 bg-[#0e131d] border-b border-[#1e2740] text-white flex items-center gap-2">
+            <span className="bg-[#00e5ff] text-[#0a0e17] w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold">1</span>
+            <h2 className="text-sm font-semibold tracking-wide">PACKAGING ACTIVITY</h2>
+            <span className="text-[#94a3b8] text-xs">/ Aktiviti Pengemasan / पैकेजिंग गतिविधि</span>
           </div>
           <div className="p-5 space-y-5">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -474,10 +474,10 @@ export default function ShiftLogDraft() {
 
         {/* SECTION 2 */}
         <section className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-          <div className="px-5 py-3 bg-slate-900 text-white flex items-center gap-2">
-            <span className="bg-amber-500 w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold">2</span>
-            <h2 className="text-sm font-semibold [font-family:'Bungee',_system-ui]">DOWNTIME RECORD</h2>
-            <span className="text-slate-400 text-xs">/ Catatan Downtime / डाउनटाइम रिकॉर्ड</span>
+          <div className="px-5 py-3 bg-[#0e131d] border-b border-[#1e2740] text-white flex items-center gap-2">
+            <span className="bg-[#ff9f43] text-[#0a0e17] w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold">2</span>
+            <h2 className="text-sm font-semibold tracking-wide">DOWNTIME RECORD</h2>
+            <span className="text-[#94a3b8] text-xs">/ Catatan Downtime / डाउनटाइम रिकॉर्ड</span>
           </div>
           <div className="p-5">
             <div className="border border-slate-200 rounded-lg overflow-x-auto">
@@ -537,10 +537,10 @@ export default function ShiftLogDraft() {
 
         {/* SECTION 3 */}
         <section className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-          <div className="px-5 py-3 bg-slate-900 text-white flex items-center gap-2">
-            <span className="bg-rose-500 w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold">3</span>
-            <h2 className="text-sm font-semibold [font-family:'Bungee',_system-ui]">PACKAGING MATERIAL TRACEABILITY / WASTAGE</h2>
-            <span className="text-slate-400 text-xs">/ ट्रेसेबिलिटी</span>
+          <div className="px-5 py-3 bg-[#0e131d] border-b border-[#1e2740] text-white flex items-center gap-2">
+            <span className="bg-[#ff4d4d] text-white w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold">3</span>
+            <h2 className="text-sm font-semibold tracking-wide">PACKAGING MATERIAL TRACEABILITY / WASTAGE</h2>
+            <span className="text-[#94a3b8] text-xs">/ ट्रेसेबिलिटी</span>
           </div>
           <div className="p-5">
             <p className="text-xs text-red-500 mb-3">* At least 1 component (Used or Wasted) must be filled.</p>

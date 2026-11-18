@@ -83,9 +83,9 @@
     --chart-4: 280 65% 65%;
     --chart-5: 0 100% 65%;
     --radius: 0.875rem;
-    --font-heading: 'Comfortaa', ui-sans-serif, system-ui, sans-serif;
+    --font-heading: 'Cabin', ui-sans-serif, system-ui, sans-serif;
     --font-body: 'Cabin', ui-sans-serif, system-ui, sans-serif;
-    --font-display: 'Comfortaa', ui-sans-serif, system-ui, sans-serif;
+    --font-display: 'Cabin', ui-sans-serif, system-ui, sans-serif;
     --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     --sidebar-background: 220 35% 9%;
     --sidebar-foreground: 214 32% 85%;
@@ -142,7 +142,7 @@
 
   html,
   body {
-    overflow-x: hidden;
+    overflow-x: clip;
     scroll-behavior: smooth;
   }
 

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { actingUserName, canChangeRecord } from "@/lib/permissions";
@@ -108,20 +109,30 @@ export default function RecordsTable({
     if (guard) {
       const error = guard(record, status);
       if (error) {
-        window.alert(error);
+        toast.error(error);
         return;
       }
     }
-    const prev = record.status || "";
-    await base44.entities[entity].update(record.id, { status });
-    await audit("Updated", record.id, `Status changed to "${status}"`, prev, status);
-    await onAfterChange?.(record, prev);
+    try {
+      const prev = record.status || "";
+      await base44.entities[entity].update(record.id, { status });
+      await audit("Updated", record.id, `Status changed to "${status}"`, prev, status);
+      await onAfterChange?.(record, prev);
+      toast.success(`Status updated to "${status}".`);
+    } catch (err) {
+      toast.error(err?.message || "Failed to update status.");
+    }
   };
 
   const remove = async (record) => {
     if (!window.confirm("Delete this record?")) return;
-    await base44.entities[entity].delete(record.id);
-    await audit("Deleted", record.id, "Record deleted");
+    try {
+      await base44.entities[entity].delete(record.id);
+      await audit("Deleted", record.id, "Record deleted");
+      toast.success("Record deleted successfully.");
+    } catch (err) {
+      toast.error(err?.message || "Failed to delete record.");
+    }
   };
 
   const visible = statusFilter === "all" ? records : records.filter((r) => r.status === statusFilter);

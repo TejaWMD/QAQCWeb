@@ -24,6 +24,7 @@ import {
   FileSpreadsheet,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { toast } from 'sonner';
 import './PicProductEntry.css';
 
 const BLANK_FORM: ProductInput = {
@@ -195,14 +196,18 @@ export default function PicProductEntry() {
 
       if (editingProduct) {
         await productService.updateProduct(editingProduct.id, formData);
+        toast.success(`Product ${formData.product_code} updated successfully.`);
       } else {
         await productService.createProduct(formData);
+        toast.success(`Product ${formData.product_code} created successfully.`);
       }
 
       setIsModalOpen(false);
       await loadData();
     } catch (err: any) {
-      setFormError(err.message || 'Failed to save product in database.');
+      const msg = err.message || 'Failed to save product in database.';
+      setFormError(msg);
+      toast.error(msg);
     } finally {
       setIsSubmitting(false);
     }
@@ -212,9 +217,11 @@ export default function PicProductEntry() {
     const nextStatus = product.status === 'Active' ? 'Inactive' : 'Active';
     try {
       await productService.updateProduct(product.id, { status: nextStatus });
+      toast.success(`${product.product_code} marked as ${nextStatus}.`);
       await loadData();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to update status:', err);
+      toast.error(err?.message || 'Failed to update product status.');
     }
   };
 
@@ -222,9 +229,11 @@ export default function PicProductEntry() {
     if (!window.confirm(`Are you sure you want to delete ${product.product_code}?`)) return;
     try {
       await productService.softDeleteProduct(product.id, 'PIC');
+      toast.success(`Product ${product.product_code} deleted.`);
       await loadData();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to delete product:', err);
+      toast.error(err?.message || 'Failed to delete product.');
     }
   };
 
@@ -316,11 +325,15 @@ export default function PicProductEntry() {
 
       setImportStatus(`Saving ${mappedProducts.length} products to Supabase...`);
       const res = await productService.bulkUpsertProducts(mappedProducts);
-      setImportStatus(`Success! Imported and updated ${res.count} products into Supabase.`);
+      const successMsg = `Success! Imported and updated ${res.count} products into Supabase.`;
+      setImportStatus(successMsg);
+      toast.success(successMsg);
       await loadData();
     } catch (err: any) {
       console.error('Import error:', err);
-      setImportStatus(`Import failed: ${err.message || 'Unknown error'}`);
+      const errMsg = `Import failed: ${err.message || 'Unknown error'}`;
+      setImportStatus(errMsg);
+      toast.error(errMsg);
     } finally {
       setImporting(false);
     }
@@ -439,12 +452,12 @@ export default function PicProductEntry() {
               ) : (
                 filteredProducts.map((p) => (
                   <tr key={p.id}>
-                    <td style={{ fontWeight: 700, color: '#1D4ED8' }}>{p.product_code}</td>
+                    <td style={{ fontWeight: 700, color: '#00e5ff' }}>{p.product_code}</td>
                     <td style={{ maxWidth: '240px', wordBreak: 'break-word' }}>{p.product_name}</td>
                     <td>{p.brand || '—'}</td>
                     <td>{p.carton_size || '—'}</td>
                     <td>{p.net_weight_kg ? `${p.net_weight_kg} kg` : '—'}</td>
-                    <td style={{ color: '#1D4ED8', fontWeight: 600 }}>
+                    <td style={{ color: '#00e5ff', fontWeight: 600 }}>
                       {p.net_filling_kg ? `${p.net_filling_kg} kg` : '—'}
                     </td>
                     <td style={{ color: '#38bdf8', fontWeight: 600 }}>{p.cartons_per_batch || '—'}</td>

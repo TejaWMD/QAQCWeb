@@ -56,7 +56,7 @@ export default defineConfig({
     }),
   ],
   optimizeDeps: {
-    include: ['html2canvas'],
+    include: ['html2canvas', 'next-themes'],
   },
   resolve: {
     alias: {

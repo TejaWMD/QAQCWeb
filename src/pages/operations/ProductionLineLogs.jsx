@@ -37,15 +37,15 @@ export default function ProductionLineLogs() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F6F8FC]">
+    <div className="min-h-screen bg-[#0a0e17]">
       <Tabs value={tab} onValueChange={onTabChange} className="w-full">
-        <div className="sticky top-0 z-20 bg-[#F6F8FC] backdrop-blur border-b border-[#E2E8F0] px-4 md:px-6 py-3">
-          <TabsList className="bg-white border border-[#E2E8F0] h-auto p-1 flex gap-1 w-max max-w-full overflow-x-auto">
+        <div className="sticky top-0 z-20 bg-[#0e131d]/95 backdrop-blur border-b border-[#1e2740] px-4 md:px-6 py-3">
+          <TabsList className="bg-[#131926] border border-[#1e2740] h-auto p-1 flex gap-1 w-max max-w-full overflow-x-auto">
             {TABS.map((t) => (
               <TabsTrigger
                 key={t.value}
                 value={t.value}
-                className="flex-none rounded-full px-4 py-1.5 text-sm whitespace-nowrap text-[#64748B] hover:text-[#0F294A] data-[state=active]:bg-[#0F294A] data-[state=active]:text-[#0F294A] data-[state=active]:shadow-[0_0_12px_rgba(0,229,255,0.35)] data-[state=active]:hover:text-[#0F294A]"
+                className="flex-none rounded-full px-4 py-1.5 text-sm whitespace-nowrap text-[#94a3b8] hover:text-white data-[state=active]:bg-[#00e5ff] data-[state=active]:text-[#0a0e17] data-[state=active]:font-semibold data-[state=active]:shadow-sm data-[state=active]:hover:text-[#0a0e17]"
               >
                 {t.label}
               </TabsTrigger>

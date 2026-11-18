@@ -7,8 +7,9 @@ import {
   Radar, Clock, ShieldCheck, ClipboardList, AlertTriangle, ScrollText,
   LayoutDashboard, Users, Upload, PackagePlus, Boxes, PackageMinus, Layers,
   ArrowLeftRight, ClipboardCheck, Package, FlaskConical, ListChecks,
-  CalendarDays, Trash2, Tag, History, Scale, X
+  CalendarDays, Trash2, Tag, History, Scale, X, LogOut
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const factoryItems = [
   { key: "attention_dashboard", label: "Attention Dashboard", icon: Radar },
@@ -53,7 +54,7 @@ const pathOf = (key) => MODULES.find((m) => m.key === key)?.path;
 
 export default function FactorySidebar({ mobileOpen = false, onClose = () => {} }) {
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [capaOpen, setCapaOpen] = useState(0);
   const logoSrc = `${import.meta.env.BASE_URL}wmd-logo.jpg`;
 
@@ -69,9 +70,6 @@ export default function FactorySidebar({ mobileOpen = false, onClose = () => {} 
     const unsubscribe = base44.entities.CAPA.subscribe(loadCount);
     return () => { if (typeof unsubscribe === "function") unsubscribe(); };
   }, []);
-
-  const hour = new Date().getHours();
-  const shiftLabel = hour >= 6 && hour < 18 ? "Shift A (Day)" : "Shift B (Night)";
 
   const renderSection = (title, items) => {
     const visible = items.filter((item) => (item.adminOnly ? isAdminUser(user) : canAccess(user, item.key)));
@@ -113,18 +111,18 @@ export default function FactorySidebar({ mobileOpen = false, onClose = () => {} 
 
   const sidebarContent = (
     <div className="flex flex-col h-full">
-      <div className="lg:hidden flex items-center justify-between px-4 py-3.5 border-b border-[#1e2740]">
-        <div className="flex items-center gap-2.5">
-          <div data-logo-badge="true" className="w-8 h-8 rounded-xl bg-white p-0.5 overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-4 border-b border-[#1e2740]">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div data-logo-badge="true" className="w-9 h-9 rounded-xl bg-white p-0.5 ring-2 ring-[#00e5ff]/30 shadow-sm shrink-0 overflow-hidden">
             <img src={logoSrc} alt="WMD Logo" className="w-full h-full object-contain rounded-lg" />
           </div>
-          <span className="font-heading font-bold text-sm text-white">WMG Factory</span>
+          <span className="font-bold text-base tracking-tight text-white truncate">WMG QAQC</span>
         </div>
         <button
           type="button"
           onClick={onClose}
           aria-label="Close navigation menu"
-          className="w-8 h-8 rounded-full flex items-center justify-center text-[#cbd5e1] hover:text-white hover:bg-white/10"
+          className="lg:hidden w-8 h-8 rounded-full flex items-center justify-center text-[#cbd5e1] hover:text-white hover:bg-white/10 shrink-0"
         >
           <X className="w-4 h-4" />
         </button>
@@ -138,15 +136,34 @@ export default function FactorySidebar({ mobileOpen = false, onClose = () => {} 
         {isAdminUser(user) && renderSection("System", systemItems)}
       </div>
 
-      <div className="px-4 py-3.5 border-t border-[#1e2740] bg-[#0a0e17]/40">
-        <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-[#00ff9d] animate-pulse shrink-0" />
-          <span className="text-xs font-medium text-white truncate">{shiftLabel}</span>
+      {user && (
+        <div className="mt-auto px-4 py-3.5 border-t border-[#1e2740] bg-[#0a0e17]/70 space-y-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-9 h-9 rounded-full bg-[#00e5ff]/15 text-[#00e5ff] ring-1 ring-[#00e5ff]/30 text-xs font-bold flex items-center justify-center shrink-0">
+              {user.avatar_initials || "U"}
+            </div>
+            <div className="leading-tight min-w-0 flex-1">
+              <p className="text-xs font-semibold text-white truncate">
+                {user.name || user.full_name || user.email || "User"}
+              </p>
+              <p className="text-[11px] text-[#94a3b8] truncate">
+                {user.role_label || user.role}
+              </p>
+            </div>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => logout(true)}
+            aria-label="Logout"
+            className="w-full h-8 rounded-full bg-[#131926] border-[#1e2740] text-[#e2e8f0] hover:bg-[#ff4d4d]/15 hover:text-[#ff4d4d] hover:border-[#ff4d4d]/40 text-xs justify-center"
+          >
+            <LogOut className="w-3.5 h-3.5 mr-1.5" />
+            Logout
+          </Button>
         </div>
-        <p className="text-[11px] text-[#94a3b8] mt-1 truncate">
-          {user?.full_name || user?.email || "—"}
-        </p>
-      </div>
+      )}
     </div>
   );
 
@@ -160,7 +177,7 @@ export default function FactorySidebar({ mobileOpen = false, onClose = () => {} 
         />
       )}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-72 bg-[#0e131d] border-r border-[#1e2740] transition-transform duration-200 ease-out lg:static lg:z-auto lg:w-64 lg:translate-x-0 lg:sticky lg:top-16 lg:h-[calc(100vh-4rem)] shrink-0 ${
+        className={`fixed inset-y-0 left-0 z-50 w-72 bg-[#0e131d] border-r border-[#1e2740] transition-transform duration-200 ease-out lg:sticky lg:top-0 lg:z-auto lg:w-64 lg:h-screen lg:translate-x-0 shrink-0 ${
           mobileOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full"
         }`}
       >

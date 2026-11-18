@@ -103,10 +103,13 @@ export const effectiveModuleKeys = (user) => {
     if (user.view_as_role) return [...BASE_MODULE_KEYS, ...(VIEW_AS_PRESETS[user.view_as_role] || [])];
     return ALL_MODULE_KEYS;
   }
+  const assigned = Array.isArray(user.permissions) ? user.permissions : [];
+  if (assigned.length > 0) {
+    return [...new Set([...BASE_MODULE_KEYS, ...ASSIGNABLE_MODULE_KEYS.filter((key) => assigned.includes(key))])];
+  }
   const preset = ROLE_PRESETS[user?.app_role];
   if (preset) return [...BASE_MODULE_KEYS, ...preset];
-  const assigned = Array.isArray(user.permissions) ? user.permissions : [];
-  return [...BASE_MODULE_KEYS, ...ASSIGNABLE_MODULE_KEYS.filter((key) => assigned.includes(key))];
+  return [...BASE_MODULE_KEYS];
 };
 
 // The merged Production Line Logs page also admits members who were granted any

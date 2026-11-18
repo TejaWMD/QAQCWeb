@@ -52,7 +52,7 @@ export default function IncompleteDataAlert({ records, onDelete, onSaved }) {
     <section className="bg-red-50 border-2 border-red-300 rounded-xl overflow-hidden">
       <div className="px-5 py-3 bg-red-600 text-white flex items-center gap-2">
         <AlertTriangle className="w-5 h-5 shrink-0" />
-        <h2 className="text-sm font-semibold [font-family:'Bungee',_system-ui]">
+        <h2 className="text-sm font-semibold">
           INCOMPLETE DATA — {incomplete.length} RECORD{incomplete.length === 1 ? "" : "S"} NEED ATTENTION
         </h2>
         <span className="ml-auto text-xs font-semibold bg-white/20 px-2.5 py-1 rounded-full flex items-center gap-1">

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -67,10 +68,15 @@ export default function OperationLogs() {
   // Entries are added by the shift log, so this only ever corrects an existing
   // row — the correction is carried back onto its shift log session.
   const handleSave = async (formData) => {
-    await base44.functions.invoke("recordOperationLog", { operationLog: formData, operationLogId: editLog.id });
-    setModalOpen(false);
-    setEditLog(null);
-    loadLogs(true);
+    try {
+      await base44.functions.invoke("recordOperationLog", { operationLog: formData, operationLogId: editLog.id });
+      toast.success("Operation log updated.");
+      setModalOpen(false);
+      setEditLog(null);
+      loadLogs(true);
+    } catch (err) {
+      toast.error(err?.message || "Failed to update operation log.");
+    }
   };
 
   const handleClose = () => {
@@ -85,8 +91,13 @@ export default function OperationLogs() {
 
   // Removing a row removes the shift log session it came from, across every page.
   const handleDelete = async (id) => {
-    await base44.functions.invoke("deleteShiftLog", { operationLogId: id });
-    loadLogs(true);
+    try {
+      await base44.functions.invoke("deleteShiftLog", { operationLogId: id });
+      toast.success("Operation log deleted.");
+      loadLogs(true);
+    } catch (err) {
+      toast.error(err?.message || "Failed to delete operation log.");
+    }
   };
 
   if (loading) {

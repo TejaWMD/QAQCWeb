@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -81,9 +82,12 @@ export default function AddRecordDialog({ open, onOpenChange, title, fields, onS
         }
       });
       await onSubmit(cleaned);
+      toast.success("Record saved successfully.");
       onOpenChange(false);
     } catch (err) {
-      setError(err?.message || "Could not save the record. Please try again.");
+      const msg = err?.message || "Could not save the record. Please try again.";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setSaving(false);
     }

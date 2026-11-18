@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { actingUserName } from "@/lib/permissions";
@@ -108,10 +109,15 @@ export default function TaskMatrix() {
   };
 
   const toggleDone = async (task) => {
-    const isDone = task.status === "Completed" || task.status === "Verified";
-    const nextStatus = isDone ? "Open" : "Completed";
-    await base44.entities.Task.update(task.id, { status: nextStatus });
-    await load(true);
+    try {
+      const isDone = task.status === "Completed" || task.status === "Verified";
+      const nextStatus = isDone ? "Open" : "Completed";
+      await base44.entities.Task.update(task.id, { status: nextStatus });
+      toast.success(`Task marked as ${nextStatus}.`);
+      await load(true);
+    } catch (err) {
+      toast.error(err?.message || "Failed to update task.");
+    }
   };
 
   const teamStats = useMemo(() => {

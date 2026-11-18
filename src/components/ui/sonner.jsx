@@ -5,21 +5,23 @@ import { Toaster as Sonner } from "sonner"
 const Toaster = ({
   ...props
 }) => {
-  const { theme = "system" } = useTheme()
+  const { theme = "dark" } = useTheme()
 
   return (
     (<Sonner
       theme={theme}
+      richColors
+      position="top-right"
       className="toaster group"
       toastOptions={{
         classNames: {
           toast:
-            "group toast group-[.toaster]:bg-background group-[.toaster]:text-foreground group-[.toaster]:border-border group-[.toaster]:shadow-lg",
-          description: "group-[.toast]:text-muted-foreground",
+            "group toast group-[.toaster]:bg-[#131926] group-[.toaster]:text-white group-[.toaster]:border-[#1e2740] group-[.toaster]:shadow-lg",
+          description: "group-[.toast]:text-[#94a3b8]",
           actionButton:
-            "group-[.toast]:bg-primary group-[.toast]:text-primary-foreground",
+            "group-[.toast]:bg-[#00e5ff] group-[.toast]:text-[#0a0e17]",
           cancelButton:
-            "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground",
+            "group-[.toast]:bg-[#1e2740] group-[.toast]:text-[#e2e8f0]",
         },
       }}
       {...props} />)

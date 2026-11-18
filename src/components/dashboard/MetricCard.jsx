@@ -4,7 +4,7 @@ export default function MetricCard({ label, value, subtext, icon: Icon, valueCol
   return (
     <div className="bg-slate-50 rounded-xl border border-slate-200 p-5 flex items-start justify-between">
       <div>
-        <p className="text-sm font-bold [font-family:'Alfabet',_sans-serif] text-[#12197d]">{label}</p>
+        <p className="text-sm font-semibold text-[#94a3b8]">{label}</p>
         <p className={`text-3xl font-bold mt-1 ${valueColor}`}>{value}</p>
         <p className={`text-sm mt-1 ${subtextColor}`}>{subtext}</p>
       </div>
