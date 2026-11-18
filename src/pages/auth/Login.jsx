@@ -42,12 +42,6 @@ export default function Login() {
     <AuthLayout
       icon={LogIn}
       title="WMG QA/QC Web"
-      subtitle="Sign in with your assigned staff or admin account"
-      footer={
-        <span className="text-xs text-muted-foreground">
-          Need an account or module access? Contact your System Administrator.
-        </span>
-      }
     >
       {error && (
         <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
