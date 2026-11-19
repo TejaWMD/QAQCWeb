@@ -75,15 +75,15 @@ export default function Home() {
   const totalWaste = metrics.caps + metrics.bottles + metrics.labels + metrics.cartons;
   const lossValue = (totalWaste * 0.16).toFixed(2);
 
-  const lines = [...new Set(logs.map((l) => l.production_line))];
-  const chartLines = [...new Set(filtered.map((l) => l.production_line))];
+  const lines = [...new Set(logs.map((l) => l.production_line).filter(Boolean))];
+  const chartLines = [...new Set(filtered.map((l) => l.production_line).filter(Boolean))];
   const lineData = chartLines.map((line) => {
     const lineLogs = filtered.filter((l) => l.production_line === line);
     const planned = lineLogs.reduce((s, l) => s + (l.planned_qty || 0), 0);
     const actual = lineLogs.reduce((s, l) => s + (l.actual_output || 0), 0);
     const achieve = planned > 0 ? actual / planned * 100 : 0;
     const otHours = lineLogs.reduce((s, l) => s + (l.ot_duration_hours || 0) * (l.staff_count || 0), 0);
-    return { line: line.replace("Line ", "L").split(" - ")[0], target: 90, actual: Math.round(achieve), otHours: Number(otHours.toFixed(1)), achieve: Math.round(achieve) };
+    return { line: String(line || "—").replace("Line ", "L").split(" - ")[0], target: 90, actual: Math.round(achieve), otHours: Number(otHours.toFixed(1)), achieve: Math.round(achieve) };
   });
 
   const efficiencyData = buildEfficiencyData(filtered);
@@ -208,7 +208,7 @@ export default function Home() {
                     return (
                       <tr key={l.id} className="hover:bg-slate-50">
                           <td className="px-4 py-3 text-slate-700 font-medium">
-                            {l.shift_date ? new Date(l.shift_date + "T00:00:00").toLocaleDateString("en-US", { day: "2-digit", month: "short" }) : "—"}
+                            {l.shift_date ? new Date(`${String(l.shift_date).slice(0, 10)}T00:00:00`).toLocaleDateString("en-US", { day: "2-digit", month: "short" }) : "—"}
                           </td>
                           <td className="px-4 py-3 text-slate-700">{l.production_line?.split(" - ")[0]}</td>
                           <td className="px-4 py-3 text-slate-600 max-w-xs truncate">{l.product_name || "—"}</td>

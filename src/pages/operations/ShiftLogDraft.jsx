@@ -131,11 +131,15 @@ export default function ShiftLogDraft() {
 
   const pcsPerCartonValue = Number(form.pcs_per_carton) || 0;
   const totalPlanned = (Number(form.planned_cartons) || 0) * pcsPerCartonValue;
-  const totalActual = timeRows.reduce((s, r) => s + (Number(r.actual_output) || 0), 0);
+  const rawActualSum = timeRows.reduce((s, r) => s + (Number(r.actual_output) || 0), 0);
+  const totalActual =
+    outputUnit === "carton" && pcsPerCartonValue > 0
+      ? Math.round(rawActualSum * pcsPerCartonValue)
+      : rawActualSum;
   const totalRejected = timeRows.reduce((s, r) => s + (Number(r.rejected_qty) || 0), 0);
   const achieveRate = totalPlanned > 0 ? (totalActual / totalPlanned * 100).toFixed(1) : "0";
   // Cartons for the batch: typed directly, or derived from units ÷ pcs per carton
-  const totalCartons = outputUnit === "carton" ? Math.round(totalActual) : pcsPerCartonValue > 0 ? Math.round(totalActual / pcsPerCartonValue) : 0;
+  const totalCartons = outputUnit === "carton" ? Math.round(rawActualSum) : pcsPerCartonValue > 0 ? Math.round(totalActual / pcsPerCartonValue) : 0;
 
   const grossHours = timeRows.reduce((s, r) => s + calcHours(r.start, r.end), 0);
   const totalUpm = grossHours > 0 ? totalActual / grossHours / 60 : 0;

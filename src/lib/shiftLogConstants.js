@@ -12,7 +12,7 @@ export const productionLines = [
 ];
 
 // "SA01 - Milan/ Sufri Machine" -> "SA01"
-export const lineCode = (label) => label.split(" - ")[0].split(" ")[0];
+export const lineCode = (label) => String(label || "").split(" - ")[0].split(" ")[0];
 
 export const taskOptions = [
   "Carton Packing",

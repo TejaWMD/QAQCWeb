@@ -101,9 +101,14 @@ export default function RecordsTable({
   };
 
   const handleAdd = async (values) => {
-    const created = await base44.entities[entity].create(values);
+    const payload = {
+      ...values,
+      created_by: values.created_by || user?.email || user?.id || actingUserName(user),
+    };
+    const created = await base44.entities[entity].create(payload);
     await audit("Created", created?.id, `New record created in ${title}`);
     await onAfterCreate?.(created);
+    await load(true);
   };
 
   const changeStatus = async (record, status) => {
@@ -119,6 +124,7 @@ export default function RecordsTable({
       await base44.entities[entity].update(record.id, { status });
       await audit("Updated", record.id, `Status changed to "${status}"`, prev, status);
       await onAfterChange?.(record, prev);
+      await load(true);
       toast.success(`Status updated to "${status}".`);
     } catch (err) {
       toast.error(err?.message || "Failed to update status.");
@@ -130,6 +136,7 @@ export default function RecordsTable({
     try {
       await deleteEntityWithCleanup(entity, record.id);
       await audit("Deleted", record.id, "Record deleted");
+      await load(true);
       toast.success("Record deleted successfully.");
     } catch (err) {
       toast.error(err?.message || "Failed to delete record.");

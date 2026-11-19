@@ -120,8 +120,7 @@ export const recipeFamilies = (recipes = [], products = []) => {
         (p) => ids.has(p.id) || p.recipe_id === active?.id || (entry.name && upper(p.recipe_name) === upper(entry.name))
       );
       return { ...entry, active, products: linked };
-    })
-    .filter((entry) => entry.products.length > 0);
+    });
 };
 
 // A save never overwrites a version: it becomes the next Active version, the older
@@ -141,7 +140,7 @@ export const saveRecipeVersion = async ({ versions = [], products = [], recipeNa
     version,
     status: "Active",
     batch_cartons: num(form.batch_cartons),
-    standard_yield_pct: num(form.standard_yield_pct),
+    standard_yield_pct: num(form.standard_yield_pct) || 100,
     ingredients: form.ingredients || [],
     effective_date: form.effective_date || new Date().toISOString().slice(0, 10),
     created_by: actingUserName(user),
@@ -149,17 +148,9 @@ export const saveRecipeVersion = async ({ versions = [], products = [], recipeNa
     notes: form.notes || "",
   };
 
-  let created;
-  try {
-    created = await productService.createRecipe(payload);
-  } catch (err) {
-    created = await base44.entities.Recipe.create(payload);
-  }
+  const created = await base44.entities.Recipe.create(payload);
 
   for (const old of (versions || []).filter((row) => row.status === "Active")) {
-    try {
-      await productService.updateRecipe(old.id, { status: "Superseded", superseded_by_version: version });
-    } catch {}
     await base44.entities.Recipe.update(old.id, { status: "Superseded", superseded_by_version: version });
   }
 
@@ -167,11 +158,6 @@ export const saveRecipeVersion = async ({ versions = [], products = [], recipeNa
     .filter((p) => p.recipe_id !== created.id || upper(p.recipe_name) !== upper(name))
     .map((p) => ({ id: p.id, recipe_id: created.id, recipe_name: name }));
 
-  for (const p of links) {
-    try {
-      await productService.updateProduct(p.id, { recipe_id: created.id, recipe_name: name });
-    } catch {}
-  }
   for (let i = 0; i < links.length; i += 100) {
     await base44.entities.Product.bulkUpdate(links.slice(i, i + 100));
   }

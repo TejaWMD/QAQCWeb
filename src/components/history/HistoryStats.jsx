@@ -1,6 +1,6 @@
 import React from "react";
 import KpiCard from "@/components/factoryops/KpiCard";
-import { Activity, Database, History, UserRound, Zap } from "lucide-react";
+import { Activity, History, UserRound, Zap } from "lucide-react";
 
 export default function HistoryStats({ stats, loading }) {
   return (

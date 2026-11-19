@@ -173,17 +173,22 @@
     background-color: #131926 !important;
   }
 
-  .bg-\[\#EBF3FF\] {
-    background-color: rgba(0, 229, 255, 0.14) !important;
+  .bg-\[\#EBF3FF\],
+  .bg-indigo-50,
+  .bg-indigo-50\/50 {
+    background-color: rgba(59, 130, 246, 0.12) !important;
   }
 
-  .bg-\[\#0F294A\] {
-    background-color: #00e5ff !important;
-    color: #0a0e17 !important;
+  .bg-\[\#0F294A\],
+  .bg-indigo-600 {
+    background-color: #2563eb !important;
+    color: #ffffff !important;
   }
 
-  .hover\:bg-\[\#193B68\]:hover {
-    background-color: #00c3d7 !important;
+  .hover\:bg-\[\#193B68\]:hover,
+  .hover\:bg-indigo-700:hover {
+    background-color: #1d4ed8 !important;
+    color: #ffffff !important;
   }
 
   .hover\:bg-slate-50:hover,
@@ -197,13 +202,16 @@
   .text-slate-900,
   .text-slate-800,
   .text-gray-900,
-  .text-gray-800 {
+  .text-gray-800,
+  .text-indigo-950,
+  .text-indigo-900 {
     color: #f8fafc !important;
   }
 
   .text-\[\#334155\],
   .text-slate-700,
-  .text-gray-700 {
+  .text-gray-700,
+  .text-indigo-800 {
     color: #e2e8f0 !important;
   }
 
@@ -216,8 +224,10 @@
     color: #94a3b8 !important;
   }
 
-  .text-\[\#1D4ED8\] {
-    color: #00e5ff !important;
+  .text-\[\#1D4ED8\],
+  .text-indigo-700,
+  .text-indigo-600 {
+    color: #60a5fa !important;
   }
 
   /* Standardized dark borders */
@@ -227,25 +237,32 @@
   .border-slate-100,
   .border-gray-200,
   .border-gray-100,
+  .border-indigo-200,
+  .border-indigo-100,
   .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
   .divide-slate-200 > :not([hidden]) ~ :not([hidden]) {
     border-color: #1e2740 !important;
   }
 
   /* Translucent status badges & alerts for dark mode */
-  .bg-amber-50 { background-color: rgba(255, 159, 67, 0.14) !important; }
-  .text-amber-700, .text-amber-800, .text-amber-600 { color: #ffbe76 !important; }
-  .border-amber-300, .border-amber-200 { border-color: rgba(255, 159, 67, 0.35) !important; }
+  .bg-amber-50, .bg-amber-100 { background-color: rgba(245, 158, 11, 0.14) !important; }
+  .text-amber-900, .text-amber-800, .text-amber-700, .text-amber-600 { color: #fbbf24 !important; }
+  .border-amber-300, .border-amber-200 { border-color: rgba(245, 158, 11, 0.35) !important; }
 
-  .bg-emerald-50, .bg-green-50 { background-color: rgba(0, 255, 157, 0.12) !important; }
-  .text-emerald-700, .text-green-700, .text-green-600 { color: #00ff9d !important; }
-  .border-emerald-300, .border-green-200 { border-color: rgba(0, 255, 157, 0.3) !important; }
+  .bg-emerald-50, .bg-emerald-100, .bg-green-50, .bg-green-100 { background-color: rgba(16, 185, 129, 0.14) !important; }
+  .text-emerald-800, .text-emerald-700, .text-green-800, .text-green-700, .text-green-600 { color: #34d399 !important; }
+  .border-emerald-300, .border-green-200 { border-color: rgba(16, 185, 129, 0.32) !important; }
 
-  .bg-rose-50, .bg-red-50 { background-color: rgba(255, 77, 77, 0.14) !important; }
-  .text-rose-600, .text-rose-700, .text-red-700, .text-red-600, .text-red-500 { color: #ff6b6b !important; }
-  .border-rose-300, .border-red-200 { border-color: rgba(255, 77, 77, 0.35) !important; }
+  .bg-rose-50, .bg-rose-100, .bg-red-50, .bg-red-100 { background-color: rgba(239, 68, 68, 0.14) !important; }
+  .text-rose-800, .text-rose-700, .text-rose-600, .text-red-800, .text-red-700, .text-red-600, .text-red-500 { color: #f87171 !important; }
+  .border-rose-300, .border-red-200 { border-color: rgba(239, 68, 68, 0.35) !important; }
 
-  .bg-sky-50, .bg-blue-50 { background-color: rgba(0, 229, 255, 0.12) !important; }
-  .text-sky-700, .text-sky-600, .text-blue-700, .text-blue-600 { color: #00e5ff !important; }
-  .border-sky-200, .border-blue-200 { border-color: rgba(0, 229, 255, 0.3) !important; }
+  .bg-sky-50, .bg-sky-100, .bg-blue-50, .bg-blue-100 { background-color: rgba(56, 189, 248, 0.14) !important; }
+  .text-sky-800, .text-sky-700, .text-sky-600, .text-blue-800, .text-blue-700, .text-blue-600 { color: #38bdf8 !important; }
+  .border-sky-200, .border-blue-200 { border-color: rgba(56, 189, 248, 0.32) !important; }
+
+  .bg-slate-200 {
+    background-color: #1e2740 !important;
+    color: #e2e8f0 !important;
+  }
 }

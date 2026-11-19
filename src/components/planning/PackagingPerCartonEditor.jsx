@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2 } from "lucide-react";
-import { num } from "@/lib/planning";
 import { inputClass, selectClass } from "@/components/planning/styles";
 
 // Packaging items used per carton, picked from the Packaging Stock item list.
@@ -46,8 +45,8 @@ export default function PackagingPerCartonEditor({ value = [], onChange, items =
             type="number"
             min="0"
             step="any"
-            value={row.quantity}
-            onChange={(e) => update(idx, { quantity: num(e.target.value) })}
+            value={row.quantity ?? ""}
+            onChange={(e) => update(idx, { quantity: e.target.value === "" ? "" : e.target.value })}
             className={inputClass}
             placeholder="Qty"
           />

@@ -116,7 +116,7 @@ export default function ItemDialog({ open, item, categories, units, racks, onClo
             </div>
             <div className="space-y-1">
               <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Category</label>
-              <Select value={form.category} onValueChange={(v) => set("category", v)}>
+              <Select value={form.category || undefined} onValueChange={(v) => set("category", v)}>
                 <SelectTrigger className={FIELD}><SelectValue placeholder="Select category" /></SelectTrigger>
                 <SelectContent>
                   {categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
@@ -125,7 +125,7 @@ export default function ItemDialog({ open, item, categories, units, racks, onClo
             </div>
             <div className="space-y-1">
               <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Unit of Measure</label>
-              <Select value={form.unit} onValueChange={(v) => set("unit", v)}>
+              <Select value={form.unit || undefined} onValueChange={(v) => set("unit", v)}>
                 <SelectTrigger className={FIELD}><SelectValue placeholder="Select unit" /></SelectTrigger>
                 <SelectContent>
                   {units.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}

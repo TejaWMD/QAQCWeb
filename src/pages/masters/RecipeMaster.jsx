@@ -1,20 +1,25 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import * as XLSX from "xlsx";
 import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { History, Pencil, ShieldAlert, Download, FlaskConical, Tag, Clock } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+import { History, Pencil, ShieldAlert, Download, FlaskConical, Tag, Clock, Plus, Upload, Trash2 } from "lucide-react";
 import RecipeDialog from "@/components/planning/RecipeDialog";
 import RecipeHistoryDialog from "@/components/planning/RecipeHistoryDialog";
 import { canEditRecipes, fmtQty, loadMaterials, loadProducts, loadRecipes } from "@/lib/planning";
 import { downloadCsv, todayStr } from "@/lib/warehouse";
-import { recipeFamilies, recipeVersionsFor } from "@/lib/recipeMaster";
-import { inputClass, subtleButton, panelClass } from "@/components/planning/styles";
+import { recipeFamilies, recipeVersionsFor, saveRecipeVersion } from "@/lib/recipeMaster";
+import { archiveRecipeSafely } from "@/lib/deleteIntegrity";
+import { inputClass, primaryButton, subtleButton, panelClass } from "@/components/planning/styles";
 
 // One row per recipe: the items that share it are listed together, so a change to
 // the recipe lands once for every item code that uses it.
 export default function RecipeMaster() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const canEdit = canEditRecipes(user);
+  const fileRef = useRef(null);
   const [products, setProducts] = useState([]);
   const [recipes, setRecipes] = useState([]);
   const [materials, setMaterials] = useState([]);
@@ -53,11 +58,63 @@ export default function RecipeMaster() {
     product: row.products[0] || null,
   });
 
-  const openNew = (product) => setEdit({ recipe: null, versions: [], products: [product], product });
+  const openNew = (product = null) => setEdit({ recipe: null, versions: [], products: product ? [product] : [], product });
+
+  const handleDeleteRecipe = async (row) => {
+    if (!row.active?.id) return;
+    if (!window.confirm(`Delete recipe "${row.name}"?`)) return;
+    try {
+      await archiveRecipeSafely(row.active.id);
+      toast({ title: "Recipe archived", description: row.name });
+      await load();
+    } catch (err) {
+      toast({ title: "Could not delete recipe", description: err?.message || "Please try again.", variant: "destructive" });
+    }
+  };
+
+  const handleImportFile = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = null;
+    if (!file) return;
+    try {
+      const buffer = await file.arrayBuffer();
+      const wb = XLSX.read(buffer, { type: "array" });
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const rawRows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+      let count = 0;
+      for (const r of rawRows) {
+        const name = String(r["Recipe Name"] || r["Recipe"] || r["recipe_name"] || r["Name"] || "").trim();
+        if (!name) continue;
+        const cookHr = Number(r["Cooking Time (hr)"] || r["cooking_time_hr"] || r["Cooking Time"] || 0) || 0;
+        const batchKg = Number(r["Batch Output (kg)"] || r["batch_output_kg"] || r["Batch Output"] || 0) || 0;
+        const batchCtns = Number(r["Cartons / Batch"] || r["batch_cartons"] || 0) || 0;
+        const yieldPct = Number(r["Std Yield %"] || r["standard_yield_pct"] || 100) || 100;
+        await saveRecipeVersion({
+          versions: [],
+          products: [],
+          recipeName: name,
+          form: {
+            recipe_name: name,
+            cooking_time_hr: cookHr,
+            batch_output_kg: batchKg,
+            batch_cartons: batchCtns,
+            standard_yield_pct: yieldPct,
+            ingredients: [],
+          },
+          user,
+        });
+        count++;
+      }
+      toast({ title: `Imported ${count} recipe(s)`, description: file.name });
+      await load();
+    } catch (err) {
+      toast({ title: "Import failed", description: err?.message || "Use a CSV or Excel file.", variant: "destructive" });
+    }
+  };
 
   const totalBrands = new Set(products.map((p) => p.brand).filter(Boolean)).size;
   const avgCooking = (() => {
-    const times = rows.map((r) => Number(r.active?.cooking_time_hours || 0)).filter((n) => n > 0);
+    const times = rows.map((r) => Number(r.active?.cooking_time_hr || r.active?.cooking_time_hours || 0)).filter((n) => n > 0);
     return times.length ? (times.reduce((a, b) => a + b, 0) / times.length).toFixed(1) : "0.0";
   })();
 
@@ -79,9 +136,22 @@ export default function RecipeMaster() {
           <h2 className="text-[#0F294A] text-lg font-semibold">Recipe Master</h2>
           <p className="text-[#64748B] text-sm mt-1">Production recipes — the basis for all batch calculations.</p>
         </div>
-        <Button variant="outline" onClick={exportRecipes} className={subtleButton}>
-          <Download className="w-4 h-4 mr-1.5" /> Export
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={handleImportFile} />
+          <Button variant="outline" onClick={exportRecipes} className={subtleButton}>
+            <Download className="w-4 h-4 mr-1.5" /> Export
+          </Button>
+          {canEdit && (
+            <>
+              <Button variant="outline" onClick={() => fileRef.current?.click()} className={subtleButton}>
+                <Upload className="w-4 h-4 mr-1.5" /> Import File
+              </Button>
+              <Button onClick={() => openNew(null)} className={primaryButton}>
+                <Plus className="w-4 h-4 mr-1.5" /> Add Recipe
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -185,15 +255,28 @@ export default function RecipeMaster() {
                           </Button>
                         )}
                         {canEdit && (
-                          <Button
-                            variant={row.active ? "ghost" : "outline"}
-                            size={row.active ? "icon" : "sm"}
-                            onClick={() => openEdit(row)}
-                            className={row.active ? "text-[#64748B] hover:text-[#1D4ED8] hover:bg-[#EBF3FF]" : subtleButton}
-                            title={row.active ? "New version" : "Create recipe"}
-                          >
-                            {row.active ? <Pencil className="w-4 h-4" /> : "Create recipe"}
-                          </Button>
+                          <>
+                            <Button
+                              variant={row.active ? "ghost" : "outline"}
+                              size={row.active ? "icon" : "sm"}
+                              onClick={() => openEdit(row)}
+                              className={row.active ? "text-[#64748B] hover:text-[#1D4ED8] hover:bg-[#EBF3FF]" : subtleButton}
+                              title={row.active ? "New version / Edit" : "Create recipe"}
+                            >
+                              {row.active ? <Pencil className="w-4 h-4" /> : "Create recipe"}
+                            </Button>
+                            {row.active && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDeleteRecipe(row)}
+                                className="text-[#64748B] hover:text-rose-600 hover:bg-rose-600/10"
+                                title="Delete recipe"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </>
                         )}
                       </div>
                     </td>

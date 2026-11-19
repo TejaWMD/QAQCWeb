@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Plus, Trash2 } from "lucide-react";
-import { INGREDIENT_UNITS, num } from "@/lib/planning";
+import { INGREDIENT_UNITS } from "@/lib/planning";
 import { inputClass } from "@/components/planning/styles";
 
 // Ingredient rows for a recipe. Materials come from the warehouse item list when
@@ -45,8 +45,8 @@ export default function IngredientEditor({ value = [], onChange, materials = [] 
             type="number"
             min="0"
             step="any"
-            value={row.quantity_per_batch}
-            onChange={(e) => update(idx, { quantity_per_batch: num(e.target.value) })}
+            value={row.quantity_per_batch ?? ""}
+            onChange={(e) => update(idx, { quantity_per_batch: e.target.value === "" ? "" : e.target.value })}
             className={inputClass}
             placeholder="Qty / batch"
           />

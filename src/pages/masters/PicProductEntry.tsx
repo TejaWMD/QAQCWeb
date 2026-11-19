@@ -29,19 +29,19 @@ import { SearchableSelect } from '@/components/ui/searchable-select';
 import { archiveProductSafely } from '@/lib/deleteIntegrity';
 import './PicProductEntry.css';
 
-const BLANK_FORM: ProductInput = {
+const BLANK_FORM: Record<string, any> = {
   product_code: '',
   product_name: '',
   brand: '',
   recipe_name: '',
-  cooking_time_hr: 0,
-  batch_output_kg: 0,
-  carton_size: 0,
-  net_weight_kg: 0,
+  cooking_time_hr: '',
+  batch_output_kg: '',
+  carton_size: '',
+  net_weight_kg: '',
   line_type: '',
   default_machine: '',
   batch_prefix: '',
-  shelf_life_months: 12,
+  shelf_life_months: '12',
   barcode: '',
   carton_barcode: '',
   customer: 'GENERAL',
@@ -66,7 +66,7 @@ export default function PicProductEntry() {
   // Modal Form State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [formData, setFormData] = useState<ProductInput>(BLANK_FORM);
+  const [formData, setFormData] = useState<Record<string, any>>(BLANK_FORM);
   const [formError, setFormError] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -145,20 +145,20 @@ export default function PicProductEntry() {
       product_name: p.product_name,
       brand: p.brand || '',
       recipe_name: p.recipe_name || '',
-      cooking_time_hr: p.cooking_time_hr || 0,
-      batch_output_kg: p.batch_output_kg || 0,
-      carton_size: p.carton_size || 0,
-      net_weight_kg: p.net_weight_kg || 0,
+      cooking_time_hr: p.cooking_time_hr ?? '',
+      batch_output_kg: p.batch_output_kg ?? '',
+      carton_size: p.carton_size ?? '',
+      net_weight_kg: p.net_weight_kg ?? '',
       line_type: p.line_type || '',
       default_machine: p.default_machine || '',
       batch_prefix: p.batch_prefix || '',
-      shelf_life_months: p.shelf_life_months || 12,
+      shelf_life_months: p.shelf_life_months ?? 12,
       barcode: p.barcode || '',
       carton_barcode: p.carton_barcode || '',
       customer: p.customer || 'GENERAL',
       status: p.status || 'Active',
       remarks: p.remarks || '',
-    });
+    } as any);
     setFormError('');
     setIsModalOpen(true);
   };
@@ -182,10 +182,21 @@ export default function PicProductEntry() {
 
     setIsSubmitting(true);
     try {
+      const normalizedPayload: ProductInput = {
+        ...formData,
+        product_code: String(formData.product_code || '').trim(),
+        product_name: String(formData.product_name || '').trim(),
+        cooking_time_hr: Number(formData.cooking_time_hr) || 0,
+        batch_output_kg: Number(formData.batch_output_kg) || 0,
+        carton_size: Number(formData.carton_size) || 0,
+        net_weight_kg: Number(formData.net_weight_kg) || 0,
+        shelf_life_months: Number(formData.shelf_life_months) || 0,
+      };
+
       // Validate uniqueness against Supabase
-      const barcodes = [formData.barcode, formData.carton_barcode].filter(Boolean) as string[];
+      const barcodes = [normalizedPayload.barcode, normalizedPayload.carton_barcode].filter(Boolean) as string[];
       const validation = await productService.validateProductUnique(
-        formData.product_code,
+        normalizedPayload.product_code,
         barcodes,
         editingProduct?.id
       );
@@ -197,11 +208,11 @@ export default function PicProductEntry() {
       }
 
       if (editingProduct) {
-        await productService.updateProduct(editingProduct.id, formData);
-        toast.success(`Product ${formData.product_code} updated successfully.`);
+        await productService.updateProduct(editingProduct.id, normalizedPayload);
+        toast.success(`Product ${normalizedPayload.product_code} updated successfully.`);
       } else {
-        await productService.createProduct(formData);
-        toast.success(`Product ${formData.product_code} created successfully.`);
+        await productService.createProduct(normalizedPayload);
+        toast.success(`Product ${normalizedPayload.product_code} created successfully.`);
       }
 
       setIsModalOpen(false);
@@ -607,33 +618,36 @@ export default function PicProductEntry() {
                     <label className="pic-field-label">Pcs Per Carton *</label>
                     <input
                       type="number"
+                      min="0"
                       step="any"
                       className="pic-field-input"
                       placeholder="e.g. 12"
-                      value={formData.carton_size || ''}
-                      onChange={(e) => handleFormChange('carton_size', parseFloat(e.target.value) || 0)}
+                      value={formData.carton_size ?? ''}
+                      onChange={(e) => handleFormChange('carton_size', e.target.value)}
                     />
                   </div>
                   <div className="pic-field-group">
                     <label className="pic-field-label">Net Wt Per Pc (kg) *</label>
                     <input
                       type="number"
+                      min="0"
                       step="any"
                       className="pic-field-input"
                       placeholder="e.g. 0.35"
-                      value={formData.net_weight_kg || ''}
-                      onChange={(e) => handleFormChange('net_weight_kg', parseFloat(e.target.value) || 0)}
+                      value={formData.net_weight_kg ?? ''}
+                      onChange={(e) => handleFormChange('net_weight_kg', e.target.value)}
                     />
                   </div>
                   <div className="pic-field-group">
                     <label className="pic-field-label">Batch Output (kg)</label>
                     <input
                       type="number"
+                      min="0"
                       step="any"
                       className="pic-field-input"
                       placeholder="e.g. 608"
-                      value={formData.batch_output_kg || ''}
-                      onChange={(e) => handleFormChange('batch_output_kg', parseFloat(e.target.value) || 0)}
+                      value={formData.batch_output_kg ?? ''}
+                      onChange={(e) => handleFormChange('batch_output_kg', e.target.value)}
                     />
                   </div>
                 </div>
@@ -676,11 +690,12 @@ export default function PicProductEntry() {
                     <label className="pic-field-label">Cooking Time (hr)</label>
                     <input
                       type="number"
+                      min="0"
                       step="any"
                       className="pic-field-input"
                       placeholder="e.g. 2.0"
-                      value={formData.cooking_time_hr || ''}
-                      onChange={(e) => handleFormChange('cooking_time_hr', parseFloat(e.target.value) || 0)}
+                      value={formData.cooking_time_hr ?? ''}
+                      onChange={(e) => handleFormChange('cooking_time_hr', e.target.value)}
                     />
                   </div>
                   <div className="pic-field-group">
@@ -714,10 +729,11 @@ export default function PicProductEntry() {
                     <label className="pic-field-label">Shelf Life (Months)</label>
                     <input
                       type="number"
+                      min="0"
                       className="pic-field-input"
                       placeholder="e.g. 12"
-                      value={formData.shelf_life_months || ''}
-                      onChange={(e) => handleFormChange('shelf_life_months', parseInt(e.target.value) || 0)}
+                      value={formData.shelf_life_months ?? ''}
+                      onChange={(e) => handleFormChange('shelf_life_months', e.target.value)}
                     />
                   </div>
                 </div>

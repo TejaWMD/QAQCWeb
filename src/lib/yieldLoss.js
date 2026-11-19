@@ -3,7 +3,7 @@
 // Batch Records, Goods Issued (PackagingMovement), Packaging Stock, Product Master,
 // Recipe Master and the Daily Packaging Entry (ShiftLog) rather than duplicated.
 import { base44 } from "@/api/base44Client";
-import { actingUserName, appRoleOf, isAdminUser } from "@/lib/permissions";
+import { actingUserName, appRoleOf, canAccess, isAdminUser } from "@/lib/permissions";
 import { eventStamp } from "@/lib/warehouse";
 import { num } from "@/lib/planning";
 
@@ -27,11 +27,17 @@ export const DEFAULT_SETTINGS = {
 const role = (user) => appRoleOf(user);
 // Production staff enter the data, supervisors verify it, QA and Admin own the settings.
 export const canEnterYieldLoss = (user) =>
-  isAdminUser(user) || ["manager", "supervisor", "operator", "qa_officer"].includes(role(user));
+  isAdminUser(user) ||
+  canAccess(user, "yield_loss") ||
+  ["manager", "supervisor", "operator", "qa_officer"].includes(role(user));
 export const canVerifyYieldLoss = (user) =>
-  isAdminUser(user) || ["manager", "supervisor", "qa_officer"].includes(role(user));
-export const canApproveRework = (user) => isAdminUser(user) || ["qa_officer", "manager"].includes(role(user));
-export const canEditYieldSettings = (user) => isAdminUser(user) || role(user) === "qa_officer";
+  isAdminUser(user) ||
+  canAccess(user, "yield_loss") ||
+  ["manager", "supervisor", "qa_officer"].includes(role(user));
+export const canApproveRework = (user) =>
+  isAdminUser(user) || canAccess(user, "yield_loss") || ["qa_officer", "manager"].includes(role(user));
+export const canEditYieldSettings = (user) =>
+  isAdminUser(user) || canAccess(user, "yield_loss") || role(user) === "qa_officer";
 
 // A verifier can never be the person who entered the record.
 export const canVerifyRecord = (user, record) =>
@@ -117,7 +123,7 @@ export const issuedIngredientsForBatch = ({ record, order, recipe, movements = [
   const batch = upper(record?.batch_number);
   const orderNo = upper(record?.order_number || order?.order_number);
   const line = upper(record?.machine);
-  const date = record?.production_date || "";
+  const date = String(record?.production_date || "").slice(0, 10);
 
   const lines = (movements || [])
     .filter((m) => {
@@ -128,7 +134,7 @@ export const issuedIngredientsForBatch = ({ record, order, recipe, movements = [
       if (!isRecipeItem && !rawMaterial) return false;
       if (batch && upper(m.batch_number) === batch) return true;
       if (orderNo && upper(m.production_order) === orderNo) return true;
-      return !!line && upper(m.production_line) === line && m.movement_date === date;
+      return !!line && upper(m.production_line) === line && String(m.movement_date || "").slice(0, 10) === date;
     })
     .map((m) => ({
       item_code: m.item_code || "",
@@ -161,10 +167,11 @@ export const yieldVariance = ({ yieldPct, standardPct, tolerancePct }) => {
 
 // Pieces issued from Packaging Stock to a line on a day.
 export const packagingUsedForLine = ({ movements = [], dateStr, line }) => {
+  const targetDay = String(dateStr || "").slice(0, 10);
   const rows = (movements || []).filter(
     (m) =>
       (m.type || "") === "Use" &&
-      m.movement_date === dateStr &&
+      String(m.movement_date || "").slice(0, 10) === targetDay &&
       (!line || upper(m.production_line) === upper(line))
   );
   const pieces = rows
@@ -188,9 +195,10 @@ export const wasteSummary = ({ cartons, labels, pouches, usedUnits, thresholdPct
 const SHIFT_WASTE_FIELDS = { labels: "label_waste", pouches: "pouch_waste", cartons: "carton_box_waste", film_m: "foil_waste" };
 
 export const shiftEntryWaste = ({ entries = [], dateStr, line, shift }) => {
+  const targetDay = String(dateStr || "").slice(0, 10);
   const match = (entries || []).find(
     (e) =>
-      e.shift_date === dateStr &&
+      String(e.shift_date || "").slice(0, 10) === targetDay &&
       (!line || upper(e.production_line) === upper(line)) &&
       (!shift || e.shift_type === shift)
   );

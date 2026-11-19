@@ -118,9 +118,9 @@ export async function loadProductionOrderOptions() {
   const rows = await safeRows(
     supabase
       .from("production_orders")
-      .select("id, order_number, product_code, product_name, machine, batch_codes, status, planned_date")
+      .select("id, order_number, product_code, product_name, machine, batch_codes, status, planned_start")
       .eq("deleted", false)
-      .order("planned_date", { ascending: false })
+      .order("planned_start", { ascending: false })
       .limit(300)
   );
   return rows

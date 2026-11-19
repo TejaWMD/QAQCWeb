@@ -361,16 +361,16 @@ export const runImport = async ({ user, fileName, entries, settings = {}, recipe
 
   for (const chunk of chunks(toCreate, 100)) {
     const records = chunk.map((entry) => entry.record);
-    await productService.bulkUpsertProducts(records).catch((e) => console.warn("Supabase bulk insert warning:", e));
+    await productService.bulkUpsertProducts(records);
     chunk.forEach((entry) => {
-      saved.push({ id: entry.existingId || entry.record.product_code, entry });
+      saved.push({ id: entry.existingId || "", entry });
       changes.push({ product_id: entry.record.product_code, action: "create", label: entry?.label || entry.record.product_name, fields: [] });
     });
   }
 
   for (const chunk of chunks(toUpdate, 100)) {
     const records = chunk.map((entry) => ({ id: entry.existingId, ...entry.record }));
-    await productService.bulkUpsertProducts(records).catch((e) => console.warn("Supabase bulk update warning:", e));
+    await productService.bulkUpsertProducts(records);
     chunk.forEach((entry) => {
       saved.push({ id: entry.existingId, entry });
       const fields = diffFields(entry.existing || {}, entry.record);
@@ -378,16 +378,22 @@ export const runImport = async ({ user, fileName, entries, settings = {}, recipe
     });
   }
 
+  // Resolve real database product IDs for newly created products before linking recipes
+  const allProductsAfter = await productService.getAllProducts().catch(() => []);
+  const idByCode = new Map(allProductsAfter.filter((p) => p.product_code).map((p) => [upper(p.product_code), p.id]));
+
   // One Recipe Master record per unique recipe name; products link to it.
   const { created: recipesCreated } = await ensureRecipeLinks({
-    products: saved.map(({ id, entry }) => ({
-      id,
-      recipe_name: entry.record.recipe_name,
-      cooking_time_hr: entry.record.cooking_time_hr,
-      batch_output_kg: entry.record.batch_output_kg,
-      product_code: entry.record.product_code,
-      product_name: entry.record.product_name,
-    })),
+    products: saved
+      .map(({ id, entry }) => ({
+        id: id || idByCode.get(upper(entry.record.product_code)) || "",
+        recipe_name: entry.record.recipe_name,
+        cooking_time_hr: entry.record.cooking_time_hr,
+        batch_output_kg: entry.record.batch_output_kg,
+        product_code: entry.record.product_code,
+        product_name: entry.record.product_name,
+      }))
+      .filter((p) => p.id),
     recipes,
     user,
   });

@@ -95,8 +95,11 @@ export default function GoodsReceiving() {
 
     let matchedProduct = null;
     for (const c of candidates) {
-      matchedProduct = await findProduct(c).catch(() => null);
-      if (matchedProduct) break;
+      const found = await findProduct(c).catch(() => null);
+      if (found?.product) {
+        matchedProduct = found.product;
+        break;
+      }
     }
 
     const patch = {

@@ -12,9 +12,11 @@ export default function LossTodayTile() {
       const today = todayStr();
       const [yields, reworks] = await Promise.all([loadBatchYields(), loadReworks()]);
       const yieldLoss = yields
-        .filter((r) => r.shift_date === today)
+        .filter((r) => String(r.shift_date || "").slice(0, 10) === today)
         .reduce((sum, r) => sum + Math.max(0, (r.input_kg || 0) - (r.output_kg || 0)), 0);
-      const rework = reworks.filter((r) => r.rework_date === today).reduce((sum, r) => sum + (r.quantity_kg || 0), 0);
+      const rework = reworks
+        .filter((r) => String(r.rework_date || "").slice(0, 10) === today)
+        .reduce((sum, r) => sum + (r.quantity_kg || 0), 0);
       setState({ loading: false, yieldLoss: Math.round(yieldLoss * 10) / 10, rework: Math.round(rework * 10) / 10 });
     })();
   }, []);

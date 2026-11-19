@@ -31,9 +31,9 @@ export default function WmsWarehouse() {
     item_name: '',
     batch_number: '',
     expiry_date: '',
-    carton: 0,
-    pcs_per_carton: 24,
-    loose_pcs: 0,
+    carton: '',
+    pcs_per_carton: '24',
+    loose_pcs: '',
     rack: DEFAULT_STAGING_AREA,
     goods_status: 'good',
   });
@@ -41,13 +41,23 @@ export default function WmsWarehouse() {
   // PL Out state
   const [plNumber, setPlNumber] = useState('');
   const [plPickItemId, setPlPickItemId] = useState('');
-  const [plCartons, setPlCartons] = useState(0);
-  const [plLoose, setPlLoose] = useState(0);
+  const [plCartons, setPlCartons] = useState('');
+  const [plLoose, setPlLoose] = useState('');
 
   // Stock Take state
   const [stockTakeName, setStockTakeName] = useState('');
   const [activeTake, setActiveTake] = useState<any | null>(null);
   const [takeItems, setTakeItems] = useState<any[]>([]);
+  const [takeForm, setTakeForm] = useState({
+    stock_item_id: '',
+    item_code: '',
+    item_name: '',
+    batch_number: '',
+    rack: DEFAULT_STAGING_AREA,
+    carton: '',
+    pcs_per_carton: '24',
+    loose_pcs: '',
+  });
   const [opts, setOpts] = useState<{ products: any[]; batches: any[]; openPls: any[] }>({
     products: [],
     batches: [],
@@ -55,17 +65,27 @@ export default function WmsWarehouse() {
   });
 
   const loadWms = async () => {
-    const [sRes, lRes, stRes, plRes, prods, bats] = await Promise.all([
+    const [sRes, lRes, stRes, plRes, prods, bats, takeRes] = await Promise.all([
       supabase.from('wms_stock_items').select('*').eq('deleted', false).neq('status', 'shipped').order('scanned_at', { ascending: false }),
       supabase.from('rack_lines').select('*').eq('deleted', false).order('sort_order'),
       supabase.from('staging_areas').select('*').eq('deleted', false).order('sort_order'),
       supabase.from('pl_outs').select('pl_number, status').eq('status', 'in_progress').order('created_at', { ascending: false }).limit(100),
       loadProductOptions(),
       loadBatchOptions(),
+      supabase.from('stock_takes').select('*').eq('status', 'in_progress').order('created_at', { ascending: false }).limit(1).maybeSingle(),
     ]);
     setStockItems(sRes.data || []);
     setRackLines(lRes.data || []);
     setStagingAreas(stRes.data || []);
+    if (takeRes.data) {
+      setActiveTake(takeRes.data);
+      const { data: tItems } = await supabase
+        .from('stock_take_items')
+        .select('*')
+        .eq('stock_take_id', takeRes.data.id)
+        .order('counted_at', { ascending: false });
+      setTakeItems(tItems || []);
+    }
     setOpts({
       products: prods,
       batches: bats,
@@ -124,9 +144,15 @@ export default function WmsWarehouse() {
     if (!scanForm.item_code || !scanForm.batch_number || !scanForm.expiry_date) {
       return toast.error('Item code, batch number, and expiry date are required.');
     }
-    const totalQty = scanForm.carton * scanForm.pcs_per_carton + scanForm.loose_pcs;
+    const cartonNum = Number(scanForm.carton) || 0;
+    const pcsPerCartonNum = Number(scanForm.pcs_per_carton) || 24;
+    const loosePcsNum = Number(scanForm.loose_pcs) || 0;
+    const totalQty = cartonNum * pcsPerCartonNum + loosePcsNum;
     const payload = {
       ...scanForm,
+      carton: cartonNum,
+      pcs_per_carton: pcsPerCartonNum,
+      loose_pcs: loosePcsNum,
       quantity: totalQty,
       status: scanForm.rack && scanForm.rack !== DEFAULT_STAGING_AREA ? 'stored' : 'received',
       scanned_at: new Date().toISOString(),
@@ -148,8 +174,9 @@ export default function WmsWarehouse() {
       scanned_at: payload.scanned_at,
     });
 
-    toast.success(`Stocked in ${formatQtyBreakdown(totalQty, scanForm.pcs_per_carton)} to ${scanForm.rack}`);
+    toast.success(`Stocked in ${formatQtyBreakdown(totalQty, pcsPerCartonNum)} to ${scanForm.rack}`);
     setQrInput('');
+    setScanForm((prev) => ({ ...prev, carton: '', loose_pcs: '' }));
     loadWms();
   };
 
@@ -180,7 +207,9 @@ export default function WmsWarehouse() {
     if (!item || !plNumber.trim()) return toast.error('Select a stock batch and enter PL Number.');
 
     try {
-      const result = computePickUpdate(item, plCartons, plLoose);
+      const cartonsNum = Number(plCartons) || 0;
+      const looseNum = Number(plLoose) || 0;
+      const result = computePickUpdate(item, cartonsNum, looseNum);
       let { data: plHeader } = await supabase
         .from('pl_outs')
         .select('*')
@@ -217,15 +246,15 @@ export default function WmsWarehouse() {
         item_name: item.item_name,
         batch_number: item.batch_number,
         rack: item.rack,
-        cartons: plCartons,
+        cartons: cartonsNum,
         pcs_per_carton: item.pcs_per_carton,
-        loose_pcs: plLoose,
+        loose_pcs: looseNum,
         total_pcs: result.picked_total_pcs,
       });
 
       toast.success(`Picked ${result.picked_total_pcs} pcs for PL ${plNumber}`);
-      setPlCartons(0);
-      setPlLoose(0);
+      setPlCartons('');
+      setPlLoose('');
       loadWms();
     } catch (err: any) {
       toast.error(err.message);
@@ -242,6 +271,35 @@ export default function WmsWarehouse() {
     setActiveTake(data);
     setTakeItems([]);
     toast.success('Stock take session started');
+  };
+
+  const handleAddStockTakeRow = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeTake) return;
+    if (!takeForm.item_code || !takeForm.batch_number) {
+      return toast.error('Select a batch or enter Item Code and Batch #.');
+    }
+    const cartonNum = Number(takeForm.carton) || 0;
+    const pcsPerCartonNum = Number(takeForm.pcs_per_carton) || 24;
+    const looseNum = Number(takeForm.loose_pcs) || 0;
+    const countedQty = cartonNum * pcsPerCartonNum + looseNum;
+    const payload = {
+      stock_take_id: activeTake.id,
+      item_code: takeForm.item_code,
+      item_name: takeForm.item_name,
+      batch_number: takeForm.batch_number,
+      rack: takeForm.rack || DEFAULT_STAGING_AREA,
+      carton: cartonNum,
+      pcs_per_carton: pcsPerCartonNum,
+      loose_pcs: looseNum,
+      quantity: countedQty,
+      counted_at: new Date().toISOString(),
+    };
+    const { data: inserted, error } = await supabase.from('stock_take_items').insert(payload).select().single();
+    if (error) return toast.error(error.message);
+    setTakeItems((prev) => [inserted, ...prev]);
+    setTakeForm((prev) => ({ ...prev, carton: '', loose_pcs: '' }));
+    toast.success(`Counted ${takeForm.item_code} · ${takeForm.batch_number}`);
   };
 
   return (
@@ -406,7 +464,7 @@ export default function WmsWarehouse() {
                     setScanForm({
                       ...scanForm,
                       item_code: v,
-                      ...(match ? { item_name: match.product_name, pcs_per_carton: Number(match.carton_size) || scanForm.pcs_per_carton } : {}),
+                      ...(match ? { item_name: match.product_name, pcs_per_carton: String(Number(match.carton_size) || scanForm.pcs_per_carton) } : {}),
                     });
                   }}
                   options={opts.products.map((p) => ({
@@ -424,7 +482,7 @@ export default function WmsWarehouse() {
                     setScanForm({
                       ...scanForm,
                       item_name: v,
-                      ...(match ? { item_code: match.product_code, pcs_per_carton: Number(match.carton_size) || scanForm.pcs_per_carton } : {}),
+                      ...(match ? { item_code: match.product_code, pcs_per_carton: String(Number(match.carton_size) || scanForm.pcs_per_carton) } : {}),
                     });
                   }}
                   options={opts.products.map((p) => ({
@@ -445,9 +503,9 @@ export default function WmsWarehouse() {
                   allowCustom
                 />
                 <Input type="date" value={scanForm.expiry_date} onChange={(e) => setScanForm({ ...scanForm, expiry_date: e.target.value })} />
-                <Input type="number" placeholder="Cartons" value={scanForm.carton} onChange={(e) => setScanForm({ ...scanForm, carton: Number(e.target.value) })} />
-                <Input type="number" placeholder="Pcs / Carton" value={scanForm.pcs_per_carton} onChange={(e) => setScanForm({ ...scanForm, pcs_per_carton: Number(e.target.value) })} />
-                <Input type="number" placeholder="Loose Pcs" value={scanForm.loose_pcs} onChange={(e) => setScanForm({ ...scanForm, loose_pcs: Number(e.target.value) })} />
+                <Input type="number" min={0} placeholder="Cartons" value={scanForm.carton} onChange={(e) => setScanForm({ ...scanForm, carton: e.target.value })} />
+                <Input type="number" min={1} placeholder="Pcs / Carton" value={scanForm.pcs_per_carton} onChange={(e) => setScanForm({ ...scanForm, pcs_per_carton: e.target.value })} />
+                <Input type="number" min={0} placeholder="Loose Pcs" value={scanForm.loose_pcs} onChange={(e) => setScanForm({ ...scanForm, loose_pcs: e.target.value })} />
                 <SearchableSelect
                   value={scanForm.rack}
                   onValueChange={(v) => setScanForm({ ...scanForm, rack: v })}
@@ -487,8 +545,8 @@ export default function WmsWarehouse() {
                     searchPlaceholder="Search batch or item..."
                   />
                 </div>
-                <Input type="number" min={0} placeholder="Cartons Out" value={plCartons} onChange={(e) => setPlCartons(Number(e.target.value))} />
-                <Input type="number" min={0} placeholder="Loose Pcs Out" value={plLoose} onChange={(e) => setPlLoose(Number(e.target.value))} />
+                <Input type="number" min={0} placeholder="Cartons Out" value={plCartons} onChange={(e) => setPlCartons(e.target.value)} />
+                <Input type="number" min={0} placeholder="Loose Pcs Out" value={plLoose} onChange={(e) => setPlLoose(e.target.value)} />
                 <Button type="submit" className="md:col-span-5">Deduct Pick from Stock</Button>
               </form>
             </CardContent>
@@ -505,13 +563,13 @@ export default function WmsWarehouse() {
                   <Button onClick={handleStartStockTake}>Start Count Session</Button>
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <Badge>Active: {activeTake.name}</Badge>
                     <Button
                       size="sm"
                       onClick={async () => {
-                        await supabase.from('stock_takes').update({ status: 'completed' }).eq('id', activeTake.id);
+                        await supabase.from('stock_takes').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', activeTake.id);
                         toast.success('Stock take completed');
                         setActiveTake(null);
                       }}
@@ -519,7 +577,85 @@ export default function WmsWarehouse() {
                       Complete Session
                     </Button>
                   </div>
+
+                  <form onSubmit={handleAddStockTakeRow} className="grid grid-cols-1 md:grid-cols-6 gap-2 items-end border rounded-lg p-3">
+                    <div className="md:col-span-2">
+                      <SearchableSelect
+                        value={takeForm.stock_item_id}
+                        onValueChange={(v) => {
+                          const picked = stockItems.find((s) => s.id === v);
+                          if (picked) {
+                            setTakeForm({
+                              stock_item_id: v,
+                              item_code: picked.item_code || '',
+                              item_name: picked.item_name || '',
+                              batch_number: picked.batch_number || '',
+                              rack: picked.rack || DEFAULT_STAGING_AREA,
+                              carton: String(picked.carton ?? ''),
+                              pcs_per_carton: String(picked.pcs_per_carton || 24),
+                              loose_pcs: String(picked.loose_pcs ?? ''),
+                            });
+                          }
+                        }}
+                        options={stockItems.map((s) => ({
+                          value: s.id,
+                          label: `${s.item_code} · ${s.batch_number} (${s.rack || DEFAULT_STAGING_AREA})`,
+                          sublabel: `${s.carton} ctn + ${s.loose_pcs} loose`,
+                        }))}
+                        placeholder="Quick-fill from stock batch..."
+                        searchPlaceholder="Search batch or item..."
+                      />
+                    </div>
+                    <SearchableSelect
+                      value={takeForm.rack}
+                      onValueChange={(v) => setTakeForm({ ...takeForm, rack: v })}
+                      options={rackOptions}
+                      placeholder="Rack"
+                    />
+                    <Input
+                      type="number"
+                      min={0}
+                      placeholder="Counted Cartons"
+                      value={takeForm.carton}
+                      onChange={(e) => setTakeForm({ ...takeForm, carton: e.target.value })}
+                    />
+                    <Input
+                      type="number"
+                      min={0}
+                      placeholder="Loose Pcs"
+                      value={takeForm.loose_pcs}
+                      onChange={(e) => setTakeForm({ ...takeForm, loose_pcs: e.target.value })}
+                    />
+                    <Button type="submit">
+                      <Plus className="w-4 h-4 mr-1" /> Add Count
+                    </Button>
+                  </form>
+
                   <p className="text-xs text-slate-500">Counted rows: {takeItems.length}</p>
+                  {takeItems.length > 0 && (
+                    <div className="border rounded-md overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-slate-50 border-b">
+                          <tr>
+                            <th className="text-left p-2.5">Item</th>
+                            <th className="text-left p-2.5">Batch</th>
+                            <th className="text-left p-2.5">Rack</th>
+                            <th className="text-right p-2.5">Counted Qty</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                          {takeItems.map((ti) => (
+                            <tr key={ti.id}>
+                              <td className="p-2.5 font-medium">{ti.item_code} — {ti.item_name}</td>
+                              <td className="p-2.5 font-mono">{ti.batch_number}</td>
+                              <td className="p-2.5">{ti.rack}</td>
+                              <td className="p-2.5 text-right font-mono">{formatQtyBreakdown(ti.quantity, ti.pcs_per_carton)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>

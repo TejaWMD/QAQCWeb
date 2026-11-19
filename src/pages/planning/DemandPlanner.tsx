@@ -122,25 +122,41 @@ export default function DemandPlanner() {
       });
 
       const baseSeq = (existingOrders?.length || 0) + 1;
+      const priorityMap: Record<string, string> = {
+        critical: 'Urgent',
+        high: 'High',
+        medium: 'Normal',
+        low: 'Low',
+      };
+      let cursorMs = new Date(`${productionDate}T08:00:00`).getTime();
+      if (Number.isNaN(cursorMs)) cursorMs = Date.now();
+
       const inserts = plannedOrders.ordered.map((item, idx) => {
         const batchNo = generateBatchNumber(item.row.batchPrefix, productionDate, usedBatches);
         usedBatches.push(batchNo);
         const orderNo = `PO${productionDate.replace(/-/g, '').slice(2, 6)}${String(baseSeq + idx).padStart(3, '0')}`;
+        const runMins = Math.max(30, Math.round((item.run_time_hours || 1) * 60));
+        const startIso = new Date(cursorMs).toISOString();
+        const endIso = new Date(cursorMs + runMins * 60000).toISOString();
+        cursorMs += runMins * 60000;
+        const batchCtns = item.row.netFillingKgPerCarton > 0
+          ? Math.round(item.row.batchOutputKg / item.row.netFillingKgPerCarton)
+          : item.cartons;
+
         return {
           order_number: orderNo,
           product_id: item.row.productId,
           product_code: item.row.productCode,
           product_name: item.row.productName,
-          planned_cartons: item.cartons,
-          pcs_per_carton: item.row.pcsPerCarton,
-          planned_qty: item.cartons * item.row.pcsPerCarton,
-          planned_kg: item.planned_kg,
-          batches_count: item.batches,
+          quantity_cartons: item.cartons,
+          batch_cartons: batchCtns,
+          batches: item.batches,
           batch_codes: [batchNo],
-          run_time_hours: item.run_time_hours,
-          priority: item.priority,
+          priority: priorityMap[item.priority] || 'Normal',
           status: 'Planned',
-          planned_start: `${productionDate}T08:00:00`,
+          planned_start: startIso,
+          planned_end: endIso,
+          deleted: false,
         };
       });
 
@@ -259,12 +275,18 @@ export default function DemandPlanner() {
                       className="w-24 ml-auto text-right"
                       value={selectedQty[r.productId] ?? ''}
                       placeholder="0"
-                      onChange={(e) =>
-                        setSelectedQty((prev) => ({
-                          ...prev,
-                          [r.productId]: Math.max(0, Number(e.target.value) || 0),
-                        }))
-                      }
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        setSelectedQty((prev) => {
+                          const next = { ...prev };
+                          if (raw === '') {
+                            delete next[r.productId];
+                          } else {
+                            next[r.productId] = Math.max(0, Number(raw));
+                          }
+                          return next;
+                        });
+                      }}
                     />
                   </td>
                 </tr>

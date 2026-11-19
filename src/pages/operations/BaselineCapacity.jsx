@@ -176,7 +176,7 @@ export default function BaselineCapacity() {
                     <th className="px-3 py-3 font-medium sticky top-0 z-20 bg-slate-50">Thermal</th>
                     <th className="px-3 py-3 font-medium sticky top-0 z-20 bg-slate-50">Line Setup</th>
                     <th className="px-3 py-3 font-medium sticky top-0 z-20 bg-slate-50">Config Type</th>
-                    <th className="px-3 py-3 font-medium text-right sticky top-0 z-20 bg-[#fff7d6]">Pcs / Carton</th>
+                    <th className="px-3 py-3 font-medium text-right sticky top-0 z-20 bg-slate-50">Pcs / Carton</th>
                     <th className="px-3 py-3 font-medium sticky top-0 z-20 bg-slate-50">Next Step</th>
                     <th className="px-3 py-3 font-medium text-right sticky top-0 z-20 bg-slate-50">Setup (min)</th>
                     <th className="px-3 py-3 font-medium text-right sticky top-0 z-20 bg-slate-50">Downtime (min)</th>
@@ -197,7 +197,7 @@ export default function BaselineCapacity() {
                       <td className="px-3 py-3 text-slate-600">{r.thermal_state || "—"}</td>
                       <td className="px-3 py-3 text-slate-600">{r.line_setup || "—"}</td>
                       <td className="px-3 py-3 text-slate-600">{r.packaging_config_type || "—"}</td>
-                      <td className="px-3 py-3 text-right font-semibold text-slate-700 bg-[#fff7d6]">{pcsPerCarton(r.product_name) || "—"}</td>
+                      <td className="px-3 py-3 text-right font-semibold text-sky-600">{pcsPerCarton(r.product_name) || "—"}</td>
                       <td className="px-3 py-3 text-slate-600">{r.next_step || "—"}</td>
                       <td className="px-3 py-3 text-right text-slate-700">{or(r.machine_setup_time_min)}</td>
                       <td className="px-3 py-3 text-right text-slate-700">{or(r.acceptable_downtime_min)}</td>

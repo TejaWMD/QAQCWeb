@@ -23,7 +23,7 @@ export default function InLineRow({ line, items, racks, defaultRack, onChange, o
         <div className="col-span-2 sm:col-span-3 space-y-1">
           <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Item *</label>
           <Select
-            value={line.item_id || ""}
+            value={line.item_id || undefined}
             onValueChange={(v) => {
               const picked = items.find((i) => i.id === v);
               onChange({ item_id: v, rack_location: line.rack_location || picked?.default_rack || defaultRack || "" });
@@ -47,7 +47,7 @@ export default function InLineRow({ line, items, racks, defaultRack, onChange, o
         </div>
         <div className="space-y-1">
           <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Rack *</label>
-          <Select value={line.rack_location || ""} onValueChange={(v) => onChange({ rack_location: v })}>
+          <Select value={line.rack_location || undefined} onValueChange={(v) => onChange({ rack_location: v })}>
             <SelectTrigger className={FIELD}><SelectValue placeholder="Select rack" /></SelectTrigger>
             <SelectContent>
               {racks.map((r) => <SelectItem key={r.id} value={r.rack_code}>{r.rack_code}{r.zone ? ` · ${r.zone}` : ""}</SelectItem>)}

@@ -155,7 +155,7 @@ export default function OrderDetailDialog({ order, products = [], recipes = [], 
         {(risks.materialsShort.length > 0 || risks.packagingShort.length > 0) && (
           <div className="rounded-lg border border-rose-300 bg-rose-600/10 p-3 flex gap-2">
             <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-            <p className="text-xs text-[#ff8a8a]">
+            <p className="text-xs text-rose-600">
               Short on {[...risks.materialsShort, ...risks.packagingShort].map((r) => r.name).join(", ")}. Materials are compared with goods received in the warehouse.
             </p>
           </div>

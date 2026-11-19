@@ -4,9 +4,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
-import { todayStr } from "@/lib/warehouse";
 import {
-  BATCH_PATTERN_DEFAULT, BATCH_PATTERN_TOKENS, buildBatchCodes, saveProductionSettings,
+  BATCH_PATTERN_DEFAULT, buildBatchCodes, saveProductionSettings,
 } from "@/lib/production";
 import { inputClass, primaryButton, subtleButton, labelClass } from "@/components/planning/styles";
 

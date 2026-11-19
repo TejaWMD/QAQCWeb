@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { toast } from 'sonner';
-import { ShoppingCart, Truck, Users, Plus, ArrowRight } from 'lucide-react';
+import { ShoppingCart, Truck, Users, Plus, ArrowRight, Trash2 } from 'lucide-react';
 import { loadMaterialAndPackagingOptions, loadUnitOptions } from '@/lib/masterOptions';
 
 export default function Procurement() {
@@ -17,8 +17,8 @@ export default function Procurement() {
   const [materials, setMaterials] = useState<any[]>([]);
   const [units, setUnits] = useState<any[]>([]);
 
-  const [newSup, setNewSup] = useState({ name: '', contact_person: '', phone: '', lead_time_days: 7 });
-  const [newPr, setNewPr] = useState({ material_name: '', required_quantity: 100, unit: 'pcs', supplier_id: '' });
+  const [newSup, setNewSup] = useState<Record<string, any>>({ name: '', contact_person: '', phone: '', lead_time_days: '7' });
+  const [newPr, setNewPr] = useState<Record<string, any>>({ material_name: '', required_quantity: '100', unit: 'pcs', supplier_id: '' });
 
   const loadAll = async () => {
     const [s, r, o, mats, u] = await Promise.all([
@@ -41,27 +41,37 @@ export default function Procurement() {
 
   const addSupplier = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newSup.name.trim()) return;
-    const { error } = await supabase.from('suppliers').insert(newSup);
+    if (!newSup.name.trim()) return toast.error('Supplier name is required.');
+    const { error } = await supabase.from('suppliers').insert({
+      name: newSup.name.trim(),
+      contact_person: newSup.contact_person || '',
+      phone: newSup.phone || '',
+      lead_time_days: Number(newSup.lead_time_days) || 7,
+      deleted: false,
+    });
     if (error) return toast.error(error.message);
     toast.success('Supplier added');
-    setNewSup({ name: '', contact_person: '', phone: '', lead_time_days: 7 });
+    setNewSup({ name: '', contact_person: '', phone: '', lead_time_days: '7' });
     loadAll();
   };
 
   const addPr = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newPr.material_name.trim()) return;
+    if (!newPr.material_name.trim()) return toast.error('Select or enter a material.');
     const sup = suppliers.find((s) => s.id === newPr.supplier_id);
     const { error } = await supabase.from('purchase_requests').insert({
-      ...newPr,
+      material_name: newPr.material_name.trim(),
+      required_quantity: Number(newPr.required_quantity) || 1,
+      unit: newPr.unit || 'pcs',
+      supplier_id: newPr.supplier_id || null,
       supplier_name: sup?.name || '',
       lead_time_days: sup?.lead_time_days || 7,
       status: 'pending',
+      deleted: false,
     });
     if (error) return toast.error(error.message);
     toast.success('Purchase Request created');
-    setNewPr({ material_name: '', required_quantity: 100, unit: 'pcs', supplier_id: '' });
+    setNewPr({ material_name: '', required_quantity: '100', unit: 'pcs', supplier_id: '' });
     loadAll();
   };
 
@@ -73,9 +83,10 @@ export default function Procurement() {
       material_name: pr.material_name,
       quantity: pr.required_quantity,
       unit: pr.unit,
-      supplier_id: pr.supplier_id,
-      supplier_name: pr.supplier_name,
+      supplier_id: pr.supplier_id || null,
+      supplier_name: pr.supplier_name || '',
       status: 'pending',
+      deleted: false,
     });
     if (poErr) return toast.error(poErr.message);
 
@@ -88,6 +99,13 @@ export default function Procurement() {
     const { error } = await supabase.from('purchase_orders').update({ status }).eq('id', poId);
     if (error) return toast.error(error.message);
     toast.success(`PO marked as ${status}`);
+    loadAll();
+  };
+
+  const deleteRecord = async (table: 'purchase_requests' | 'purchase_orders' | 'suppliers', id: string) => {
+    const { error } = await supabase.from(table).update({ deleted: true }).eq('id', id);
+    if (error) return toast.error(error.message);
+    toast.success('Record removed');
     loadAll();
   };
 
@@ -130,9 +148,10 @@ export default function Procurement() {
                 />
                 <Input
                   type="number"
+                  min="0"
                   placeholder="Qty"
                   value={newPr.required_quantity}
-                  onChange={(e) => setNewPr({ ...newPr, required_quantity: Number(e.target.value) })}
+                  onChange={(e) => setNewPr({ ...newPr, required_quantity: e.target.value })}
                 />
                 <SearchableSelect
                   value={newPr.unit}
@@ -168,18 +187,23 @@ export default function Procurement() {
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {requests.map((pr) => (
+                  {requests.length === 0 ? (
+                    <tr><td colSpan={5} className="p-6 text-center text-slate-500">No purchase requests yet.</td></tr>
+                  ) : requests.map((pr) => (
                     <tr key={pr.id}>
                       <td className="p-3 font-medium">{pr.material_name}</td>
                       <td className="p-3 text-right">{pr.required_quantity} {pr.unit}</td>
                       <td className="p-3">{pr.supplier_name || '-'}</td>
                       <td className="p-3 text-center"><Badge variant="outline">{pr.status}</Badge></td>
-                      <td className="p-3 text-right">
+                      <td className="p-3 text-right space-x-2">
                         {pr.status === 'pending' && (
                           <Button size="sm" variant="outline" onClick={() => convertPrToPo(pr)}>
                             <ArrowRight className="w-4 h-4 mr-1" /> Convert to PO
                           </Button>
                         )}
+                        <Button size="sm" variant="ghost" className="text-rose-500" onClick={() => deleteRecord('purchase_requests', pr.id)}>
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </td>
                     </tr>
                   ))}
@@ -204,7 +228,9 @@ export default function Procurement() {
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {orders.map((po) => (
+                  {orders.length === 0 ? (
+                    <tr><td colSpan={6} className="p-6 text-center text-slate-500">No purchase orders yet.</td></tr>
+                  ) : orders.map((po) => (
                     <tr key={po.id}>
                       <td className="p-3 font-mono font-semibold">{po.po_number}</td>
                       <td className="p-3">{po.material_name}</td>
@@ -222,6 +248,9 @@ export default function Procurement() {
                             Mark Received
                           </Button>
                         )}
+                        <Button size="sm" variant="ghost" className="text-rose-500" onClick={() => deleteRecord('purchase_orders', po.id)}>
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </td>
                     </tr>
                   ))}
@@ -239,7 +268,7 @@ export default function Procurement() {
                 <Input placeholder="Supplier name" value={newSup.name} onChange={(e) => setNewSup({ ...newSup, name: e.target.value })} />
                 <Input placeholder="Contact person" value={newSup.contact_person} onChange={(e) => setNewSup({ ...newSup, contact_person: e.target.value })} />
                 <Input placeholder="Phone" value={newSup.phone} onChange={(e) => setNewSup({ ...newSup, phone: e.target.value })} />
-                <Input type="number" placeholder="Lead time (days)" value={newSup.lead_time_days} onChange={(e) => setNewSup({ ...newSup, lead_time_days: Number(e.target.value) })} />
+                <Input type="number" min="0" placeholder="Lead time (days)" value={newSup.lead_time_days} onChange={(e) => setNewSup({ ...newSup, lead_time_days: e.target.value })} />
                 <Button type="submit"><Plus className="w-4 h-4 mr-1" /> Add</Button>
               </form>
             </CardContent>
@@ -253,15 +282,23 @@ export default function Procurement() {
                     <th className="text-left p-3">Contact</th>
                     <th className="text-left p-3">Phone</th>
                     <th className="text-right p-3">Lead Time</th>
+                    <th className="text-right p-3">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {suppliers.map((s) => (
+                  {suppliers.length === 0 ? (
+                    <tr><td colSpan={5} className="p-6 text-center text-slate-500">No suppliers added yet.</td></tr>
+                  ) : suppliers.map((s) => (
                     <tr key={s.id}>
                       <td className="p-3 font-medium">{s.name}</td>
                       <td className="p-3">{s.contact_person || '-'}</td>
                       <td className="p-3">{s.phone || '-'}</td>
                       <td className="p-3 text-right">{s.lead_time_days} days</td>
+                      <td className="p-3 text-right">
+                        <Button size="sm" variant="ghost" className="text-rose-500" onClick={() => deleteRecord('suppliers', s.id)}>
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

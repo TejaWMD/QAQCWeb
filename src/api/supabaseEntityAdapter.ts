@@ -54,7 +54,7 @@ export const ENTITY_TABLE_MAP: Record<string, string> = {
   StockTakeItem: 'stock_take_items',
   Supplier: 'suppliers',
   Task: 'tasks',
-  User: 'profiles',
+  User: 'users',
   UserInvite: 'user_invites',
   WarehouseItem: 'warehouse_items',
   WarehouseRack: 'warehouse_racks',
@@ -81,17 +81,63 @@ function mapSortField(sortField?: string): { column: string; ascending: boolean 
   return { column, ascending };
 }
 
+const DATE_ONLY_COLS = new Set([
+  'shift_date',
+  'production_date',
+  'expiry_date',
+  'due_date',
+  'check_date',
+  'waste_date',
+  'rework_date',
+  'movement_date',
+  'date_received',
+  'ot_date',
+  'date',
+  'effective_date',
+  'needed_by_date',
+  'arrival_date',
+  'exp_date',
+  'order_date',
+  'expected_delivery',
+  'scheduled_date',
+]);
+
+const TIME_ONLY_COLS = new Set([
+  'start_time',
+  'end_time',
+  'scheduled_time',
+  'check_time',
+]);
+
 function normalizeRow(row: Record<string, any> | null): any {
   if (!row) return row;
-  return {
+  const out: Record<string, any> = {
     ...row,
     created_date: row.created_date ?? row.created_at,
     updated_date: row.updated_date ?? row.updated_at,
   };
+  if (out.name !== undefined && out.full_name === undefined) {
+    out.full_name = out.name;
+  }
+  if (out.description !== undefined && out.name === undefined) {
+    out.name = out.description;
+  }
+  for (const col of DATE_ONLY_COLS) {
+    if (typeof out[col] === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(out[col])) {
+      out[col] = out[col].slice(0, 10);
+    }
+  }
+  for (const col of TIME_ONLY_COLS) {
+    if (typeof out[col] === 'string' && /^\d{4}-\d{2}-\d{2}T(\d{2}:\d{2})/.test(out[col])) {
+      const m = out[col].match(/T(\d{2}:\d{2})/);
+      if (m) out[col] = m[1];
+    }
+  }
+  return out;
 }
 
 // Date / timestamp columns reject "" in Postgres, so blank form values become NULL.
-const DATE_KEY = /(_date|_at|_datetime)$/;
+const DATE_KEY = /(_date|_at|_datetime|_time|^date$)$/;
 
 function stripVirtualFields(data: Record<string, any>): Record<string, any> {
   const clean: Record<string, any> = { ...data };
@@ -102,6 +148,22 @@ function stripVirtualFields(data: Record<string, any>): Record<string, any> {
     else if (clean[key] === '' && DATE_KEY.test(key)) clean[key] = null;
   }
   return clean;
+}
+
+function coerceTimeColumnsToIso(payload: Record<string, any>): Record<string, any> {
+  const next = { ...payload };
+  const baseDate =
+    (typeof next.shift_date === 'string' && next.shift_date.slice(0, 10)) ||
+    (typeof next.check_date === 'string' && next.check_date.slice(0, 10)) ||
+    (typeof next.ot_date === 'string' && next.ot_date.slice(0, 10)) ||
+    new Date().toISOString().slice(0, 10);
+  for (const col of TIME_ONLY_COLS) {
+    if (typeof next[col] === 'string' && /^\d{1,2}:\d{2}(:\d{2})?$/.test(next[col].trim())) {
+      const hm = next[col].trim().slice(0, 5).padStart(5, '0');
+      next[col] = `${baseDate}T${hm}:00Z`;
+    }
+  }
+  return next;
 }
 
 const colName = (key: string) =>
@@ -181,7 +243,9 @@ function applyQueryFilters(qb: any, query: Record<string, any> = {}) {
     const col = colName(key);
     if (val === null) q = q.is(col, null);
     else if (typeof val === 'object' && !Array.isArray(val)) q = applyOperators(q, col, val);
-    else q = q.eq(col, val);
+    else if (DATE_ONLY_COLS.has(col) && typeof val === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(val)) {
+      q = q.gte(col, `${val}T00:00:00`).lte(col, `${val}T23:59:59.999Z`);
+    } else q = q.eq(col, val);
   }
   return q;
 }
@@ -279,15 +343,47 @@ export function createSupabaseEntity(entityName: string) {
     },
 
     async create(payload: Record<string, any>) {
-      const clean = stripVirtualFields(payload);
+      let clean = stripVirtualFields(payload);
+      for (let attempt = 0; attempt < 4; attempt++) {
+        const { data, error } = await supabase.from(table).insert(clean).select().single();
+        if (!error) return normalizeRow(data);
+        const missingMatch = error.message?.match(/Could not find the '([^']+)' column/);
+        if (missingMatch && missingMatch[1] in clean) {
+          const next = { ...clean };
+          delete next[missingMatch[1]];
+          clean = next;
+          continue;
+        }
+        if (/invalid input syntax for type timestamp/i.test(error.message || '')) {
+          clean = coerceTimeColumnsToIso(clean);
+          continue;
+        }
+        throw new Error(`[Supabase:${table}] create failed: ${error.message}`);
+      }
       const { data, error } = await supabase.from(table).insert(clean).select().single();
       if (error) throw new Error(`[Supabase:${table}] create failed: ${error.message}`);
       return normalizeRow(data);
     },
 
     async update(id: string, payload: Record<string, any>) {
-      const clean = stripVirtualFields({ ...payload, updated_at: new Date().toISOString() });
+      let clean = stripVirtualFields({ ...payload, updated_at: new Date().toISOString() });
       delete clean.id;
+      for (let attempt = 0; attempt < 4; attempt++) {
+        const { data, error } = await supabase.from(table).update(clean).eq('id', id).select().single();
+        if (!error) return normalizeRow(data);
+        const missingMatch = error.message?.match(/Could not find the '([^']+)' column/);
+        if (missingMatch && missingMatch[1] in clean) {
+          const next = { ...clean };
+          delete next[missingMatch[1]];
+          clean = next;
+          continue;
+        }
+        if (/invalid input syntax for type timestamp/i.test(error.message || '')) {
+          clean = coerceTimeColumnsToIso(clean);
+          continue;
+        }
+        throw new Error(`[Supabase:${table}] update failed: ${error.message}`);
+      }
       const { data, error } = await supabase.from(table).update(clean).eq('id', id).select().single();
       if (error) throw new Error(`[Supabase:${table}] update failed: ${error.message}`);
       return normalizeRow(data);

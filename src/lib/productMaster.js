@@ -1,7 +1,7 @@
 // Shared logic for the Product Master datasheet: master lists, calculations,
 // barcode / customer cleaning, completeness rules and field-level audit.
 import { base44 } from "@/api/base44Client";
-import { actingUserName, appRoleOf, isAdminUser } from "@/lib/permissions";
+import { actingUserName, appRoleOf, canAccess, isAdminUser } from "@/lib/permissions";
 import { eventStamp } from "@/lib/warehouse";
 
 export const PRODUCT_SETTINGS_KEY = "product_master";
@@ -36,13 +36,16 @@ export const FIELD_LABELS = {
   channels: "Customer",
 };
 
-// Who may change what on the master (import and bulk edits stay with Admin).
-export const canManageProducts = (user) => isAdminUser(user);
+// Who may change what on the master.
+export const canManageProducts = (user) =>
+  isAdminUser(user) ||
+  canAccess(user, "product_master") ||
+  ["manager", "supervisor", "qa_officer"].includes(appRoleOf(user));
 export const canEditProductSensitive = (user) =>
-  isAdminUser(user) || appRoleOf(user) === "qa_officer";
+  canManageProducts(user) || appRoleOf(user) === "qa_officer";
 export const SENSITIVE_FIELDS = ["shelf_life_months", "shelf_life_days", "barcode", "carton_barcode"];
 export const canEditProductField = (user, field) =>
-  isAdminUser(user) || (appRoleOf(user) === "qa_officer" && SENSITIVE_FIELDS.includes(field));
+  canManageProducts(user) || (appRoleOf(user) === "qa_officer" && SENSITIVE_FIELDS.includes(field));
 
 export const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 export const round1 = (v) => Math.round(num(v) * 10) / 10;
@@ -101,7 +104,10 @@ export const mergeNames = (list = [], names = []) => {
 };
 
 export const activeNames = (list = []) =>
-  list.filter((row) => (row.status || "Active") === "Active").map((row) => row.name);
+  (Array.isArray(list) ? list : [])
+    .filter((row) => typeof row === "string" || ((row?.status || "Active") === "Active" && row?.active !== false))
+    .map((row) => (typeof row === "string" ? row : row?.name))
+    .filter(Boolean);
 
 // ---- legacy helpers kept so older screens keep working ----------------------
 export const parseSize = (value, unit) => {

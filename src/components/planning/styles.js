@@ -10,4 +10,4 @@ export const dialogClass = "bg-white border-[#E2E8F0] text-[#0F294A] max-w-2xl m
 
 export const primaryButton = "bg-[#0F294A] hover:bg-[#193B68] text-white font-semibold";
 
-export const subtleButton = "border-[#E2E8F0] bg-white text-[#475569] hover:bg-[#F1F5F9] hover:text-[#0F294A]";
+export const subtleButton = "border-[#adc2db] bg-white text-[#0F294A] hover:bg-[#F1F5F9] hover:text-[#0F294A]";

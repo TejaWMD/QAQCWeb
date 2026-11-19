@@ -10,10 +10,10 @@ const TOTAL_PX = 24 * HOUR_PX;
 const HOURS = Array.from({ length: 25 }, (_, i) => i);
 
 const BLOCK_STYLES = {
-  Planned: "bg-[#EBF3FF] border-[#BFD7FF] text-[#d8fbff]",
-  "In Progress": "bg-amber-50 border-amber-300 text-[#ffe3c4]",
-  Completed: "bg-emerald-50 border-emerald-300 text-[#d8ffe9]",
-  Cancelled: "bg-[#3a4560]/30 border-[#3a4560] text-[#8b96a8] line-through",
+  Planned: "bg-sky-500/20 border-sky-400/50 text-sky-100",
+  "In Progress": "bg-amber-500/20 border-amber-400/50 text-amber-100",
+  Completed: "bg-emerald-500/20 border-emerald-400/50 text-emerald-100",
+  Cancelled: "bg-slate-700/40 border-slate-600 text-slate-400 line-through",
 };
 
 const endMinuteOf = (order) => {

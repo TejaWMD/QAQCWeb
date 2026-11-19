@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Clock, CheckCircle2, XCircle, Undo2 } from "lucide-react";
+import { Clock, CheckCircle2, XCircle, Undo2, Paperclip } from "lucide-react";
 import { TYPE_STYLES, requestSummary } from "@/lib/requestConstants";
 
 const eventStamp = () => {
@@ -22,10 +22,21 @@ const DECISIONS = {
 // Owner decision dialog: Approve, Reject or Return with a comment (required
 // for Reject and Return). Records who decided and when, and blocks the
 // requester from deciding on their own request.
-export default function RequestDecisionDialog({ open, onOpenChange, request, user }) {
+export default function RequestDecisionDialog({ open, onOpenChange, request, user, onSaved }) {
   const [comment, setComment] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
+  const openEvidence = async (file) => {
+    try {
+      const uri = typeof file === "string" ? file : file?.uri || file?.file_uri;
+      if (!uri) return;
+      const { signed_url } = await base44.integrations.Core.CreateFileSignedUrl({ file_uri: uri });
+      if (signed_url) window.open(signed_url, "_blank", "noopener,noreferrer");
+    } catch {
+      // ignore
+    }
+  };
 
   useEffect(() => {
     if (open) {
@@ -75,6 +86,7 @@ export default function RequestDecisionDialog({ open, onOpenChange, request, use
       } catch {
         // An audit write must never block the decision.
       }
+      await onSaved?.();
       onOpenChange(false);
     } catch (err) {
       setError(err?.message || "Could not record the decision. Please try again.");
@@ -104,6 +116,21 @@ export default function RequestDecisionDialog({ open, onOpenChange, request, use
             <p className="text-[#64748B] text-xs">Previous decision comment: {request.decision_comment}</p>
           )}
           <p className="text-[#64748B] text-xs">Current status: {request.status}</p>
+          {(request.evidence_files || []).length > 0 && (
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {request.evidence_files.map((f, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => openEvidence(f)}
+                  className="inline-flex items-center gap-1 text-xs text-[#1D4ED8] hover:underline border border-[#E2E8F0] rounded px-2 py-0.5"
+                >
+                  <Paperclip className="w-3 h-3" />
+                  {typeof f === "object" && f?.name ? f.name : `Attachment ${idx + 1}`}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         <div className="space-y-1.5">
           <Label className="text-xs text-[#64748B]">Comment (required to Reject or Return)</Label>

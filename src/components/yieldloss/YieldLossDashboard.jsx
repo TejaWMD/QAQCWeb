@@ -40,7 +40,10 @@ export default function YieldLossDashboard({ settings }) {
 
   const view = useMemo(() => {
     if (!raw) return null;
-    const inRange = (dateStr) => (!filters.from || dateStr >= filters.from) && (!filters.to || dateStr <= filters.to);
+    const inRange = (dateStr) => {
+      const day = String(dateStr || "").slice(0, 10);
+      return (!filters.from || day >= filters.from) && (!filters.to || day <= filters.to);
+    };
     const lineOk = (line) => filters.line === "all" || line === filters.line;
     const shiftOk = (shift) => filters.shift === "all" || shift === filters.shift;
 
@@ -58,7 +61,7 @@ export default function YieldLossDashboard({ settings }) {
     }, {})).map((row) => ({ name: row.name, Yield: Math.round(avg(row.actual) * 10) / 10, Standard: Math.round(avg(row.standard) * 10) / 10 }));
 
     const byDay = Object.values(yields.reduce((acc, r) => {
-      const key = r.shift_date || "";
+      const key = String(r.shift_date || "").slice(0, 10);
       acc[key] = acc[key] || { name: key.slice(5), values: [] };
       acc[key].values.push(num(r.yield_pct));
       return acc;

@@ -52,7 +52,7 @@ export default function ProductMaster() {
       loadPackagingItems(),
       loadRecipes(),
       loadProductSettings(),
-      Promise.resolve([]),
+      base44.entities.ProductImport.list("-imported_at", 100).catch(() => []),
     ]);
     setProducts(Array.isArray(productRows) ? productRows : []);
     setMachines(machineRows);

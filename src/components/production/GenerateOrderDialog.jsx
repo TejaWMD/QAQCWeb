@@ -68,8 +68,9 @@ export default function GenerateOrderDialog({
         const machine = suggestedMachine(product, machines) || machines[0] || null;
         const cph = capacityOf(machine, settings);
         const batches = batchCount(product, cartons) || 1;
-        const cookingHours = recipe?.cooking_time_hours
-          ? Number((num(recipe.cooking_time_hours) * batches).toFixed(1))
+        const unitCookHr = num(recipe?.cooking_time_hr) || num(recipe?.cooking_time_hours) || num(product?.cooking_time_hr);
+        const cookingHours = unitCookHr > 0
+          ? Number((unitCookHr * batches).toFixed(1))
           : Number(((runMinutes(cartons, cph) || 60) / 60).toFixed(1));
         const requiredKg = Number((cartons * (num(product.net_filling_kg) || 0)).toFixed(1));
         return {
@@ -198,8 +199,9 @@ export default function GenerateOrderDialog({
               const product = products.find((p) => p.id === row.productId) || null;
               const recipe = product ? recipeOf(recipes, product) : null;
               const batches = product && num(row.cartons) > 0 ? (batchCount(product, row.cartons) || 1) : 0;
-              const hrs = batches && recipe?.cooking_time_hours
-                ? (num(recipe.cooking_time_hours) * batches).toFixed(1)
+              const unitCookHr = num(recipe?.cooking_time_hr) || num(recipe?.cooking_time_hours) || num(product?.cooking_time_hr);
+              const hrs = batches && unitCookHr > 0
+                ? (unitCookHr * batches).toFixed(1)
                 : batches ? (batches * 1.3).toFixed(1) : null;
               return (
                 <div key={row.key} className="grid grid-cols-1 sm:grid-cols-[1fr_140px_140px_auto] gap-2 items-end">

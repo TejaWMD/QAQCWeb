@@ -60,7 +60,7 @@ const stampOn = (dateStr, timeStr) => {
 // that window falls on the batch production date, otherwise on the same day.
 export const downtimeInBatchWindow = ({ record, order, downtimes = [] }) => {
   const machine = upper(record?.machine);
-  const date = record?.production_date || "";
+  const date = String(record?.production_date || "").slice(0, 10);
   if (!machine || !date) return [];
   const start = order?.actual_start ? new Date(order.actual_start) : order?.planned_start ? new Date(order.planned_start) : null;
   const end = order?.actual_end ? new Date(order.actual_end) : order?.planned_end ? new Date(order.planned_end) : null;
@@ -70,10 +70,11 @@ export const downtimeInBatchWindow = ({ record, order, downtimes = [] }) => {
     .filter((d) => {
       if (d.is_demo) return false;
       if (upper(d.production_line) !== machine) return false;
-      if (!useWindow) return d.shift_date === date;
-      if (d.shift_date !== date) return false;
-      const from = stampOn(d.shift_date, d.start_time || "00:00");
-      const to = stampOn(d.shift_date, d.end_time || d.start_time || "23:59");
+      const dDate = String(d.shift_date || "").slice(0, 10);
+      if (!useWindow) return dDate === date;
+      if (dDate !== date) return false;
+      const from = stampOn(dDate, d.start_time || "00:00");
+      const to = stampOn(dDate, d.end_time || d.start_time || "23:59");
       return from != null && to != null && from < end.getTime() && to > start.getTime();
     })
     .sort((a, b) => (a.start_time || "").localeCompare(b.start_time || ""));
@@ -107,14 +108,15 @@ export const ingredientLotsForBatch = ({ recipe, receipts = [] }) =>
 export const packagingIssuedForBatch = ({ record, movements = [] }) => {
   const orderNo = upper(record?.order_number);
   const machine = upper(record?.machine);
-  const date = record?.production_date || "";
+  const date = String(record?.production_date || "").slice(0, 10);
 
   const lines = (movements || []).filter((m) => {
     const kind = (m.type || "").toLowerCase();
     const isIssue = kind === "use" || (m.source || "").toLowerCase() === "goods issued";
     if (!isIssue) return false;
     if (orderNo && upper(m.production_order) === orderNo) return true;
-    return !!machine && upper(m.production_line) === machine && m.movement_date === date;
+    const mDate = String(m.movement_date || "").slice(0, 10);
+    return !!machine && upper(m.production_line) === machine && mDate === date;
   });
 
   const grouped = new Map();

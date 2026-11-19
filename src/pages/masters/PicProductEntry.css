@@ -37,9 +37,9 @@
   font-size: 0.75rem;
   padding: 0.15rem 0.6rem;
   border-radius: 9999px;
-  background: rgba(0, 229, 255, 0.14);
-  color: #00e5ff;
-  border: 1px solid rgba(0, 229, 255, 0.3);
+  background: rgba(56, 189, 248, 0.14);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.3);
   font-weight: 600;
 }
 
@@ -272,8 +272,8 @@
 
 /* Live Auto-Calculation Callout */
 .pic-calc-box {
-  background: rgba(0, 229, 255, 0.08);
-  border: 1px solid rgba(0, 229, 255, 0.25);
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.25);
   border-radius: 0.5rem;
   padding: 1rem;
   display: grid;
@@ -297,14 +297,14 @@
 .pic-calc-val {
   font-size: 1.15rem;
   font-weight: 700;
-  color: #00e5ff;
+  color: #60a5fa;
   margin-top: 0.15rem;
 }
 
 /* Button Classes */
 .pic-btn-primary {
-  background: #00e5ff;
-  color: #0a0e17;
+  background: #2563eb;
+  color: #ffffff;
   font-weight: 600;
   border-radius: 0.5rem;
   padding: 0.5rem 1rem;
@@ -318,8 +318,7 @@
 }
 
 .pic-btn-primary:hover {
-  background: #00c4db;
-  box-shadow: 0 0 12px rgba(0, 229, 255, 0.35);
+  background: #1d4ed8;
 }
 
 .pic-btn-secondary {
@@ -365,9 +364,9 @@
   border-radius: 9999px;
   font-size: 0.75rem;
   font-weight: 600;
-  background: rgba(0, 255, 157, 0.12);
-  color: #00ff9d;
-  border: 1px solid rgba(0, 255, 157, 0.3);
+  background: rgba(16, 185, 129, 0.14);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.32);
 }
 
 .pic-status-inactive {

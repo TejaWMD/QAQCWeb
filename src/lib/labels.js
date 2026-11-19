@@ -94,7 +94,8 @@ export const expiryFor = (productionDate, shelfLifeDays) =>
 
 // Labels show plant dates as DD/MM/YYYY.
 export const fmtDay = (dateStr) => {
-  const [y, m, d] = (dateStr || "").split("-");
+  const clean = String(dateStr || "").slice(0, 10);
+  const [y, m, d] = clean.split("-");
   return y && m && d ? `${d}/${m}/${y}` : "—";
 };
 

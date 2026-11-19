@@ -135,10 +135,33 @@ export const canAccess = (user, key) => {
 
 export const moduleForPath = (pathname) => MODULES.find((m) => m.path === pathname)?.key || null;
 
-export const ownsRecord = (user, record) => !!user?.id && !!record && record.created_by_id === user.id;
+export const ownsRecord = (user, record) => {
+  if (!user || !record) return false;
+  const myId = user.id;
+  const myEmail = (user.email || "").trim().toLowerCase();
+  const myName = (user.full_name || user.name || "").trim().toLowerCase();
+  if (
+    myId &&
+    (record.created_by_id === myId ||
+      record.requester_id === myId ||
+      record.owner_id === myId ||
+      record.created_by === myId)
+  ) {
+    return true;
+  }
+  const createdBy = (record.created_by || record.created_by_name || record.requester_name || "").trim().toLowerCase();
+  const owner = (record.owner || "").trim().toLowerCase();
+  if (myEmail && (createdBy === myEmail || owner === myEmail)) return true;
+  if (myName && (createdBy === myName || owner === myName)) return true;
+  return false;
+};
 
-// A record may be changed by whoever entered it, or by an administrator.
-export const canChangeRecord = (user, record) => isAdminUser(user) || ownsRecord(user, record);
+// A record may be changed by whoever entered it, assigned staff/supervisors, or an administrator.
+export const canChangeRecord = (user, record) =>
+  isAdminUser(user) ||
+  ownsRecord(user, record) ||
+  ["manager", "supervisor", "qa_officer"].includes(appRoleOf(user)) ||
+  user?.role === "staff";
 
 // Shared status-change rules: an item cannot move to "Verified" without an
 // evidence attachment and a verifier who is not the owner. Optionally closing

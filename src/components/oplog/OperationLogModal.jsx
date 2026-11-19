@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,16 +35,16 @@ const defaultForm = {
   production_line: "",
   product_sku: "",
   task: "",
-  staff_count: 1,
+  staff_count: "1",
   staff_name: "",
   ot_objective: "Production Catch-up",
   ot_start: "",
   ot_end: "",
-  hourly_ot_rate: 12,
+  hourly_ot_rate: "12",
   planned_ot_qty: "",
-  actual_good_output: 0,
-  rejected_wasted_qty: 0,
-  downtime_min: 0,
+  actual_good_output: "",
+  rejected_wasted_qty: "",
+  downtime_min: "",
   record_batch: "current",
 };
 
@@ -64,6 +65,9 @@ export default function OperationLogModal({ open, onClose, onSave, editData }) {
         setFormData({
           ...editData,
           planned_ot_qty: editData.planned_ot_qty || "",
+          actual_good_output: editData.actual_good_output ?? "",
+          rejected_wasted_qty: editData.rejected_wasted_qty ?? "",
+          downtime_min: editData.downtime_min ?? "",
           ot_start: editData.ot_start ? editData.ot_start.substring(0, 16) : "",
           ot_end: editData.ot_end ? editData.ot_end.substring(0, 16) : "",
         });
@@ -77,7 +81,10 @@ export default function OperationLogModal({ open, onClose, onSave, editData }) {
   const update = (key, value) => setFormData((prev) => ({ ...prev, [key]: value }));
 
   const handleSubmit = () => {
-    if (!formData.production_line || !formData.product_sku) return;
+    if (!formData.production_line || !formData.product_sku) {
+      toast.error("Please select both a Production Line and a Product / SKU.");
+      return;
+    }
     onSave({
       ...formData,
       staff_count: Number(formData.staff_count) || 0,

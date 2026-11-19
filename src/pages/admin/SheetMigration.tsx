@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '@/api/supabaseClient';
+import { productService } from '@/services/productService';
 import { parseSpreadsheetFile, downloadTemplateXlsx } from '@/lib/excelUtils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -36,24 +37,25 @@ export default function SheetMigration() {
     try {
       if (target === 'products') {
         const mapped = rows
-          .filter((r) => r.product_code || r.ItemCode || r.product_name || r.DESCRIPTION)
+          .filter((r) => r.product_code || r.ItemCode || r['Item Code'] || r.product_name || r.DESCRIPTION)
           .map((r) => ({
-            product_code: String(r.product_code || r.ItemCode || '').trim(),
-            product_name: String(r.product_name || r.DESCRIPTION || r.ItemCode || '').trim(),
-            brand: String(r.brand || ''),
-            carton_size: Number(r.pcs_per_carton || r.carton_size || 1),
-            net_weight_kg: Number(r.net_weight_kg || 0.1),
-            batch_prefix: String(r.batch_prefix || ''),
-            shelf_life_months: Number(r.shelf_life_months || 12),
-            carton_barcode: String(r.carton_barcode || ''),
-            cooking_time_hr: Number(r.cooking_time_hr || 2),
-            batch_output_kg: Number(r.batch_output_kg || 200),
+            product_code: String(r.product_code || r.ItemCode || r['Item Code'] || '').trim().toUpperCase(),
+            product_name: String(r.product_name || r.DESCRIPTION || r['Carton Description'] || r.ItemCode || '').trim(),
+            brand: String(r.brand || r.Brand || '').trim(),
+            carton_size: Number(r.pcs_per_carton || r.carton_size || r['Pcs per carton'] || 1),
+            net_weight_kg: Number(r.net_weight_kg || r['Net Weight (kg)'] || 0.1),
+            batch_prefix: String(r.batch_prefix || r['Batch Code'] || '').trim().toUpperCase(),
+            shelf_life_months: Number(r.shelf_life_months || r['Shelf Life (Months)'] || 12),
+            barcode: String(r.barcode || r['NEW SKU Barcode'] || '').trim(),
+            carton_barcode: String(r.carton_barcode || r['NEW Carton Barcode'] || '').trim(),
+            cooking_time_hr: Number(r.cooking_time_hr || r['Cooking Time (hr)'] || 2),
+            batch_output_kg: Number(r.batch_output_kg || r['Batch Output (kg)'] || 200),
+            status: 'Active' as const,
             active: true,
             deleted: false,
           }));
-        const { error } = await supabase.from('products').insert(mapped);
-        if (error) throw error;
-        setResultMsg(`Imported ${mapped.length} products into Supabase.`);
+        const res = await productService.bulkUpsertProducts(mapped);
+        setResultMsg(`Imported / updated ${res.count} products into Supabase.`);
       } else if (target === 'forecasts') {
         const { data: prods } = await supabase.from('products').select('id, product_code, product_name');
         const byCode = new Map((prods || []).map((p: any) => [String(p.product_code || '').toUpperCase(), p]));
@@ -101,15 +103,16 @@ export default function SheetMigration() {
         setResultMsg(`Synced ${count} product inventory rows into finished_goods_inventory.`);
       } else if (target === 'packaging') {
         const mapped = rows
-          .filter((r) => r.name || r.item_code)
+          .filter((r) => r.description || r.name || r.item_code)
           .map((r) => ({
             item_code: String(r.item_code || ''),
-            name: String(r.name || r.item_code),
+            description: String(r.description || r.name || r.item_code),
             category: String(r.category || 'Packaging Raw Material'),
             unit: String(r.unit || 'pcs'),
-            current_stock: Number(r.current_stock || 0),
-            safety_stock: Number(r.safety_stock || 50),
+            quantity: Number(r.quantity ?? r.current_stock ?? 0),
+            min_level: Number(r.min_level ?? r.safety_stock ?? 50),
             active: true,
+            deleted: false,
           }));
         const { error } = await supabase.from('packaging_items').insert(mapped);
         if (error) throw error;

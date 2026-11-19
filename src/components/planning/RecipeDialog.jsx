@@ -19,7 +19,16 @@ import { dialogClass, inputClass, primaryButton, subtleButton } from "@/componen
 export default function RecipeDialog({ open, onClose, recipe, product, products = [], versions = [], materials = [], onSaved }) {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [form, setForm] = useState({ recipe_name: "", batch_cartons: "", standard_yield_pct: "", effective_date: todayStr(), notes: "", ingredients: [] });
+  const [form, setForm] = useState({
+    recipe_name: "",
+    cooking_time_hr: "",
+    batch_output_kg: "",
+    batch_cartons: "",
+    standard_yield_pct: "",
+    effective_date: todayStr(),
+    notes: "",
+    ingredients: [],
+  });
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [recipeNames, setRecipeNames] = useState([]);
@@ -38,23 +47,24 @@ export default function RecipeDialog({ open, onClose, recipe, product, products 
     setError("");
     setForm({
       recipe_name: defaultName,
+      cooking_time_hr: recipe?.cooking_time_hr ?? product?.cooking_time_hr ?? "",
+      batch_output_kg: recipe?.batch_output_kg ?? product?.batch_output_kg ?? "",
       batch_cartons: recipe?.batch_cartons ?? product?.standard_batch_cartons ?? "",
-      standard_yield_pct: recipe?.standard_yield_pct ?? "",
+      standard_yield_pct: recipe?.standard_yield_pct ?? "100",
       effective_date: todayStr(),
-      notes: "",
+      notes: recipe?.notes || "",
       ingredients: (recipe?.ingredients || []).map((i) => ({ ...i })),
     });
-  }, [open, recipe, product]);
+  }, [open, recipe, product, defaultName]);
 
   const set = (key, value) => setForm((f) => ({ ...f, [key]: value }));
 
   const save = async () => {
     const recipeName = (form.recipe_name || "").trim();
-    const ingredients = (form.ingredients || []).filter(
-      (r) => (r.material_id || (r.material_name || "").trim()) && num(r.quantity_per_batch) > 0
-    );
+    const ingredients = (form.ingredients || [])
+      .filter((r) => (r.material_id || (r.material_name || "").trim()) && num(r.quantity_per_batch) > 0)
+      .map((r) => ({ ...r, quantity_per_batch: num(r.quantity_per_batch) }));
     if (!recipeName) return setError("Enter the recipe name.");
-    if (!ingredients.length) return setError("Add at least one ingredient with a quantity per batch.");
     setSaving(true);
     setError("");
     try {
@@ -65,8 +75,8 @@ export default function RecipeDialog({ open, onClose, recipe, product, products 
         form: {
           ...form,
           ingredients,
-          cooking_time_hr: product?.cooking_time_hr ?? recipe?.cooking_time_hr,
-          batch_output_kg: product?.batch_output_kg ?? recipe?.batch_output_kg,
+          cooking_time_hr: form.cooking_time_hr !== "" ? num(form.cooking_time_hr) : (product?.cooking_time_hr ?? recipe?.cooking_time_hr ?? 0),
+          batch_output_kg: form.batch_output_kg !== "" ? num(form.batch_output_kg) : (product?.batch_output_kg ?? recipe?.batch_output_kg ?? 0),
         },
         user,
       });
@@ -111,13 +121,19 @@ export default function RecipeDialog({ open, onClose, recipe, product, products 
               allowCustom
             />
           </Field>
+          <Field label="Cooking Time (hr)">
+            <Input type="number" min="0" step="0.25" value={form.cooking_time_hr} onChange={(e) => set("cooking_time_hr", e.target.value)} className={inputClass} placeholder="e.g. 2.0" />
+          </Field>
+          <Field label="Batch Output (kg)">
+            <Input type="number" min="0" value={form.batch_output_kg} onChange={(e) => set("batch_output_kg", e.target.value)} className={inputClass} placeholder="e.g. 500" />
+          </Field>
           <Field label="Cartons per Batch">
             <Input type="number" min="0" value={form.batch_cartons} onChange={(e) => set("batch_cartons", e.target.value)} className={inputClass} placeholder="Quantity one batch makes" />
           </Field>
           <Field label="Standard Yield %" hint="Batch yield is measured against this">
-            <Input type="number" min="0" step="0.1" value={form.standard_yield_pct} onChange={(e) => set("standard_yield_pct", e.target.value)} className={inputClass} placeholder="98" />
+            <Input type="number" min="0" step="0.1" value={form.standard_yield_pct} onChange={(e) => set("standard_yield_pct", e.target.value)} className={inputClass} placeholder="100" />
           </Field>
-          <Field label="Effective Date">
+          <Field label="Effective Date" className="sm:col-span-2">
             <Input type="date" value={form.effective_date} onChange={(e) => set("effective_date", e.target.value)} className={inputClass} />
           </Field>
         </div>

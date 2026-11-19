@@ -12,6 +12,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Save } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { productionLines, productNames, wasteComponents } from "@/lib/shiftLogConstants";
 import {
@@ -74,9 +75,9 @@ export default function IncompleteRecordEditModal({ record, open, onClose, onSav
       end_time: record.end_time || "",
       break_duration: record.break_duration ?? 1,
       hourly_ot_rate: record.hourly_ot_rate ?? 12,
-      planned_qty: record.planned_qty ?? 0,
-      actual_output: record.actual_output ?? 0,
-      rejected_qty: record.rejected_qty ?? 0,
+      planned_qty: record.planned_qty || "",
+      actual_output: record.actual_output || "",
+      rejected_qty: record.rejected_qty || "",
       task_filled_packed: !!record.task_filled_packed,
       task_capped: !!record.task_capped,
       task_label_applied: !!record.task_label_applied,

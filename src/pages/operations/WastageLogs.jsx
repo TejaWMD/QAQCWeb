@@ -23,13 +23,42 @@ export default function WastageLogs() {
         base44.entities.ShiftLog.filter({}, { sort: "-shift_date", limit: 200 }),
         base44.entities.WastageLog.filter({}, { sort: "-date", limit: 200 }),
       ]);
-      const fromShift = (shiftRes.items || shiftRes).filter((l) => wasteColumns.some((c) => (l[c.key] || 0) > 0));
-      // Entries branched off an Operation Record carry the rejected / wasted quantity
-      // as a single figure instead of a component breakdown.
-      const fromOperations = (wastageRes.items || wastageRes)
-        .filter((w) => (Number(w.total_waste) || 0) > 0)
-        .map((w) => ({ ...w, shift_date: w.date || (w.created_date || "").slice(0, 10) }));
-      setLogs([...fromOperations, ...fromShift]);
+      const shiftItems = shiftRes.items || shiftRes || [];
+      const wasteItems = wastageRes.items || wastageRes || [];
+
+      const bySession = new Map();
+      const merged = [];
+
+      shiftItems.forEach((l) => {
+        const hasComp = wasteColumns.some((c) => (Number(l[c.key]) || 0) > 0);
+        const hasRej = (Number(l.rejected_qty) || 0) > 0;
+        if (!hasComp && !hasRej) return;
+        const row = {
+          ...l,
+          total_waste: Number(l.rejected_qty) || 0,
+        };
+        if (l.session_id) bySession.set(l.session_id, row);
+        merged.push(row);
+      });
+
+      wasteItems.forEach((w) => {
+        if (w.session_id && bySession.has(w.session_id)) {
+          const existing = bySession.get(w.session_id);
+          if (!existing.total_waste && Number(w.total_waste) > 0) {
+            existing.total_waste = Number(w.total_waste);
+          }
+          return;
+        }
+        const hasComp = wasteColumns.some((c) => (Number(w[c.key]) || 0) > 0);
+        const hasTotal = (Number(w.total_waste) || 0) > 0;
+        if (!hasComp && !hasTotal) return;
+        merged.push({
+          ...w,
+          shift_date: w.date || (w.created_date || "").slice(0, 10),
+        });
+      });
+
+      setLogs(merged);
     } finally {
       if (!silent) setLoading(false);
     }

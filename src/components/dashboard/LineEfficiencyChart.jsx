@@ -25,7 +25,7 @@ export default function LineEfficiencyChart({ data }) {
                   <stop offset="100%" stopColor="#0d9488" />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e8f0e2" />
               <XAxis dataKey="line" tick={{ fontSize: 11, fill: "#64748b" }} axisLine={false} tickLine={false} />
               <YAxis domain={[0, 100]} unit="%" tick={{ fontSize: 11, fill: "#64748b" }} axisLine={false} tickLine={false} />
               <Tooltip formatter={(v) => `${v}%`} />

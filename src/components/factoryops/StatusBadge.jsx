@@ -2,10 +2,19 @@ import React from "react";
 
 const STYLES = {
   Open: "bg-[#1e2740] text-[#e2e8f0]",
-  "In Progress": "bg-[#00e5ff]/15 text-[#00e5ff] border border-[#00e5ff]/30",
-  Overdue: "bg-[#ff4d4d]/15 text-[#ff4d4d] border border-[#ff4d4d]/30",
-  Completed: "bg-[#ff9f43]/15 text-[#ff9f43] border border-[#ff9f43]/30",
-  Verified: "bg-[#00ff9d]/15 text-[#00ff9d] border border-[#00ff9d]/30",
+  Pending: "bg-[#1e2740] text-[#e2e8f0]",
+  Submitted: "bg-sky-500/15 text-sky-400 border border-sky-500/30",
+  "In Progress": "bg-sky-500/15 text-sky-400 border border-sky-500/30",
+  "Under Review": "bg-amber-500/15 text-amber-400 border border-amber-500/30",
+  "Pending Verification": "bg-amber-500/15 text-amber-400 border border-amber-500/30",
+  "Returned for more info": "bg-amber-500/15 text-amber-400 border border-amber-500/30",
+  Completed: "bg-amber-500/15 text-amber-400 border border-amber-500/30",
+  Overdue: "bg-rose-500/15 text-rose-400 border border-rose-500/30",
+  Rejected: "bg-rose-500/15 text-rose-400 border border-rose-500/30",
+  Verified: "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30",
+  Approved: "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30",
+  Resolved: "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30",
+  Active: "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30",
 };
 
 // Color-coded pill for the standard record statuses.

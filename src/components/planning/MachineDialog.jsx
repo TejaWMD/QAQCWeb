@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { base44 } from "@/api/base44Client";
 import { productService } from "@/services/productService";
 import { useAuth } from "@/lib/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
@@ -12,10 +11,9 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import Field from "@/components/planning/Field";
 import { MACHINE_STATUSES, logPlanningAudit, num } from "@/lib/planning";
 import { loadMachineLocationOptions } from "@/lib/masterOptions";
+import { productionLines } from "@/lib/shiftLogConstants";
 import { dialogClass, inputClass, selectClass, primaryButton, subtleButton } from "@/components/planning/styles";
 
-// Machine names are picked from the production line names the downtime page uses,
-// so a machine always matches a line.
 export default function MachineDialog({ open, onClose, machine, availableNames = [], onSaved }) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -38,11 +36,11 @@ export default function MachineDialog({ open, onClose, machine, availableNames =
   const set = (key, value) => setForm((f) => ({ ...f, [key]: value }));
 
   const save = async () => {
-    if (!form.name) return setError("Select the machine / production line.");
+    if (!form.name || !form.name.trim()) return setError("Select or enter the machine / production line name.");
     setSaving(true);
     setError("");
     const payload = {
-      name: form.name,
+      name: form.name.trim(),
       location: form.location || "",
       capacity_cph: num(form.capacity_cph),
       status: form.status || "Active",
@@ -50,11 +48,9 @@ export default function MachineDialog({ open, onClose, machine, availableNames =
     };
     try {
       if (machine) {
-        try { await productService.updateMachine(machine.id, payload); } catch {}
-        await base44.entities.Machine.update(machine.id, payload);
+        await productService.updateMachine(machine.id, payload);
       } else {
-        try { await productService.createMachine(payload); } catch {}
-        await base44.entities.Machine.create(payload);
+        await productService.createMachine(payload);
       }
       await logPlanningAudit({
         user,
@@ -73,27 +69,25 @@ export default function MachineDialog({ open, onClose, machine, availableNames =
     }
   };
 
+  const nameOptions = [...new Set([...availableNames, ...productionLines, form.name].filter(Boolean))];
+
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className={`${dialogClass} max-w-lg`}>
         <DialogHeader>
-          <DialogTitle className="text-[#0F294A]">{machine ? machine.name : "Add Machine"}</DialogTitle>
+          <DialogTitle className="text-[#0F294A]">{machine ? `Edit ${machine.name}` : "Add Machine"}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-3">
-          <Field label="Machine / Production Line">
-            {machine ? (
-              <Input value={form.name} disabled className={`${inputClass} opacity-70`} />
-            ) : availableNames.length === 0 ? (
-              <p className="text-xs text-amber-700">Every production line already has a machine.</p>
-            ) : (
-              <Select value={form.name || undefined} onValueChange={(v) => set("name", v)}>
-                <SelectTrigger className={selectClass}><SelectValue placeholder="Select production line" /></SelectTrigger>
-                <SelectContent>
-                  {availableNames.map((n) => <SelectItem key={n} value={n}>{n}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            )}
+          <Field label="Machine / Production Line *">
+            <SearchableSelect
+              value={form.name}
+              onValueChange={(v) => set("name", v)}
+              options={nameOptions}
+              placeholder="Select or enter machine / line..."
+              searchPlaceholder="Search or type machine name..."
+              allowCustom
+            />
           </Field>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Field label="Location">

@@ -1,9 +1,13 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import * as XLSX from "xlsx";
 import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Plus, Pencil } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+import { Plus, Pencil, Trash2, Upload } from "lucide-react";
 import MachineDialog from "@/components/planning/MachineDialog";
 import { canEditMachines, loadMachines, num } from "@/lib/planning";
+import { productService } from "@/services/productService";
+import { archiveMachineSafely } from "@/lib/deleteIntegrity";
 import { productionLines } from "@/lib/shiftLogConstants";
 import { primaryButton, subtleButton, panelClass } from "@/components/planning/styles";
 
@@ -14,7 +18,9 @@ const STATUS_STYLES = {
 
 export default function Machines() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const canEdit = canEditMachines(user);
+  const fileRef = useRef(null);
   const [machines, setMachines] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dialog, setDialog] = useState({ open: false, machine: null });
@@ -29,17 +35,62 @@ export default function Machines() {
   const availableNames = productionLines.filter((name) => !machines.some((m) => m.name === name));
   const closeDialog = () => setDialog({ open: false, machine: null });
 
+  const handleDelete = async (m) => {
+    if (!window.confirm(`Delete machine "${m.name}"?`)) return;
+    try {
+      await archiveMachineSafely(m.id, m.name);
+      toast({ title: "Machine archived", description: m.name });
+      await load();
+    } catch (err) {
+      toast({ title: "Could not delete machine", description: err?.message || "Please try again.", variant: "destructive" });
+    }
+  };
+
+  const handleImportFile = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = null;
+    if (!file) return;
+    try {
+      const buffer = await file.arrayBuffer();
+      const wb = XLSX.read(buffer, { type: "array" });
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const rawRows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+      let count = 0;
+      for (const r of rawRows) {
+        const name = String(r["Machine"] || r["Name"] || r["name"] || r["Machine Name"] || "").trim();
+        if (!name) continue;
+        await productService.createMachine({
+          name,
+          location: String(r["Location"] || r["location"] || "Plant 1").trim(),
+          capacity_cph: Number(r["Capacity (ctn/hr)"] || r["capacity_cph"] || r["Capacity"] || 100) || 100,
+          status: String(r["Status"] || r["status"] || "Active").trim(),
+        });
+        count++;
+      }
+      toast({ title: `Imported ${count} machine(s)`, description: file.name });
+      await load();
+    } catch (err) {
+      toast({ title: "Import failed", description: err?.message || "Use a CSV or Excel file.", variant: "destructive" });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#F6F8FC] p-4 md:p-6 space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-[#0F294A] text-lg font-semibold">Machines</h2>
-          <p className="text-[#64748B] text-sm mt-1">Machine names match the production lines used by the stoppage page.</p>
+          <h2 className="text-[#0F294A] text-lg font-semibold">Machines & Production Lines</h2>
+          <p className="text-[#64748B] text-sm mt-1">Manage production lines, cooking tanks, capacities, and maintenance status.</p>
         </div>
         {canEdit && (
-          <Button onClick={() => setDialog({ open: true, machine: null })} className={primaryButton} disabled={availableNames.length === 0}>
-            <Plus className="w-4 h-4 mr-1.5" /> Add Machine
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={handleImportFile} />
+            <Button variant="outline" onClick={() => fileRef.current?.click()} className={subtleButton}>
+              <Upload className="w-4 h-4 mr-1.5" /> Import File
+            </Button>
+            <Button onClick={() => setDialog({ open: true, machine: null })} className={primaryButton}>
+              <Plus className="w-4 h-4 mr-1.5" /> Add Machine
+            </Button>
+          </div>
         )}
       </div>
 
@@ -75,11 +126,16 @@ export default function Machines() {
                         {m.status || "Active"}
                       </span>
                     </td>
-                    <td className="px-3 py-2 text-right">
+                    <td className="px-3 py-2 text-right whitespace-nowrap">
                       {canEdit && (
-                        <Button variant="ghost" size="icon" onClick={() => setDialog({ open: true, machine: m })} className="text-[#64748B] hover:text-[#1D4ED8] hover:bg-[#EBF3FF]">
-                          <Pencil className="w-4 h-4" />
-                        </Button>
+                        <>
+                          <Button variant="ghost" size="icon" onClick={() => setDialog({ open: true, machine: m })} className="text-[#64748B] hover:text-[#1D4ED8] hover:bg-[#EBF3FF]" title="Edit">
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => handleDelete(m)} className="text-[#64748B] hover:text-rose-600 hover:bg-rose-600/10" title="Delete">
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </>
                       )}
                     </td>
                   </tr>

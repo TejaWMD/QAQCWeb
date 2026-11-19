@@ -5,16 +5,31 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import Field from "@/components/planning/Field";
 import { DEFAULT_CUSTOMER, derivedFields } from "@/lib/productMaster";
 import { loadLineTypeOptions } from "@/lib/masterOptions";
+import { productionLines } from "@/lib/shiftLogConstants";
 import { inputClass, selectClass } from "@/components/planning/styles";
 
-const unique = (...lists) => [...new Set(lists.flat().filter(Boolean))];
+const DEFAULT_LINE_TYPES = ["SAUCE", "POUCH", "1 KG", "SYRUP", "POWDER", "MAYO", "SAUCE/ MAYO", "MANUAL"];
+
+const toName = (item) => {
+  if (!item) return "";
+  if (typeof item === "string") return item.trim();
+  if (typeof item === "object") return String(item.name || item.value || item.label || "").trim();
+  return "";
+};
+
+const unique = (...lists) => [...new Set(lists.flat().map(toName).filter(Boolean))];
 
 // The datasheet fields; the calculated columns are shown but never typed in.
 export default function DatasheetFields({ form, set, brands = [], customers = [], machines = [], recipeNames = [] }) {
-  const [lineTypes, setLineTypes] = useState([]);
+  const [lineTypes, setLineTypes] = useState(DEFAULT_LINE_TYPES);
 
   useEffect(() => {
-    loadLineTypeOptions().then(setLineTypes).catch(() => {});
+    loadLineTypeOptions()
+      .then((rows) => {
+        const merged = unique(DEFAULT_LINE_TYPES, rows);
+        setLineTypes(merged);
+      })
+      .catch(() => {});
   }, []);
 
   const derived = derivedFields({
@@ -26,7 +41,8 @@ export default function DatasheetFields({ form, set, brands = [], customers = []
   });
   const brandOptions = unique(brands, [form.brand]);
   const customerOptions = unique([DEFAULT_CUSTOMER], customers, [form.customer]);
-  const machineOptions = unique(machines, [form.default_machine]);
+  const machineOptions = unique(machines, productionLines, [form.default_machine]);
+  const lineTypeOptions = unique(lineTypes, [form.line_type]);
 
   return (
     <div className="space-y-4">
@@ -38,34 +54,37 @@ export default function DatasheetFields({ form, set, brands = [], customers = []
           <Input value={form.product_name} onChange={(e) => set("product_name", e.target.value)} className={inputClass} placeholder="RASTO TRADITIONAL PASTA SAUCE 350G X 12" />
         </Field>
         <Field label="Brand">
-          <Select value={form.brand || undefined} onValueChange={(v) => set("brand", v)}>
-            <SelectTrigger className={selectClass}><SelectValue placeholder="Choose brand" /></SelectTrigger>
-            <SelectContent>
-              {brandOptions.map((b) => <SelectItem key={b} value={b}>{b}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <SearchableSelect
+            value={form.brand || ""}
+            onValueChange={(v) => set("brand", v)}
+            options={brandOptions}
+            placeholder="Select or enter brand..."
+            searchPlaceholder="Search or type brand..."
+            allowCustom
+            clearable
+          />
         </Field>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <Field label="Recipe Name" hint="Products sharing a name share one recipe">
           <SearchableSelect
-            value={form.recipe_name}
+            value={form.recipe_name || ""}
             onValueChange={(v) => set("recipe_name", v)}
-            options={recipeNames}
+            options={unique(recipeNames, [form.recipe_name])}
             placeholder="Select or enter recipe..."
-            searchPlaceholder="Search recipe..."
+            searchPlaceholder="Search or type recipe..."
             allowCustom
             clearable
           />
         </Field>
-        <Field label="Line Type" hint="SAUCE, POUCH, SYRUP — not a machine">
+        <Field label="Line Type" hint="SAUCE, POUCH, SYRUP — packaging line type">
           <SearchableSelect
-            value={form.line_type}
+            value={form.line_type || ""}
             onValueChange={(v) => set("line_type", v)}
-            options={lineTypes}
-            placeholder="Select line type..."
-            searchPlaceholder="Search line type..."
+            options={lineTypeOptions}
+            placeholder="Select or enter line type..."
+            searchPlaceholder="Search or type line type..."
             allowCustom
             clearable
           />
@@ -100,16 +119,18 @@ export default function DatasheetFields({ form, set, brands = [], customers = []
         <Field label="Shelf Life (Months)">
           <Input type="number" min="0" value={form.shelf_life_months} onChange={(e) => set("shelf_life_months", e.target.value)} className={inputClass} placeholder="12" />
         </Field>
-        <Field label="Customer" hint="Empty means GENERAL">
-          <Select value={form.customer || DEFAULT_CUSTOMER} onValueChange={(v) => set("customer", v)}>
-            <SelectTrigger className={selectClass}><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {customerOptions.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-            </SelectContent>
-          </Select>
+        <Field label="Customer" hint="Default is GENERAL">
+          <SearchableSelect
+            value={form.customer || DEFAULT_CUSTOMER}
+            onValueChange={(v) => set("customer", v || DEFAULT_CUSTOMER)}
+            options={customerOptions}
+            placeholder="Select or enter customer..."
+            searchPlaceholder="Search or type customer..."
+            allowCustom
+          />
         </Field>
         <Field label="Status">
-          <Select value={form.status === "Active" ? "Active" : "Inactive"} onValueChange={(v) => set("status", v)}>
+          <Select value={form.status === "Inactive" ? "Inactive" : "Active"} onValueChange={(v) => set("status", v)}>
             <SelectTrigger className={selectClass}><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="Active">Active</SelectItem>
@@ -127,12 +148,15 @@ export default function DatasheetFields({ form, set, brands = [], customers = []
           <Input value={form.carton_barcode} onChange={(e) => set("carton_barcode", e.target.value)} className={inputClass} placeholder="9555721709424" />
         </Field>
         <Field label="Default Machine" hint="Optional; pre-selects the line on scheduling">
-          <Select value={form.default_machine || undefined} onValueChange={(v) => set("default_machine", v)}>
-            <SelectTrigger className={selectClass}><SelectValue placeholder="Not set" /></SelectTrigger>
-            <SelectContent>
-              {machineOptions.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <SearchableSelect
+            value={form.default_machine || ""}
+            onValueChange={(v) => set("default_machine", v)}
+            options={machineOptions}
+            placeholder="Select or enter machine..."
+            searchPlaceholder="Search or type machine..."
+            allowCustom
+            clearable
+          />
         </Field>
       </div>
 

@@ -1,4 +1,5 @@
 import React from "react";
+import { base44 } from "@/api/base44Client";
 import { canChangeRecord } from "@/lib/permissions";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -84,9 +85,23 @@ export default function RequestsList({ rows, loading, user, onStatusChange, onRe
                     <TypeBadge type={row._type} />
                     {row.is_demo && <DemoBadge />}
                     {(row.evidence_files || []).length > 0 && (
-                      <span className="inline-flex items-center gap-0.5 text-[10px] text-[#64748B] border border-[#3a4560] bg-[#3a4560]/20 rounded px-1.5 py-0.5">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          for (const f of row.evidence_files || []) {
+                            const uri = typeof f === "string" ? f : f?.uri || f?.file_uri;
+                            if (!uri) continue;
+                            try {
+                              const { signed_url } = await base44.integrations.Core.CreateFileSignedUrl({ file_uri: uri });
+                              if (signed_url) window.open(signed_url, "_blank", "noopener,noreferrer");
+                            } catch { /* ignore */ }
+                          }
+                        }}
+                        title="Open attached evidence"
+                        className="inline-flex items-center gap-0.5 text-[10px] text-[#1D4ED8] hover:underline border border-[#E2E8F0] bg-[#F8FAFC] rounded px-1.5 py-0.5 cursor-pointer"
+                      >
                         <Paperclip className="w-3 h-3" />{row.evidence_files.length}
-                      </span>
+                      </button>
                     )}
                   </div>
                 </TableCell>

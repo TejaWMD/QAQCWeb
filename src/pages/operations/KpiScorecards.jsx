@@ -47,8 +47,9 @@ export default function KpiScorecards() {
   const k = {};
   if (data) {
     const today = todayISO();
-    const output = sum(data.prod, "actual_output");
-    const planned = sum(data.prod, "planned_qty");
+    const prodSource = data.prod.length > 0 ? data.prod : data.shift;
+    const output = sum(prodSource, "actual_output");
+    const planned = sum(prodSource, "planned_qty");
     k.efficiency = pct(output, planned);
     k.output = output;
 

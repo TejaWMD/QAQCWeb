@@ -2,7 +2,7 @@
 // Orders link to Product Master (product, batch size, packaging) and to the
 // Machines list (capacity and maintenance status).
 import { base44 } from "@/api/base44Client";
-import { actingUserName, appRoleOf, isAdminUser } from "@/lib/permissions";
+import { actingUserName, appRoleOf, canAccess, isAdminUser } from "@/lib/permissions";
 import { eventStamp, todayStr } from "@/lib/warehouse";
 import { num } from "@/lib/planning";
 
@@ -16,13 +16,22 @@ export const SLOT_MINUTES = 15;
 
 const role = (user) => appRoleOf(user);
 
-// Planning and deleting orders is a supervisor job; pressing Start/Finish is for
-// the people running the line; restoring a deleted order stays with Admin.
-export const canPlanOrders = (user) => isAdminUser(user) || ["manager", "supervisor"].includes(role(user));
-export const canRunOrders = (user) => isAdminUser(user) || ["manager", "supervisor", "operator"].includes(role(user));
-export const canDeleteOrders = (user) => isAdminUser(user) || role(user) === "manager";
+// Planning and deleting orders is available to admins, managers, supervisors, and anyone granted the module.
+export const canPlanOrders = (user) =>
+  isAdminUser(user) ||
+  canAccess(user, "production_orders") ||
+  canAccess(user, "production_schedule") ||
+  ["manager", "supervisor"].includes(role(user));
+export const canRunOrders = (user) =>
+  isAdminUser(user) ||
+  canAccess(user, "production_orders") ||
+  canAccess(user, "production_schedule") ||
+  ["manager", "supervisor", "operator"].includes(role(user));
+export const canDeleteOrders = (user) =>
+  isAdminUser(user) || canAccess(user, "production_orders") || role(user) === "manager";
 export const canRestoreOrders = (user) => isAdminUser(user);
-export const canEditProductionSettings = (user) => isAdminUser(user) || role(user) === "manager";
+export const canEditProductionSettings = (user) =>
+  isAdminUser(user) || canAccess(user, "production_orders") || role(user) === "manager";
 
 export const fmtQty = (v) => num(v).toLocaleString("en-US", { maximumFractionDigits: 2 });
 const pad2 = (n) => String(n).padStart(2, "0");

@@ -94,8 +94,11 @@ export default function AddRecordDialog({ open, onOpenChange, title, fields, onS
     try {
       const cleaned = { ...values };
       fields.forEach((f) => {
-        if (f.type === "number" && (cleaned[f.key] === "" || cleaned[f.key] === undefined)) {
-          cleaned[f.key] = null;
+        if (f.type === "number") {
+          cleaned[f.key] =
+            cleaned[f.key] === "" || cleaned[f.key] === undefined || cleaned[f.key] === null
+              ? null
+              : Number(cleaned[f.key]);
         }
       });
       await onSubmit(cleaned);
@@ -207,8 +210,9 @@ export default function AddRecordDialog({ open, onOpenChange, title, fields, onS
                     <Input
                       id={f.key}
                       type={f.type === "number" ? "number" : f.type === "date" ? "date" : f.type === "time" ? "time" : "text"}
-                      value={values[f.key]}
-                      onChange={(e) => set(f.key, f.type === "number" ? (e.target.value === "" ? "" : Number(e.target.value)) : e.target.value)}
+                      step={f.type === "number" ? "any" : undefined}
+                      value={values[f.key] ?? ""}
+                      onChange={(e) => set(f.key, e.target.value)}
                       required={f.required}
                       className="bg-white border-[#E2E8F0] text-[#0F294A]"
                     />

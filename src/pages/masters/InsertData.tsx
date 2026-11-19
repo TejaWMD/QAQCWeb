@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '@/api/supabaseClient';
+import { productService } from '@/services/productService';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { toast } from 'sonner';
-import { PlusCircle, Package, BookOpen, TrendingUp, Boxes, Cpu, Trash2, AlertTriangle } from 'lucide-react';
+import { PlusCircle, Package, BookOpen, TrendingUp, Boxes, Cpu, Trash2, AlertTriangle, Upload } from 'lucide-react';
 import {
   archiveMachineSafely,
   archiveProductSafely,
@@ -45,53 +47,53 @@ export default function InsertData() {
     locations: any[];
   }>({ brands: [], channels: [], categories: [], units: [], lineOptions: [], locations: [] });
 
-  const [prod, setProd] = useState({
+  const [prod, setProd] = useState<Record<string, any>>({
     product_code: '',
     product_name: '',
     brand: '',
     recipe_id: '',
     default_machine: '',
-    carton_size: 24,
-    net_weight_kg: 0.2,
-    cooking_time_hr: 2,
-    batch_output_kg: 500,
+    carton_size: '24',
+    net_weight_kg: '0.2',
+    cooking_time_hr: '2',
+    batch_output_kg: '500',
     batch_prefix: '',
-    shelf_life_months: 12,
+    shelf_life_months: '12',
     barcode: '',
     carton_barcode: '',
     customer: 'GENERAL',
   });
 
-  const [rec, setRec] = useState({
+  const [rec, setRec] = useState<Record<string, any>>({
     recipe_name: '',
     brand: '',
     batch_prefix: '',
-    cooking_time_hr: 2,
-    batch_output_kg: 500,
-    shelf_life_months: 12,
+    cooking_time_hr: '2',
+    batch_output_kg: '500',
+    shelf_life_months: '12',
   });
 
-  const [forecast, setForecast] = useState({
+  const [forecast, setForecast] = useState<Record<string, any>>({
     product_id: '',
-    forecast_quantity: 100,
-    reorder_level: 50,
-    buffer_percentage: 1.1,
-    available_stock_cartons: 0,
+    forecast_quantity: '100',
+    reorder_level: '50',
+    buffer_percentage: '1.1',
+    available_stock_cartons: '0',
   });
 
-  const [pkg, setPkg] = useState({
+  const [pkg, setPkg] = useState<Record<string, any>>({
     item_code: '',
     name: '',
     category: 'Packaging Raw Material',
     unit: 'pcs',
-    current_stock: 0,
-    safety_stock: 50,
+    current_stock: '',
+    safety_stock: '50',
   });
 
-  const [machine, setMachine] = useState({
+  const [machine, setMachine] = useState<Record<string, any>>({
     name: '',
     location: '',
-    capacity_cph: 100,
+    capacity_cph: '100',
     status: 'Active',
   });
 
@@ -133,40 +135,50 @@ export default function InsertData() {
       return toast.error('Product code and product name are required.');
     }
     const selectedRec = recipes.find((r) => r.id === prod.recipe_id);
-    const netFilling = Number((prod.carton_size * prod.net_weight_kg).toFixed(3));
-    const cartonsPerBatch = netFilling > 0 ? Number((prod.batch_output_kg / netFilling).toFixed(1)) : 0;
-
-    const { error } = await supabase.from('products').insert({
-      ...prod,
-      recipe_id: prod.recipe_id || null,
-      recipe_name: selectedRec?.recipe_name || '',
-      net_filling_kg: netFilling,
-      cartons_per_batch: cartonsPerBatch,
-      cooking_time_min: Math.round(prod.cooking_time_hr * 60),
-      target_net_weight_g: Math.round(prod.net_weight_kg * 1000),
-      shelf_life_days: prod.shelf_life_months * 30,
-      status: 'Active',
-      active: true,
-      deleted: false,
-    });
-    if (error) return toast.error(error.message);
-    toast.success(`Product "${prod.product_name}" added!`);
-    setProd({ ...prod, product_code: '', product_name: '', barcode: '', carton_barcode: '' });
-    loadLookups();
+    try {
+      await productService.createProduct({
+        product_code: prod.product_code,
+        product_name: prod.product_name,
+        brand: prod.brand,
+        recipe_id: prod.recipe_id || null,
+        recipe_name: selectedRec?.recipe_name || '',
+        default_machine: prod.default_machine,
+        carton_size: Number(prod.carton_size) || 0,
+        net_weight_kg: Number(prod.net_weight_kg) || 0,
+        cooking_time_hr: Number(prod.cooking_time_hr) || 0,
+        batch_output_kg: Number(prod.batch_output_kg) || 0,
+        batch_prefix: prod.batch_prefix,
+        shelf_life_months: Number(prod.shelf_life_months) || 12,
+        barcode: prod.barcode,
+        carton_barcode: prod.carton_barcode,
+        customer: prod.customer || 'GENERAL',
+        status: 'Active',
+      });
+      toast.success(`Product "${prod.product_name}" added!`);
+      setProd({ ...prod, product_code: '', product_name: '', barcode: '', carton_barcode: '' });
+      loadLookups();
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to add product.');
+    }
   };
 
   const saveRecipe = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!rec.recipe_name.trim()) return toast.error('Recipe name is required.');
     const { error } = await supabase.from('recipes').insert({
-      ...rec,
+      recipe_name: rec.recipe_name.trim(),
+      brand: rec.brand,
+      batch_prefix: rec.batch_prefix,
+      cooking_time_hr: Number(rec.cooking_time_hr) || 0,
+      batch_output_kg: Number(rec.batch_output_kg) || 0,
+      shelf_life_months: Number(rec.shelf_life_months) || 12,
       version: 1,
       status: 'Active',
       deleted: false,
     });
     if (error) return toast.error(error.message);
     toast.success(`Recipe "${rec.recipe_name}" added!`);
-    setRec({ recipe_name: '', brand: '', batch_prefix: '', cooking_time_hr: 2, batch_output_kg: 500, shelf_life_months: 12 });
+    setRec({ recipe_name: '', brand: '', batch_prefix: '', cooking_time_hr: '2', batch_output_kg: '500', shelf_life_months: '12' });
     loadLookups();
   };
 
@@ -175,25 +187,30 @@ export default function InsertData() {
     const p = products.find((x) => x.id === forecast.product_id);
     if (!p) return toast.error('Select a product.');
 
-    const target = Math.round(forecast.forecast_quantity * forecast.buffer_percentage);
+    const forecastQty = Number(forecast.forecast_quantity) || 0;
+    const reorderLvl = Number(forecast.reorder_level) || 0;
+    const bufferPct = Number(forecast.buffer_percentage) || 1.1;
+    const stockCartons = Number(forecast.available_stock_cartons) || 0;
+
+    const target = Math.round(forecastQty * bufferPct);
     const { error: planErr } = await supabase.from('sales_planning').insert({
       product_id: p.id,
       product_code: p.product_code,
-      forecast_quantity: forecast.forecast_quantity,
-      reorder_level: forecast.reorder_level,
-      buffer_percentage: forecast.buffer_percentage,
+      forecast_quantity: forecastQty,
+      reorder_level: reorderLvl,
+      buffer_percentage: bufferPct,
       target_stock: target,
-      monthly_sales: forecast.forecast_quantity,
-      average_daily_sales: Number((forecast.forecast_quantity / 30).toFixed(2)),
+      monthly_sales: forecastQty,
+      average_daily_sales: Number((forecastQty / 30).toFixed(2)),
     });
     if (planErr) return toast.error(planErr.message);
 
-    const pcs = Math.round(forecast.available_stock_cartons * (Number(p.carton_size) || 1));
+    const pcs = Math.round(stockCartons * (Number(p.carton_size) || 1));
     const { error: invErr } = await supabase.from('finished_goods_inventory').upsert(
       {
         product_id: p.id,
         product_code: p.product_code,
-        available_stock_cartons: forecast.available_stock_cartons,
+        available_stock_cartons: stockCartons,
         current_stock_pcs: pcs,
         last_updated: new Date().toISOString(),
       },
@@ -213,24 +230,30 @@ export default function InsertData() {
       description: pkg.name,
       category: pkg.category,
       unit: pkg.unit,
-      quantity: pkg.current_stock,
-      min_level: pkg.safety_stock,
+      quantity: Number(pkg.current_stock) || 0,
+      min_level: Number(pkg.safety_stock) || 0,
       active: true,
       deleted: false,
     });
     if (error) return toast.error(error.message);
     toast.success(`Packaging item "${pkg.name}" added!`);
-    setPkg({ item_code: '', name: '', category: 'Packaging Raw Material', unit: 'pcs', current_stock: 0, safety_stock: 50 });
+    setPkg({ item_code: '', name: '', category: 'Packaging Raw Material', unit: 'pcs', current_stock: '', safety_stock: '50' });
     loadLookups();
   };
 
   const saveMachine = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!machine.name.trim()) return toast.error('Machine name is required.');
-    const { error } = await supabase.from('machines').insert({ ...machine, deleted: false });
+    const { error } = await supabase.from('machines').insert({
+      name: machine.name.trim(),
+      location: machine.location || '',
+      capacity_cph: Number(machine.capacity_cph) || 0,
+      status: machine.status || 'Active',
+      deleted: false,
+    });
     if (error) return toast.error(error.message);
     toast.success(`Machine "${machine.name}" added!`);
-    setMachine({ name: '', location: '', capacity_cph: 100, status: 'Active' });
+    setMachine({ name: '', location: '', capacity_cph: '100', status: 'Active' });
     loadLookups();
   };
 
@@ -298,14 +321,21 @@ export default function InsertData() {
 
   return (
     <div className="min-h-screen bg-[#F6F8FC] p-4 sm:p-6 w-full space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-          <PlusCircle className="w-6 h-6 text-indigo-600" />
-          Insert New Data
-        </h1>
-        <p className="text-sm text-slate-500">
-          Add or safely archive Products, Recipes, Sales Forecasts & Stock, Packaging Materials, or Machines directly in Supabase.
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+            <PlusCircle className="w-6 h-6 text-sky-400" />
+            Insert New Data
+          </h1>
+          <p className="text-sm text-slate-500">
+            Add or safely archive Products, Recipes, Sales Forecasts & Stock, Packaging Materials, or Machines directly.
+          </p>
+        </div>
+        <Link to="/sheet-migration">
+          <Button variant="outline">
+            <Upload className="w-4 h-4 mr-1.5" /> Bulk Spreadsheet Import
+          </Button>
+        </Link>
       </div>
 
       <Tabs defaultValue="product">
@@ -367,11 +397,11 @@ export default function InsertData() {
                 </div>
                 <div>
                   <label className="text-xs text-slate-500">Pcs / Carton</label>
-                  <Input type="number" value={prod.carton_size} onChange={(e) => setProd({ ...prod, carton_size: Number(e.target.value) })} />
+                  <Input type="number" min="0" value={prod.carton_size} onChange={(e) => setProd({ ...prod, carton_size: e.target.value })} placeholder="e.g. 24" />
                 </div>
                 <div>
                   <label className="text-xs text-slate-500">Net Weight / Pc (kg)</label>
-                  <Input type="number" step="0.001" value={prod.net_weight_kg} onChange={(e) => setProd({ ...prod, net_weight_kg: Number(e.target.value) })} />
+                  <Input type="number" min="0" step="0.001" value={prod.net_weight_kg} onChange={(e) => setProd({ ...prod, net_weight_kg: e.target.value })} placeholder="e.g. 0.2" />
                 </div>
                 <div>
                   <label className="text-xs text-slate-500">Batch Prefix</label>
@@ -379,15 +409,15 @@ export default function InsertData() {
                 </div>
                 <div>
                   <label className="text-xs text-slate-500">Cooking Time (hr)</label>
-                  <Input type="number" step="0.25" value={prod.cooking_time_hr} onChange={(e) => setProd({ ...prod, cooking_time_hr: Number(e.target.value) })} />
+                  <Input type="number" min="0" step="0.25" value={prod.cooking_time_hr} onChange={(e) => setProd({ ...prod, cooking_time_hr: e.target.value })} placeholder="e.g. 2" />
                 </div>
                 <div>
                   <label className="text-xs text-slate-500">Batch Output (kg)</label>
-                  <Input type="number" value={prod.batch_output_kg} onChange={(e) => setProd({ ...prod, batch_output_kg: Number(e.target.value) })} />
+                  <Input type="number" min="0" value={prod.batch_output_kg} onChange={(e) => setProd({ ...prod, batch_output_kg: e.target.value })} placeholder="e.g. 500" />
                 </div>
                 <div>
                   <label className="text-xs text-slate-500">Shelf Life (Months)</label>
-                  <Input type="number" value={prod.shelf_life_months} onChange={(e) => setProd({ ...prod, shelf_life_months: Number(e.target.value) })} />
+                  <Input type="number" min="0" value={prod.shelf_life_months} onChange={(e) => setProd({ ...prod, shelf_life_months: e.target.value })} placeholder="e.g. 12" />
                 </div>
                 <div>
                   <label className="text-xs text-slate-500">SKU Barcode</label>
@@ -471,11 +501,11 @@ export default function InsertData() {
                 </div>
                 <div>
                   <label className="text-xs text-slate-500">Cooking Time (hr)</label>
-                  <Input type="number" step="0.25" value={rec.cooking_time_hr} onChange={(e) => setRec({ ...rec, cooking_time_hr: Number(e.target.value) })} />
+                  <Input type="number" min="0" step="0.25" value={rec.cooking_time_hr} onChange={(e) => setRec({ ...rec, cooking_time_hr: e.target.value })} placeholder="e.g. 2" />
                 </div>
                 <div>
                   <label className="text-xs text-slate-500">Batch Output (kg)</label>
-                  <Input type="number" value={rec.batch_output_kg} onChange={(e) => setRec({ ...rec, batch_output_kg: Number(e.target.value) })} />
+                  <Input type="number" min="0" value={rec.batch_output_kg} onChange={(e) => setRec({ ...rec, batch_output_kg: e.target.value })} placeholder="e.g. 500" />
                 </div>
                 <div className="md:col-span-3">
                   <Button type="submit">Save Recipe</Button>
@@ -513,26 +543,29 @@ export default function InsertData() {
               <form onSubmit={saveForecastAndStock} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
                   <label className="text-xs text-slate-500">Product *</label>
-                  <select className="w-full border rounded-md px-3 py-2 text-sm" value={forecast.product_id} onChange={(e) => setForecast({ ...forecast, product_id: e.target.value })}>
-                    <option value="">Select Product...</option>
-                    {products.map((p) => <option key={p.id} value={p.id}>{p.product_code} — {p.product_name}</option>)}
-                  </select>
+                  <SearchableSelect
+                    value={forecast.product_id}
+                    onValueChange={(v) => setForecast({ ...forecast, product_id: v })}
+                    options={products.map((p) => ({ value: p.id, label: `${p.product_code} — ${p.product_name}` }))}
+                    placeholder="Select Product..."
+                    searchPlaceholder="Search product code or name..."
+                  />
                 </div>
                 <div>
                   <label className="text-xs text-slate-500">Monthly Forecast (Cartons)</label>
-                  <Input type="number" value={forecast.forecast_quantity} onChange={(e) => setForecast({ ...forecast, forecast_quantity: Number(e.target.value) })} />
+                  <Input type="number" min="0" value={forecast.forecast_quantity} onChange={(e) => setForecast({ ...forecast, forecast_quantity: e.target.value })} placeholder="e.g. 100" />
                 </div>
                 <div>
                   <label className="text-xs text-slate-500">Reorder Level (Cartons)</label>
-                  <Input type="number" value={forecast.reorder_level} onChange={(e) => setForecast({ ...forecast, reorder_level: Number(e.target.value) })} />
+                  <Input type="number" min="0" value={forecast.reorder_level} onChange={(e) => setForecast({ ...forecast, reorder_level: e.target.value })} placeholder="e.g. 50" />
                 </div>
                 <div>
                   <label className="text-xs text-slate-500">Buffer Multiplier (e.g. 1.1)</label>
-                  <Input type="number" step="0.05" value={forecast.buffer_percentage} onChange={(e) => setForecast({ ...forecast, buffer_percentage: Number(e.target.value) })} />
+                  <Input type="number" min="0" step="0.05" value={forecast.buffer_percentage} onChange={(e) => setForecast({ ...forecast, buffer_percentage: e.target.value })} placeholder="1.1" />
                 </div>
                 <div>
                   <label className="text-xs text-slate-500">Current Finished Stock (Cartons)</label>
-                  <Input type="number" value={forecast.available_stock_cartons} onChange={(e) => setForecast({ ...forecast, available_stock_cartons: Number(e.target.value) })} />
+                  <Input type="number" min="0" value={forecast.available_stock_cartons} onChange={(e) => setForecast({ ...forecast, available_stock_cartons: e.target.value })} placeholder="0" />
                 </div>
                 <div className="md:col-span-2">
                   <Button type="submit">Save Forecast & Stock</Button>
@@ -600,7 +633,7 @@ export default function InsertData() {
                 </div>
                 <div>
                   <label className="text-xs text-slate-500">Current Stock</label>
-                  <Input type="number" value={pkg.current_stock} onChange={(e) => setPkg({ ...pkg, current_stock: Number(e.target.value) })} />
+                  <Input type="number" min="0" value={pkg.current_stock} onChange={(e) => setPkg({ ...pkg, current_stock: e.target.value })} placeholder="0" />
                 </div>
                 <div className="md:col-span-3">
                   <Button type="submit">Save Packaging Item</Button>
@@ -662,7 +695,7 @@ export default function InsertData() {
                 </div>
                 <div>
                   <label className="text-xs text-slate-500">Capacity (CPH)</label>
-                  <Input type="number" value={machine.capacity_cph} onChange={(e) => setMachine({ ...machine, capacity_cph: Number(e.target.value) })} />
+                  <Input type="number" min="0" value={machine.capacity_cph} onChange={(e) => setMachine({ ...machine, capacity_cph: e.target.value })} placeholder="e.g. 100" />
                 </div>
                 <div className="md:col-span-3">
                   <Button type="submit">Save Machine</Button>

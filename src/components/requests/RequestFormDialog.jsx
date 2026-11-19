@@ -413,7 +413,14 @@ export default function RequestFormDialog({ open, onOpenChange, user, config = D
           <SearchableSelect
             id={key}
             value={values[key] ?? ""}
-            onValueChange={(v) => set(key, v)}
+            onValueChange={(v) => {
+              const match = opts.materials.find((m) => m.value === v || m.label === v);
+              setValues((prev) => ({
+                ...prev,
+                [key]: v,
+                ...(match?.unit && !prev.unit ? { unit: match.unit } : {}),
+              }));
+            }}
             options={opts.materials}
             placeholder="Select material / item..."
             searchPlaceholder="Search item..."
@@ -453,8 +460,9 @@ export default function RequestFormDialog({ open, onOpenChange, user, config = D
           <Input
             id={key}
             type={def.type === "number" ? "number" : def.type === "date" ? "date" : def.type === "time" ? "time" : def.type === "datetime" ? "datetime-local" : "text"}
+            step={def.type === "number" ? "any" : undefined}
             value={values[key] ?? ""}
-            onChange={(e) => set(key, def.type === "number" ? (e.target.value === "" ? "" : Number(e.target.value)) : e.target.value)}
+            onChange={(e) => set(key, e.target.value)}
             className="bg-white border-[#E2E8F0] text-[#0F294A]"
           />
         )}

@@ -101,7 +101,7 @@ export default function PlanChangeDialog({ open, onClose, order, target, machine
           {(maintenance || conflicts.length > 0) && (
             <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 flex gap-2">
               <AlertTriangle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
-              <div className="text-xs text-[#ffb46b] space-y-1">
+              <div className="text-xs text-amber-700 space-y-1">
                 {maintenance && <p>{machine?.name} is under maintenance.</p>}
                 {conflicts.length > 0 && <p>Overlaps {conflicts.map((o) => o.order_number).join(", ")} on this machine.</p>}
               </div>

@@ -31,6 +31,29 @@ export const calculateProductDerivedFields = (p: Partial<ProductInput>) => {
   };
 };
 
+const normalizeProductRow = (row: any): Product => {
+  if (!row) return row;
+  return {
+    ...row,
+    deleted_at: row.deleted_at ?? row.deleted_date ?? null,
+    deleted_date: row.deleted_date ?? row.deleted_at ?? null,
+  } as Product;
+};
+
+const sanitizeProductWrite = (raw: Record<string, any>, isInsert = false): Record<string, any> => {
+  const clean: Record<string, any> = { ...raw };
+  delete clean.created_date;
+  delete clean.updated_date;
+  delete clean.deleted_at;
+  if (isInsert && !clean.id) {
+    delete clean.id;
+  }
+  for (const k of Object.keys(clean)) {
+    if (clean[k] === undefined) delete clean[k];
+  }
+  return clean;
+};
+
 export const productService = {
   // Fetch active products
   async getActiveProducts(): Promise<Product[]> {
@@ -38,14 +61,14 @@ export const productService = {
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .eq('deleted', false)
+        .neq('deleted', true)
         .order('product_code', { ascending: true });
 
       if (error) {
         console.warn('Error fetching active products:', error.message);
         return [];
       }
-      return (data || []) as Product[];
+      return (data || []).map(normalizeProductRow);
     } catch (err: any) {
       console.warn('Network error loading active products:', err?.message || err);
       return [];
@@ -64,7 +87,7 @@ export const productService = {
         console.warn('Error fetching all products:', error.message);
         return [];
       }
-      return (data || []) as Product[];
+      return (data || []).map(normalizeProductRow);
     } catch (err: any) {
       console.warn('Network error loading products:', err?.message || err);
       return [];
@@ -77,13 +100,13 @@ export const productService = {
       .from('products')
       .select('*')
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error('Error fetching product by ID:', error);
       return null;
     }
-    return data as Product;
+    return data ? normalizeProductRow(data) : null;
   },
 
   // Check if item code or barcode clashes with existing records
@@ -132,7 +155,7 @@ export const productService = {
   // Insert a new product
   async createProduct(input: ProductInput): Promise<Product> {
     const derived = calculateProductDerivedFields(input);
-    const payload = {
+    let payload = sanitizeProductWrite({
       ...input,
       ...derived,
       product_code: upper(input.product_code),
@@ -145,17 +168,35 @@ export const productService = {
       deleted: false,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-    };
+    }, true);
 
-    const { data, error } = await supabase
-      .from('products')
-      .insert(payload)
-      .select()
-      .single();
+    let insertedData: any = null;
+    let lastError: any = null;
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const { data, error } = await supabase
+        .from('products')
+        .insert(payload)
+        .select()
+        .single();
+      if (!error) {
+        insertedData = data;
+        lastError = null;
+        break;
+      }
+      lastError = error;
+      const missingMatch = error.message?.match(/Could not find the '([^']+)' column/);
+      if (missingMatch && missingMatch[1] in payload) {
+        const next = { ...payload };
+        delete next[missingMatch[1]];
+        payload = next;
+        continue;
+      }
+      break;
+    }
 
-    if (error) {
-      console.error('Error inserting product:', error);
-      throw error;
+    if (lastError) {
+      console.error('Error inserting product:', lastError);
+      throw new Error(lastError.message || 'Failed to create product.');
     }
 
     if (payload.default_machine) {
@@ -177,17 +218,18 @@ export const productService = {
       this.ensureCustomer(payload.customer).catch(() => {});
     }
 
-    return data as Product;
+    return normalizeProductRow(insertedData);
   },
 
   // Update an existing product
   async updateProduct(id: string, input: Partial<ProductInput>): Promise<Product> {
     const derived = calculateProductDerivedFields(input);
-    const payload: any = {
+    let payload: any = sanitizeProductWrite({
       ...input,
       ...derived,
       updated_at: new Date().toISOString(),
-    };
+    }, false);
+    delete payload.id;
     if (input.product_code) payload.product_code = upper(input.product_code);
     if (input.product_name) payload.product_name = cleanText(input.product_name);
     if (input.barcode !== undefined) payload.barcode = cleanBarcode(input.barcode);
@@ -198,16 +240,34 @@ export const productService = {
       payload.active = input.status !== 'Inactive';
     }
 
-    const { data, error } = await supabase
-      .from('products')
-      .update(payload)
-      .eq('id', id)
-      .select()
-      .single();
+    let updatedData: any = null;
+    let lastError: any = null;
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const { data, error } = await supabase
+        .from('products')
+        .update(payload)
+        .eq('id', id)
+        .select()
+        .single();
+      if (!error) {
+        updatedData = data;
+        lastError = null;
+        break;
+      }
+      lastError = error;
+      const missingMatch = error.message?.match(/Could not find the '([^']+)' column/);
+      if (missingMatch && missingMatch[1] in payload) {
+        const next = { ...payload };
+        delete next[missingMatch[1]];
+        payload = next;
+        continue;
+      }
+      break;
+    }
 
-    if (error) {
-      console.error('Error updating product:', error);
-      throw error;
+    if (lastError) {
+      console.error('Error updating product:', lastError);
+      throw new Error(lastError.message || 'Failed to update product.');
     }
 
     if (payload.default_machine) {
@@ -229,25 +289,26 @@ export const productService = {
       this.ensureCustomer(payload.customer).catch(() => {});
     }
 
-    return data as Product;
+    return normalizeProductRow(updatedData);
   },
 
   // Soft delete product
   async softDeleteProduct(id: string, deletedBy: string): Promise<void> {
+    const now = new Date().toISOString();
     const { error } = await supabase
       .from('products')
       .update({
         deleted: true,
         active: false,
-        deleted_at: new Date().toISOString(),
+        deleted_date: now,
         deleted_by: deletedBy,
-        updated_at: new Date().toISOString(),
+        updated_at: now,
       })
       .eq('id', id);
 
     if (error) {
       console.error('Error deleting product:', error);
-      throw error;
+      throw new Error(error.message || 'Failed to delete product.');
     }
   },
 
@@ -259,7 +320,7 @@ export const productService = {
         deleted: false,
         active: true,
         status: 'Active',
-        deleted_at: null,
+        deleted_date: null,
         deleted_by: null,
         updated_at: new Date().toISOString(),
       })
@@ -267,7 +328,7 @@ export const productService = {
 
     if (error) {
       console.error('Error restoring product:', error);
-      throw error;
+      throw new Error(error.message || 'Failed to restore product.');
     }
   },
 
@@ -280,18 +341,50 @@ export const productService = {
 
     if (error) {
       console.error('Error permanently deleting product:', error);
-      throw error;
+      throw new Error(error.message || 'Failed to delete product.');
     }
   },
 
   // Bulk upsert products (used by Excel / CSV import)
+  // Does not rely on a Postgres UNIQUE constraint on product_code: resolves existing
+  // rows by product_code and updates by primary key `id` or inserts new rows.
   async bulkUpsertProducts(products: ProductInput[]): Promise<{ count: number }> {
-    const prepared = products.map((p) => {
+    const byCodeInput = new Map<string, ProductInput>();
+    for (const p of products) {
+      const code = upper(p.product_code);
+      if (!code) continue;
+      byCodeInput.set(code, p);
+    }
+    const dedupedInputs = Array.from(byCodeInput.values());
+    if (dedupedInputs.length === 0) return { count: 0 };
+
+    const { data: existingRows, error: fetchErr } = await supabase
+      .from('products')
+      .select('id, product_code');
+    if (fetchErr) {
+      console.error('Error reading existing products for bulk upsert:', fetchErr);
+      throw new Error(fetchErr.message);
+    }
+
+    const existingIdByCode = new Map<string, string>();
+    for (const r of existingRows || []) {
+      if (r.product_code && r.id) {
+        existingIdByCode.set(upper(r.product_code), r.id);
+      }
+    }
+
+    const toInsert: Record<string, any>[] = [];
+    const toUpdate: Record<string, any>[] = [];
+    const now = new Date().toISOString();
+
+    for (const p of dedupedInputs) {
+      const code = upper(p.product_code);
       const derived = calculateProductDerivedFields(p);
-      return {
+      const existingId = p.id || existingIdByCode.get(code);
+      const base = sanitizeProductWrite({
         ...p,
         ...derived,
-        product_code: upper(p.product_code),
+        product_code: code,
         product_name: cleanText(p.product_name),
         barcode: p.barcode ? cleanBarcode(p.barcode) : '',
         carton_barcode: p.carton_barcode ? cleanBarcode(p.carton_barcode) : '',
@@ -299,30 +392,57 @@ export const productService = {
         status: p.status || 'Active',
         active: (p.status || 'Active') !== 'Inactive',
         deleted: false,
-        updated_at: new Date().toISOString(),
-      };
-    });
+        updated_at: now,
+      }, !existingId);
 
-    const { data, error } = await supabase
-      .from('products')
-      .upsert(prepared, { onConflict: 'product_code' })
-      .select('id');
-
-    if (error) {
-      console.error('Error in bulk upsert products:', error);
-      throw error;
+      if (existingId) {
+        toUpdate.push({ ...base, id: existingId });
+      } else {
+        delete base.id;
+        toInsert.push({ ...base, created_at: now });
+      }
     }
 
-    const uniqueMachines = [...new Set(products.map((p) => p.default_machine).filter(Boolean))] as string[];
+    let totalSaved = 0;
+
+    if (toInsert.length > 0) {
+      const { data: insData, error: insErr } = await supabase
+        .from('products')
+        .insert(toInsert)
+        .select('id');
+      if (insErr) {
+        console.error('Error inserting new products in bulk:', insErr);
+        throw new Error(insErr.message);
+      }
+      totalSaved += insData?.length || toInsert.length;
+    }
+
+    if (toUpdate.length > 0) {
+      const { data: updData, error: updErr } = await supabase
+        .from('products')
+        .upsert(toUpdate, { onConflict: 'id' })
+        .select('id');
+      if (updErr) {
+        console.error('Error updating existing products in bulk:', updErr);
+        throw new Error(updErr.message);
+      }
+      totalSaved += updData?.length || toUpdate.length;
+    }
+
+    const uniqueMachines = [...new Set(dedupedInputs.map((p) => p.default_machine).filter(Boolean))] as string[];
     uniqueMachines.forEach((m) => this.ensureMachine(m).catch(() => {}));
 
-    const uniqueBrands = [...new Set(products.map((p) => p.brand).filter(Boolean))] as string[];
-    uniqueBrands.forEach((b) => this.ensureBrand(b).catch(() => {}));
+    const uniqueBrands = [...new Set(dedupedInputs.map((p) => p.brand).filter(Boolean))] as string[];
+    if (uniqueBrands.length > 0) {
+      this.ensureBrands(uniqueBrands).catch(() => {});
+    }
 
-    const uniqueCustomers = [...new Set(products.map((p) => p.customer).filter(Boolean))] as string[];
-    uniqueCustomers.forEach((c) => this.ensureCustomer(c).catch(() => {}));
+    const uniqueCustomers = [...new Set(dedupedInputs.map((p) => p.customer).filter(Boolean))] as string[];
+    if (uniqueCustomers.length > 0) {
+      this.ensureCustomers(uniqueCustomers).catch(() => {});
+    }
 
-    products.forEach((p) => {
+    dedupedInputs.forEach((p) => {
       if (p.recipe_name) {
         this.ensureRecipe({
           recipe_name: p.recipe_name,
@@ -334,7 +454,7 @@ export const productService = {
       }
     });
 
-    return { count: data?.length || 0 };
+    return { count: totalSaved };
   },
 
   // Product Settings (Brands, Channels, Import Mappings)
@@ -343,37 +463,97 @@ export const productService = {
       .from('product_settings')
       .select('*')
       .eq('key', 'product_master')
-      .single();
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-    if (error && error.code !== 'PGRST116') {
-      console.error('Error fetching product settings:', error);
+    if (error) {
+      console.warn('Error fetching product settings:', error.message);
     }
 
-    return (
-      (data as ProductSettings) || {
+    if (!data) {
+      return {
         key: 'product_master',
         brands: [],
         channels: [],
         mapping: null,
         mapping_signature: '',
+      };
+    }
+
+    let parsedMapping: Record<string, string> | null = null;
+    if (data.mapping && typeof data.mapping === 'object') {
+      parsedMapping = data.mapping;
+    } else if (typeof data.mapping === 'string' && data.mapping.trim()) {
+      try {
+        parsedMapping = JSON.parse(data.mapping);
+      } catch {
+        parsedMapping = null;
       }
-    );
+    }
+
+    const normList = (list: any[]) =>
+      (Array.isArray(list) ? list : [])
+        .map((item) => {
+          if (typeof item === 'string') return { name: item, status: 'Active', active: true };
+          if (!item?.name) return null;
+          const isActive = item.active !== false && item.status !== 'Inactive';
+          return {
+            ...item,
+            name: String(item.name).trim(),
+            status: isActive ? 'Active' : 'Inactive',
+            active: isActive,
+          };
+        })
+        .filter(Boolean);
+
+    return {
+      id: data.id,
+      key: 'product_master',
+      brands: normList(data.brands) as any,
+      channels: normList(data.channels) as any,
+      mapping: parsedMapping,
+      mapping_signature: data.mapping_signature || '',
+      updated_at: data.updated_at,
+      updated_by: data.updated_by,
+    };
   },
 
   async saveProductSettings(settings: Partial<ProductSettings>): Promise<void> {
-    const { error } = await supabase.from('product_settings').upsert({
+    const current = await this.getProductSettings();
+    const mappingValue =
+      settings.mapping !== undefined ? settings.mapping : current.mapping;
+    const payload = {
       key: 'product_master',
-      brands: settings.brands || [],
-      channels: settings.channels || [],
-      mapping: settings.mapping || null,
-      mapping_signature: settings.mapping_signature || '',
+      brands: settings.brands !== undefined ? settings.brands : current.brands || [],
+      channels: settings.channels !== undefined ? settings.channels : current.channels || [],
+      mapping:
+        mappingValue && typeof mappingValue === 'object'
+          ? JSON.stringify(mappingValue)
+          : mappingValue || null,
+      mapping_signature:
+        settings.mapping_signature !== undefined
+          ? settings.mapping_signature
+          : current.mapping_signature || '',
       updated_at: new Date().toISOString(),
-      updated_by: settings.updated_by || '',
-    }, { onConflict: 'key' });
+      updated_by: settings.updated_by ?? current.updated_by ?? '',
+    };
 
-    if (error) {
-      console.error('Error saving product settings:', error);
-      throw error;
+    if (current.id) {
+      const { error } = await supabase
+        .from('product_settings')
+        .update(payload)
+        .eq('id', current.id);
+      if (error) {
+        console.error('Error updating product settings:', error);
+        throw new Error(error.message);
+      }
+    } else {
+      const { error } = await supabase.from('product_settings').insert(payload);
+      if (error) {
+        console.error('Error inserting product settings:', error);
+        throw new Error(error.message);
+      }
     }
   },
 
@@ -383,6 +563,7 @@ export const productService = {
       const { data, error } = await supabase
         .from('machines')
         .select('*')
+        .neq('deleted', true)
         .order('name', { ascending: true });
 
       if (error) {
@@ -400,6 +581,7 @@ export const productService = {
     const prepared = {
       ...payload,
       status: payload.status || 'Active',
+      deleted: false,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -453,6 +635,7 @@ export const productService = {
       const { data, error } = await supabase
         .from('recipes')
         .select('*')
+        .neq('deleted', true)
         .order('recipe_name', { ascending: true });
 
       if (error) {
@@ -473,6 +656,7 @@ export const productService = {
       status: payload.status || 'Active',
       standard_yield_pct: payload.standard_yield_pct ?? 100,
       ingredients: payload.ingredients || [],
+      deleted: false,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -526,6 +710,7 @@ export const productService = {
       const { data, error } = await supabase
         .from('packaging_items')
         .select('*')
+        .neq('deleted', true)
         .eq('active', true)
         .order('item_code', { ascending: true });
 
@@ -533,19 +718,33 @@ export const productService = {
         console.warn('Could not load packaging items from Supabase:', error.message);
         return [];
       }
-      return (data || []) as PackagingItem[];
+      return (data || []).map((row: any) => ({
+        ...row,
+        name: row.description || row.name || row.item_code || '',
+        description: row.description || row.name || '',
+        current_stock: num(row.quantity ?? row.current_stock),
+        quantity: num(row.quantity ?? row.current_stock),
+        safety_stock: num(row.min_level ?? row.safety_stock),
+        min_level: num(row.min_level ?? row.safety_stock),
+      })) as PackagingItem[];
     } catch (err: any) {
       console.warn('Network error loading packaging items:', err?.message || err);
       return [];
     }
   },
 
-  async createPackagingItem(payload: Partial<PackagingItem>): Promise<PackagingItem> {
-    const prepared = {
-      ...payload,
+  async createPackagingItem(payload: Partial<PackagingItem> & Record<string, any>): Promise<PackagingItem> {
+    const prepared: Record<string, any> = {
+      item_code: payload.item_code || '',
+      description: payload.description || payload.name || payload.item_code || '',
+      category: payload.category || 'Packaging Raw Material',
+      unit: payload.unit || 'pcs',
+      quantity: num(payload.quantity ?? payload.current_stock),
+      min_level: num(payload.min_level ?? payload.safety_stock),
+      default_rack: payload.default_rack || '',
+      supplier: payload.supplier || '',
       active: payload.active ?? true,
-      current_stock: num(payload.current_stock),
-      safety_stock: num(payload.safety_stock),
+      deleted: false,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -559,14 +758,32 @@ export const productService = {
       console.error('Error creating packaging item in Supabase:', error);
       throw error;
     }
-    return data as PackagingItem;
+    return {
+      ...data,
+      name: data.description || data.item_code || '',
+      current_stock: num(data.quantity),
+      safety_stock: num(data.min_level),
+    } as PackagingItem;
   },
 
-  async updatePackagingItem(id: string, payload: Partial<PackagingItem>): Promise<PackagingItem> {
-    const prepared = {
+  async updatePackagingItem(id: string, payload: Partial<PackagingItem> & Record<string, any>): Promise<PackagingItem> {
+    const prepared: Record<string, any> = {
       ...payload,
       updated_at: new Date().toISOString(),
     };
+    if (prepared.name !== undefined && prepared.description === undefined) {
+      prepared.description = prepared.name;
+    }
+    if (prepared.current_stock !== undefined && prepared.quantity === undefined) {
+      prepared.quantity = num(prepared.current_stock);
+    }
+    if (prepared.safety_stock !== undefined && prepared.min_level === undefined) {
+      prepared.min_level = num(prepared.safety_stock);
+    }
+    delete prepared.name;
+    delete prepared.current_stock;
+    delete prepared.safety_stock;
+
     const { data, error } = await supabase
       .from('packaging_items')
       .update(prepared)
@@ -578,7 +795,12 @@ export const productService = {
       console.error('Error updating packaging item in Supabase:', error);
       throw error;
     }
-    return data as PackagingItem;
+    return {
+      ...data,
+      name: data.description || data.item_code || '',
+      current_stock: num(data.quantity),
+      safety_stock: num(data.min_level),
+    } as PackagingItem;
   },
 
   async deletePackagingItem(id: string): Promise<void> {
@@ -601,6 +823,7 @@ export const productService = {
       await supabase.from('machines').insert({
         name: trimmed,
         status: 'Active',
+        deleted: false,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       });
@@ -622,6 +845,7 @@ export const productService = {
         status: 'Active',
         standard_yield_pct: 100,
         ingredients: [],
+        deleted: false,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       });
@@ -629,26 +853,44 @@ export const productService = {
   },
 
   async ensureBrand(brandName: string): Promise<void> {
-    const trimmed = cleanText(brandName);
-    if (!trimmed) return;
+    await this.ensureBrands([brandName]);
+  },
+
+  async ensureBrands(brandNames: string[]): Promise<void> {
+    const cleaned = brandNames.map(cleanText).filter(Boolean);
+    if (!cleaned.length) return;
     const settings = await this.getProductSettings();
-    const existing = settings.brands || [];
-    if (!existing.some((b) => upper(b.name) === upper(trimmed))) {
-      await this.saveProductSettings({
-        brands: [...existing, { name: trimmed, active: true }],
-      });
+    const existing = [...(settings.brands || [])];
+    let changed = false;
+    for (const name of cleaned) {
+      if (!existing.some((b) => upper(b.name) === upper(name))) {
+        existing.push({ name, active: true, status: 'Active' } as any);
+        changed = true;
+      }
+    }
+    if (changed) {
+      await this.saveProductSettings({ brands: existing });
     }
   },
 
   async ensureCustomer(customerName: string): Promise<void> {
-    const trimmed = cleanText(customerName);
-    if (!trimmed) return;
+    await this.ensureCustomers([customerName]);
+  },
+
+  async ensureCustomers(customerNames: string[]): Promise<void> {
+    const cleaned = customerNames.map(cleanText).filter(Boolean);
+    if (!cleaned.length) return;
     const settings = await this.getProductSettings();
-    const existing = settings.channels || [];
-    if (!existing.some((c) => upper(c.name) === upper(trimmed))) {
-      await this.saveProductSettings({
-        channels: [...existing, { name: trimmed.toUpperCase(), active: true }],
-      });
+    const existing = [...(settings.channels || [])];
+    let changed = false;
+    for (const name of cleaned) {
+      if (!existing.some((c) => upper(c.name) === upper(name))) {
+        existing.push({ name: name.toUpperCase(), active: true, status: 'Active' } as any);
+        changed = true;
+      }
+    }
+    if (changed) {
+      await this.saveProductSettings({ channels: existing });
     }
   },
 };

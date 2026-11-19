@@ -25,6 +25,7 @@ import {
   barcodeImageUrl, canEditLabelSettings, duplicateOf, expiryFor, fmtDay, loadBatchRecords, loadLabelSettings, logLabelAudit, normalizeBatch,
   qrImageUrl, resolveLayout, saveDefaultLayoutForProduct, traceUrlFor,
 } from "@/lib/labels";
+import { recordBatchOnOrder } from "@/lib/batchTrace";
 import { inputClass, primaryButton, subtleButton, panelClass, labelClass } from "@/components/planning/styles";
 
 const EMPTY_SETTINGS = { id: "", layouts: [], default_layout_id: "" };
@@ -156,6 +157,7 @@ export default function CreateBatch() {
     setSaving(true);
     try {
       const count = Math.max(1, Math.round(num(copies) || 1));
+      const pcsPerCarton = num(product.carton_size) || num(product.pcs_per_carton) || 24;
       const payload = {
         product_id: product.id,
         product_code: product.product_code || "",
@@ -169,6 +171,8 @@ export default function CreateBatch() {
         expiry_override_reason: overrideOpen ? overrideReason.trim() : "",
         expiry_override_by: overrideOpen ? actingUserName(user) : "",
         quantity_cartons: num(quantity),
+        pcs_per_carton: pcsPerCarton,
+        carton_barcode: product.carton_barcode || product.barcode || batch,
         label_layout: layout.id,
         label_layout_name: layout.name,
         label_width_mm: layout.width_mm,
@@ -183,6 +187,15 @@ export default function CreateBatch() {
         reprints: [],
       };
       const created = await base44.entities.BatchRecord.create(payload);
+      if (selectedOrder) {
+        await recordBatchOnOrder({
+          order: selectedOrder,
+          batchNumber: batch,
+          cartons: num(quantity),
+          recordId: created?.id || "",
+          user,
+        }).catch(() => {});
+      }
       await logLabelAudit({
         user,
         action: "Created",
@@ -195,7 +208,7 @@ export default function CreateBatch() {
         ...labelData,
         batchNumber: batch,
         cartonBarcode: product.carton_barcode || product.barcode || batch,
-        pcsPerCarton: product.pcs_per_carton || 24,
+        pcsPerCarton,
       };
       setSavedPrintView({ layout, copies: count, data: printData });
       toast({
@@ -255,20 +268,20 @@ export default function CreateBatch() {
 
         <div className="max-w-lg mx-auto space-y-4">
           <div className="flex justify-center">
-            <div id="saved-label-card" className="bg-white text-black rounded-lg border border-slate-200 p-4 shadow-lg w-[360px] space-y-2">
+            <div id="saved-label-card" data-logo-badge="true" style={{ backgroundColor: "#ffffff", color: "#0f172a" }} className="rounded-lg border border-slate-200 p-4 shadow-lg w-[360px] space-y-2">
               <div className="flex items-start justify-between gap-3">
-                <div className="space-y-0.5 text-xs">
-                  <p className="font-bold text-sm leading-tight">{d.productName}</p>
-                  <p className="text-slate-700 font-medium">{d.productCode}</p>
-                  <p className="font-bold text-slate-900">{d.batchNumber}</p>
-                  <p className="text-slate-600">Exp: {fmtDay(d.expiryDate)}</p>
-                  <p className="text-slate-600">{d.pcsPerCarton} pcs/carton</p>
+                <div className="space-y-0.5 text-xs" style={{ color: "#0f172a" }}>
+                  <p className="font-bold text-sm leading-tight" style={{ color: "#0f172a" }}>{d.productName}</p>
+                  <p className="font-medium" style={{ color: "#334155" }}>{d.productCode}</p>
+                  <p className="font-bold" style={{ color: "#0f172a" }}>{d.batchNumber}</p>
+                  <p style={{ color: "#475569" }}>Exp: {fmtDay(d.expiryDate)}</p>
+                  <p style={{ color: "#475569" }}>{d.pcsPerCarton} pcs/carton</p>
                 </div>
                 <img src={qrImageUrl(traceUrlFor(d.batchNumber), savedPrintView.layout.qr_ecc)} alt="QR" className="w-20 h-20 shrink-0" />
               </div>
               <div className="pt-1 text-center">
                 <img src={barcodeImageUrl(d.cartonBarcode || d.batchNumber)} alt="Barcode" className="w-full h-12 object-contain" />
-                <p className="text-[11px] font-mono tracking-wider text-slate-700">{d.cartonBarcode || d.batchNumber}</p>
+                <p className="text-[11px] font-mono tracking-wider" style={{ color: "#334155" }}>{d.cartonBarcode || d.batchNumber}</p>
               </div>
             </div>
           </div>

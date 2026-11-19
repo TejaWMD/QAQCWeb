@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 
 const COLORS = {
@@ -8,15 +9,16 @@ const COLORS = {
   Cartons: "#8b5cf6"
 };
 
-export default function ScrapBreakdownChart({ data }) {
+export default function ScrapBreakdownChart({ data = {} }) {
   const chartData = [
-  { name: "Caps", value: data.caps },
-  { name: "Bottles", value: data.bottles },
-  { name: "Labels", value: data.labels },
-  { name: "Cartons", value: data.cartons }];
+    { name: "Caps", value: Number(data?.caps) || 0 },
+    { name: "Bottles", value: Number(data?.bottles) || 0 },
+    { name: "Labels", value: Number(data?.labels) || 0 },
+    { name: "Cartons", value: Number(data?.cartons) || 0 }
+  ];
 
   const total = chartData.reduce((s, d) => s + d.value, 0);
-  const topSource = chartData.reduce((max, d) => d.value > max.value ? d : max, chartData[0]);
+  const topSource = total > 0 ? chartData.reduce((max, d) => (d.value > max.value ? d : max), chartData[0]) : { name: "None", value: 0 };
 
   return (
     <div className="bg-slate-50 rounded-xl border border-slate-200 p-5 flex flex-col">
@@ -44,7 +46,7 @@ export default function ScrapBreakdownChart({ data }) {
       </div>
       <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-200 text-sm">
         <span className="font-semibold text-slate-700">Top Waste Source: {topSource.name}</span>
-        <span className="text-sky-600 font-medium cursor-pointer">Scrap Advisory</span>
+        <Link to="/wastage-logs" className="text-sky-600 font-medium hover:underline">Scrap Advisory</Link>
       </div>
     </div>);
 

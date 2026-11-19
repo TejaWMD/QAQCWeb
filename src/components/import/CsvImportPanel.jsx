@@ -161,7 +161,7 @@ export default function CsvImportPanel({ config }) {
           onClick={() => fileRef.current?.click()}
           disabled={importing}
           variant="outline"
-          className="bg-white border-[#E2E8F0] text-[#0F294A] hover:bg-[#16203a] hover:text-[#1D4ED8]"
+          className="bg-white border-[#E2E8F0] text-[#0F294A] hover:bg-[#F1F5F9] hover:text-[#0F294A]"
         >
           <Upload className="w-4 h-4 mr-1.5" /> Choose CSV file
         </Button>

@@ -1,7 +1,7 @@
 // Shared logic for the Packaging Stock module: stock maths, movement logging,
 // batch (FEFO) helpers and the approval rules for counts and large issues.
 import { base44 } from "@/api/base44Client";
-import { actingUserName, isAdminUser } from "@/lib/permissions";
+import { actingUserName, canAccess, isAdminUser } from "@/lib/permissions";
 import { eventStamp, todayStr } from "@/lib/warehouse";
 
 export const PACKAGING_SETTINGS_KEY = "packaging_stock";
@@ -24,9 +24,15 @@ export const fmtQty = (v) => num(v).toLocaleString("en-US", { maximumFractionDig
 
 // Warehouse staff key stock in, out and counts; supervisors and admins approve.
 export const isPackagingStaff = (user) =>
-  isAdminUser(user) || ["warehouse_staff", "warehouse_supervisor", "supervisor", "manager"].includes(user?.app_role);
+  isAdminUser(user) ||
+  canAccess(user, "packaging_stock") ||
+  canAccess(user, "goods_issued") ||
+  ["warehouse_staff", "warehouse_supervisor", "supervisor", "manager"].includes(user?.app_role);
 export const canApproveStock = (user) =>
-  isAdminUser(user) || user?.app_role === "warehouse_supervisor";
+  isAdminUser(user) ||
+  canAccess(user, "packaging_approvals") ||
+  canAccess(user, "packaging_stock") ||
+  user?.app_role === "warehouse_supervisor";
 export const canManagePackaging = canApproveStock;
 
 export const newGroupId = (prefix = "PKG") => `${prefix}-${Date.now().toString(36).toUpperCase()}`;
@@ -98,6 +104,9 @@ export const logMovement = (item, type, quantity, user, extras = {}) =>
     delivery_note: extras.delivery_note || "",
     production_order: extras.production_order || "",
     production_line: extras.production_line || "",
+    product_id: extras.product_id || "",
+    product_code: extras.product_code || "",
+    product_name: extras.product_name || "",
     remarks: extras.remarks || "",
     source: extras.source || "",
     group_id: extras.group_id || "",

@@ -41,7 +41,7 @@ export default function EvidenceUpload({ value = {}, onChange, label = "Evidence
           size="sm"
           disabled={uploading}
           onClick={() => inputRef.current?.click()}
-          className="bg-white border-[#E2E8F0] text-[#334155] hover:bg-[#18202f] hover:text-[#0F294A] w-full justify-start"
+          className="bg-white border-[#E2E8F0] text-[#334155] hover:bg-[#F1F5F9] hover:text-[#0F294A] w-full justify-start"
         >
           {uploading ? (
             <>

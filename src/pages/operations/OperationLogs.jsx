@@ -4,7 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Pencil, TrendingUp, Package, Clock } from "lucide-react";
+import { Trash2, Pencil, TrendingUp, Package, Clock, Plus } from "lucide-react";
 import MetricCard from "@/components/dashboard/MetricCard";
 import LineAchievementChart from "@/components/dashboard/LineAchievementChart";
 import OTEfficiencyChart from "@/components/dashboard/OTEfficiencyChart";
@@ -65,17 +65,15 @@ export default function OperationLogs() {
     return () => unsubscribes.forEach((unsubscribe) => { if (typeof unsubscribe === "function") unsubscribe(); });
   }, [dateFrom, dateTo, lineFilter, batchFilter]);
 
-  // Entries are added by the shift log, so this only ever corrects an existing
-  // row — the correction is carried back onto its shift log session.
   const handleSave = async (formData) => {
     try {
-      await base44.functions.invoke("recordOperationLog", { operationLog: formData, operationLogId: editLog.id });
-      toast.success("Operation log updated.");
+      await base44.functions.invoke("recordOperationLog", { operationLog: formData, operationLogId: editLog?.id });
+      toast.success(editLog ? "Operation log updated." : "Operation log added.");
       setModalOpen(false);
       setEditLog(null);
       loadLogs(true);
     } catch (err) {
-      toast.error(err?.message || "Failed to update operation log.");
+      toast.error(err?.message || "Failed to save operation log.");
     }
   };
 
@@ -200,6 +198,9 @@ export default function OperationLogs() {
               Clear
             </Button>
           )}
+          <Button size="sm" onClick={() => { setEditLog(null); setModalOpen(true); }} className="bg-[#0F294A] hover:bg-[#193B68] text-white">
+            <Plus className="w-4 h-4 mr-1" /> Add Record
+          </Button>
         </div>
       </div>
 

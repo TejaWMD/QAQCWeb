@@ -1,6 +1,6 @@
 // Shared logic for the Planning section: product master, recipe versions and machines.
 import { base44 } from "@/api/base44Client";
-import { actingUserName, appRoleOf, isAdminUser } from "@/lib/permissions";
+import { actingUserName, appRoleOf, canAccess, isAdminUser } from "@/lib/permissions";
 import { eventStamp } from "@/lib/warehouse";
 import { activeRecipeFor, recipeVersionsFor } from "@/lib/recipeMaster";
 
@@ -11,11 +11,13 @@ export const PRODUCT_CATEGORIES = ["Sauce", "Paste", "Seasoning", "Honey", "Beve
 export const MACHINE_STATUSES = ["Active", "Under Maintenance"];
 export const INGREDIENT_UNITS = ["kg", "g", "L", "ml", "PCS", "pack", "box"];
 
-// Recipes are owned by QA; the product and machine masters by planning roles.
-export const canEditRecipes = (user) => isAdminUser(user) || appRoleOf(user) === "qa_officer";
+// Recipes, products, and machines are editable by admins, assigned roles, or anyone granted the module.
+export const canEditRecipes = (user) =>
+  isAdminUser(user) || canAccess(user, "recipe_master") || ["qa_officer", "manager", "supervisor"].includes(appRoleOf(user));
 export const canEditProducts = (user) =>
-  isAdminUser(user) || ["manager", "supervisor", "qa_officer"].includes(appRoleOf(user));
-export const canEditMachines = (user) => isAdminUser(user) || appRoleOf(user) === "manager";
+  isAdminUser(user) || canAccess(user, "product_master") || ["manager", "supervisor", "qa_officer"].includes(appRoleOf(user));
+export const canEditMachines = (user) =>
+  isAdminUser(user) || canAccess(user, "machines") || ["manager", "supervisor"].includes(appRoleOf(user));
 
 export const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 export const fmtQty = (v) => num(v).toLocaleString("en-US", { maximumFractionDigits: 3 });

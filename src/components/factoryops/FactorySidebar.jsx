@@ -7,7 +7,8 @@ import {
   Radar, Clock, ShieldCheck, ClipboardList, AlertTriangle, ScrollText,
   LayoutDashboard, Users, Upload, PackagePlus, Boxes, PackageMinus, Layers,
   ArrowLeftRight, ClipboardCheck, Package, FlaskConical, ListChecks,
-  CalendarDays, Trash2, Tag, History, Scale, X, LogOut, PanelLeftClose, PanelLeftOpen
+  CalendarDays, Trash2, Tag, History, Scale, X, LogOut, PanelLeftClose, PanelLeftOpen,
+  Cpu, TrendingUp, ShoppingCart, LayoutGrid, QrCode, FileSpreadsheet, PlusCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -24,6 +25,10 @@ const planningItems = [
   { key: "pic_product_entry", label: "PIC Product Entry", icon: PackagePlus },
   { key: "product_master", label: "Product Master", icon: Package },
   { key: "recipe_master", label: "Recipe Master", icon: FlaskConical },
+  { key: "machines", label: "Machines", icon: Cpu },
+  { key: "insert_data", label: "Insert New Data", icon: PlusCircle },
+  { key: "demand_planner", label: "Demand Planner", icon: TrendingUp },
+  { key: "procurement", label: "Procurement (PR/PO)", icon: ShoppingCart },
   { key: "production_orders", label: "Production Orders", icon: ListChecks },
   { key: "production_schedule", label: "Schedule", icon: CalendarDays },
 ];
@@ -31,11 +36,13 @@ const planningItems = [
 const productionItems = [
   { key: "create_batch", label: "Create Batch", icon: Tag },
   { key: "batch_records", label: "Batch Records", icon: History },
+  { key: "batch_scan", label: "Barcode Lookup", icon: QrCode },
   { key: "production_line_logs", label: "Line Logs", icon: LayoutDashboard },
   { key: "yield_loss", label: "Yield & Loss", icon: Scale },
 ];
 
 const warehouseItems = [
+  { key: "wms_warehouse", label: "Finished Goods WMS", icon: LayoutGrid },
   { key: "warehouse_receiving", label: "Goods Receiving", icon: PackagePlus },
   { key: "goods_issued", label: "Goods Issued", icon: PackageMinus },
   { key: "goods_tracker", label: "Goods Tracker", icon: Boxes },
@@ -46,6 +53,7 @@ const warehouseItems = [
 
 const systemItems = [
   { key: "user_management", label: "Users", icon: Users, adminOnly: true },
+  { key: "sheet_migration", label: "Sheet Migration", icon: FileSpreadsheet, adminOnly: true },
   { key: "data_import", label: "Import CSV", icon: Upload, adminOnly: true },
   { key: "recently_deleted", label: "Recently Deleted", icon: Trash2, adminOnly: true },
 ];
@@ -103,7 +111,7 @@ export default function FactorySidebar({
                 aria-label={item.label}
                 className={`relative flex items-center ${isCollapsed ? "w-10 h-10 mx-auto justify-center p-0 rounded-xl" : "gap-2.5 px-3 py-2 rounded-full"} text-sm transition-all duration-150 ${
                   active
-                    ? "bg-[#00e5ff]/15 text-[#00e5ff] font-semibold shadow-sm ring-1 ring-[#00e5ff]/30"
+                    ? "bg-[#2563eb]/20 text-[#60a5fa] font-semibold shadow-sm ring-1 ring-[#3b82f6]/30"
                     : "text-[#cbd5e1] hover:text-white hover:bg-white/5"
                 }`}
               >

@@ -91,11 +91,11 @@ export function downloadTemplateXlsx(type: 'products' | 'forecasts' | 'warehouse
     packaging: [
       {
         item_code: 'PKG-BOX-01',
-        name: 'Master Carton Box 100G',
+        description: 'Master Carton Box 100G',
         category: 'Packaging Raw Material',
         unit: 'pcs',
-        current_stock: 1500,
-        safety_stock: 300,
+        quantity: 1500,
+        min_level: 300,
       },
     ],
   };

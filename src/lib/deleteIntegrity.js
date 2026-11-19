@@ -31,9 +31,9 @@ export async function deleteWarehouseRackSafely(rack) {
   const code = rack.rack_code;
 
   const [whCount, pkgCount, wmsCount] = await Promise.all([
-    code ? base44.entities.WarehouseItem.count({ rack: code }).catch(() => 0) : 0,
-    code ? base44.entities.PackagingItem.count({ rack: code }).catch(() => 0) : 0,
-    code ? base44.entities.WmsStockItem.count({ rack_code: code }).catch(() => 0) : 0,
+    code ? base44.entities.GoodsReceipt.count({ rack_location: code }).catch(() => 0) : 0,
+    code ? base44.entities.PackagingItem.count({ default_rack: code }).catch(() => 0) : 0,
+    code ? base44.entities.WmsStockItem.count({ rack: code }).catch(() => 0) : 0,
   ]);
 
   const refCount = (whCount || 0) + (pkgCount || 0) + (wmsCount || 0);

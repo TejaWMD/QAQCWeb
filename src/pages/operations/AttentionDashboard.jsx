@@ -15,13 +15,14 @@ import TodayScheduleSummary from "@/components/dashboard/TodayScheduleSummary";
 import LossTodayTile from "@/components/yieldloss/LossTodayTile";
 import ProductDataHealth from "@/components/productmaster/ProductDataHealth";
 
-const ENTITIES = ["ProductionLog", "Downtime", "QualityDefect", "ProductHold", "HACCPCheck", "StaffingRecord", "DisciplineCase", "Task", "CAPA"];
+const ENTITIES = ["ProductionLog", "ShiftLog", "Downtime", "QualityDefect", "ProductHold", "HACCPCheck", "StaffingRecord", "DisciplineCase", "Task", "CAPA"];
 const VERIFIED = ["Verified", "Resolved", "Released", "Completed"];
 const todayISO = () => new Date().toISOString().slice(0, 10);
 const fmt = (n) => (n || 0).toLocaleString("en-US");
 
 const EMPTY_DATA = {
   prod: [],
+  shift: [],
   down: [],
   defects: [],
   holds: [],
@@ -33,7 +34,7 @@ const EMPTY_DATA = {
 };
 
 const isVerified = (r) => VERIFIED.includes(r.status);
-const isOverdue = (r, today) => !isVerified(r) && !!r.due_date && r.due_date < today;
+const isOverdue = (r, today) => !isVerified(r) && !!r.due_date && String(r.due_date).slice(0, 10) < today;
 const isActiveHold = (r) => !["Completed", "Verified"].includes(r.status);
 
 export default function AttentionDashboard() {
@@ -52,8 +53,9 @@ export default function AttentionDashboard() {
       const q = { shift_date: f.date };
       if (f.shift !== "all") q.shift_type = f.shift;
       const opt = { limit: 200 };
-      const [prod, down, defects, holds, haccp, staffing, discipline, tasks, capas] = await Promise.all([
+      const [prod, shift, down, defects, holds, haccp, staffing, discipline, tasks, capas] = await Promise.all([
         base44.entities.ProductionLog.filter(q, opt).then((p) => p?.items || []).catch(() => []),
+        base44.entities.ShiftLog.filter(q, opt).then((p) => p?.items || []).catch(() => []),
         // Demo / test downtime records never appear on the dashboard.
         base44.entities.Downtime.filter(q, opt).then((p) => (p?.items || []).filter((r) => !r.is_demo)).catch(() => []),
         base44.entities.QualityDefect.filter(q, opt).then((p) => p?.items || []).catch(() => []),
@@ -64,7 +66,7 @@ export default function AttentionDashboard() {
         base44.entities.Task.filter(q, opt).then((p) => p?.items || []).catch(() => []),
         base44.entities.CAPA.filter(q, opt).then((p) => p?.items || []).catch(() => []),
       ]);
-      setData({ prod, down, defects, holds, haccp, staffing, discipline, tasks, capas });
+      setData({ prod, shift, down, defects, holds, haccp, staffing, discipline, tasks, capas });
     } catch (err) {
       console.warn("Could not load attention dashboard data:", err);
       setData(EMPTY_DATA);
@@ -105,6 +107,8 @@ export default function AttentionDashboard() {
     const scope = (list) => (list || []).filter((r) => matchesScope(r) && matchesStatus(r));
 
     const prod = scope(d.prod);
+    const shift = (d.shift || []).filter((r) => matchesScope(r));
+    const combinedProd = prod.length > 0 ? prod : shift;
     const down = scope(d.down);
     const defects = scope(d.defects);
     const holds = scope(d.holds);
@@ -115,8 +119,8 @@ export default function AttentionDashboard() {
     const capas = scope(d.capas);
 
     // Production
-    const actual = prod.reduce((s, r) => s + (r.actual_output || 0), 0);
-    const target = prod.reduce((s, r) => s + (r.planned_qty || 0), 0);
+    const actual = combinedProd.reduce((s, r) => s + (r.actual_output || 0), 0);
+    const target = combinedProd.reduce((s, r) => s + (r.planned_qty || 0), 0);
     const eff = target > 0 ? (actual / target) * 100 : 0;
     const ordersAtRisk = prod.filter((r) => r.order_status === "at_risk").length;
 
@@ -140,12 +144,12 @@ export default function AttentionDashboard() {
     // Attention Actions (tasks + CAPAs)
     const attention = [...tasks, ...capas];
     const overdueActions = attention.filter((r) => isOverdue(r, today) || r.status === "Overdue").length;
-    const dueToday = attention.filter((r) => !isVerified(r) && r.due_date === today).length;
+    const dueToday = attention.filter((r) => !isVerified(r) && String(r.due_date || "").slice(0, 10) === today).length;
     const verifiedActions = attention.filter((r) => isVerified(r)).length;
 
     // Shift Data Completion
     const totalLines = productionLines.length;
-    const linesLogged = new Set(prod.map((r) => r.production_line).filter(Boolean)).size;
+    const linesLogged = new Set([...prod, ...shift].map((r) => r.production_line).filter(Boolean)).size;
 
     // Critical attention items across all modules
     const critical = [];
@@ -179,17 +183,17 @@ export default function AttentionDashboard() {
   return (
     <div className="min-h-screen bg-[#0a0e17] p-3 sm:p-5 lg:p-6 space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2.5">
-        <span className="px-3 py-1 rounded-full bg-[#00e5ff]/15 text-[#00e5ff] border border-[#00e5ff]/30 text-xs font-semibold">
+        <span className="px-3 py-1 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/30 text-xs font-semibold">
           {role === "admin" ? "Admin" : role ? appRoleLabel(role) : "Custom"}
         </span>
         <div className="flex flex-wrap items-center gap-2">
-          <Button size="sm" onClick={() => navigate("/shift-log-draft")} className="bg-[#00e5ff] hover:bg-[#00c3d7] text-[#0a0e17] font-semibold">
+          <Button size="sm" onClick={() => navigate("/shift-log-draft")} className="bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-semibold">
             <Plus className="w-3.5 h-3.5" /> Shift Log
           </Button>
-          <Button size="sm" onClick={() => navigate("/downtime")} className="bg-[#ff9f43] hover:bg-[#ff8c1a] text-[#0a0e17] font-semibold">
+          <Button size="sm" variant="outline" onClick={() => navigate("/downtime")} className="bg-[#131926] hover:bg-[#1e2740] text-[#e2e8f0] border-[#1e2740] font-medium">
             <ArrowUpCircle className="w-3.5 h-3.5" /> Downtime
           </Button>
-          <Button size="sm" onClick={() => navigate("/capa-tracker")} className="bg-[#ff4d4d] hover:bg-[#e63b3b] text-white font-semibold">
+          <Button size="sm" variant="outline" onClick={() => navigate("/capa-tracker")} className="bg-[#131926] hover:bg-[#1e2740] text-[#e2e8f0] border-[#1e2740] font-medium">
             <ShieldCheck className="w-3.5 h-3.5" /> CAPA
           </Button>
         </div>
