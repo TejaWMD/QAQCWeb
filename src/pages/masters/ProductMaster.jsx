@@ -63,7 +63,11 @@ export default function ProductMaster() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    const unsub = base44.entities.Product.subscribe(() => load());
+    return () => { if (typeof unsub === "function") unsub(); };
+  }, []);
 
   const live = products.filter((p) => !p.deleted);
   const deleted = products.filter((p) => p.deleted);

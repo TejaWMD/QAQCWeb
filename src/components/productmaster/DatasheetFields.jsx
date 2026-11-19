@@ -50,7 +50,7 @@ export default function DatasheetFields({ form, set, brands = [], customers = []
         <Field label="Item Code *">
           <Input value={form.product_code} onChange={(e) => set("product_code", e.target.value)} className={inputClass} placeholder="RSPT350GX12" />
         </Field>
-        <Field label="Carton Description *" hint="Item description as printed on the carton">
+        <Field label="Carton Description *">
           <Input value={form.product_name} onChange={(e) => set("product_name", e.target.value)} className={inputClass} placeholder="RASTO TRADITIONAL PASTA SAUCE 350G X 12" />
         </Field>
         <Field label="Brand">
@@ -67,7 +67,7 @@ export default function DatasheetFields({ form, set, brands = [], customers = []
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <Field label="Recipe Name" hint="Products sharing a name share one recipe">
+        <Field label="Recipe Name">
           <SearchableSelect
             value={form.recipe_name || ""}
             onValueChange={(v) => set("recipe_name", v)}
@@ -78,7 +78,7 @@ export default function DatasheetFields({ form, set, brands = [], customers = []
             clearable
           />
         </Field>
-        <Field label="Line Type" hint="SAUCE, POUCH, SYRUP — packaging line type">
+        <Field label="Line Type">
           <SearchableSelect
             value={form.line_type || ""}
             onValueChange={(v) => set("line_type", v)}
@@ -104,22 +104,22 @@ export default function DatasheetFields({ form, set, brands = [], customers = []
         <Field label="Batch Output (kg)">
           <Input type="number" min="0" value={form.batch_output_kg} onChange={(e) => set("batch_output_kg", e.target.value)} className={inputClass} placeholder="608" />
         </Field>
-        <Field label="Net Filling (kg/Carton)" hint="Calculated">
+        <Field label="Net Filling (kg/Ctn)">
           <div className="h-9 flex items-center px-3 rounded-md border border-[#E2E8F0] bg-[#F6F8FC] text-[#1D4ED8] font-semibold">{derived.net_filling_kg || "—"}</div>
         </Field>
-        <Field label="Cartons per Batch" hint="Calculated">
+        <Field label="Cartons / Batch">
           <div className="h-9 flex items-center px-3 rounded-md border border-[#E2E8F0] bg-[#F6F8FC] text-[#1D4ED8] font-semibold">{derived.cartons_per_batch || "—"}</div>
         </Field>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Field label="Batch Code" hint="3-letter prefix in batch numbers">
+        <Field label="Batch Code">
           <Input value={form.batch_prefix} onChange={(e) => set("batch_prefix", e.target.value.toUpperCase().slice(0, 6))} className={inputClass} placeholder="RTP" />
         </Field>
         <Field label="Shelf Life (Months)">
           <Input type="number" min="0" value={form.shelf_life_months} onChange={(e) => set("shelf_life_months", e.target.value)} className={inputClass} placeholder="12" />
         </Field>
-        <Field label="Customer" hint="Default is GENERAL">
+        <Field label="Customer">
           <SearchableSelect
             value={form.customer || DEFAULT_CUSTOMER}
             onValueChange={(v) => set("customer", v || DEFAULT_CUSTOMER)}
@@ -141,13 +141,13 @@ export default function DatasheetFields({ form, set, brands = [], customers = []
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <Field label="SKU Barcode" hint="Stored as text">
+        <Field label="SKU Barcode">
           <Input value={form.barcode} onChange={(e) => set("barcode", e.target.value)} className={inputClass} placeholder="9555721709349" />
         </Field>
-        <Field label="Carton Barcode" hint="May be empty">
+        <Field label="Carton Barcode">
           <Input value={form.carton_barcode} onChange={(e) => set("carton_barcode", e.target.value)} className={inputClass} placeholder="9555721709424" />
         </Field>
-        <Field label="Default Machine" hint="Optional; pre-selects the line on scheduling">
+        <Field label="Default Machine">
           <SearchableSelect
             value={form.default_machine || ""}
             onValueChange={(v) => set("default_machine", v)}

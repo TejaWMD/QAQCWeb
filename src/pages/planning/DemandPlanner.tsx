@@ -11,7 +11,15 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Calculator, Factory, Sparkles, CheckCircle2, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Calculator, Factory, Sparkles, CheckCircle2, AlertTriangle, RefreshCw, Plus } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { SearchableSelect } from '@/components/ui/searchable-select';
+
+const ForecastDialog = Dialog as React.ComponentType<any>;
+const ForecastDialogContent = DialogContent as React.ComponentType<any>;
+const ForecastDialogHeader = DialogHeader as React.ComponentType<any>;
+const ForecastDialogTitle = DialogTitle as React.ComponentType<any>;
+const ForecastDialogFooter = DialogFooter as React.ComponentType<any>;
 
 export default function DemandPlanner() {
   const [rows, setRows] = useState<PlanningCalculation[]>([]);
@@ -19,6 +27,15 @@ export default function DemandPlanner() {
   const [productionDate, setProductionDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [forecastOpen, setForecastOpen] = useState(false);
+  const [savingForecast, setSavingForecast] = useState(false);
+  const [forecastForm, setForecastForm] = useState({
+    product_id: '',
+    forecast_quantity: '100',
+    reorder_level: '50',
+    buffer_percentage: '1.1',
+    available_stock_cartons: '',
+  });
 
   const loadData = async () => {
     setLoading(true);
@@ -172,6 +189,80 @@ export default function DemandPlanner() {
     }
   };
 
+  const openForecastModal = (row?: PlanningCalculation) => {
+    setForecastForm({
+      product_id: row?.productId || '',
+      forecast_quantity: row ? String(row.forecastQty || 0) : '100',
+      reorder_level: row ? String(row.reorderLevel || 0) : '50',
+      buffer_percentage: '1.1',
+      available_stock_cartons: row ? String(row.currentStockCartons || 0) : '',
+    });
+    setForecastOpen(true);
+  };
+
+  const handleSaveForecast = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forecastForm.product_id) return toast.error('Select a product.');
+    const targetRow = rows.find((r) => r.productId === forecastForm.product_id);
+    if (!targetRow) return toast.error('Product not found.');
+
+    setSavingForecast(true);
+    try {
+      const fQty = Number(forecastForm.forecast_quantity) || 0;
+      const buf = Number(forecastForm.buffer_percentage) || 1.1;
+      const reorder = Number(forecastForm.reorder_level) || 0;
+
+      const { data: existingPlan } = await supabase
+        .from('sales_planning')
+        .select('id')
+        .eq('product_id', targetRow.productId)
+        .eq('deleted', false)
+        .maybeSingle();
+
+      const planPayload = {
+        product_id: targetRow.productId,
+        product_code: targetRow.productCode,
+        forecast_quantity: fQty,
+        reorder_level: reorder,
+        buffer_percentage: buf,
+        target_stock: Math.round(fQty * buf),
+        monthly_sales: fQty,
+        average_daily_sales: Number((fQty / 30).toFixed(2)),
+        deleted: false,
+      };
+
+      const { error: planErr } = existingPlan?.id
+        ? await supabase.from('sales_planning').update(planPayload).eq('id', existingPlan.id)
+        : await supabase.from('sales_planning').insert(planPayload);
+      if (planErr) throw planErr;
+
+      if (forecastForm.available_stock_cartons !== '') {
+        const ctns = Math.max(0, Number(forecastForm.available_stock_cartons) || 0);
+        const pcs = Math.round(ctns * (targetRow.pcsPerCarton || 1));
+        const { error: invErr } = await supabase.from('finished_goods_inventory').upsert(
+          {
+            product_id: targetRow.productId,
+            product_code: targetRow.productCode,
+            available_stock_cartons: ctns,
+            current_stock_pcs: pcs,
+            last_updated: new Date().toISOString(),
+            deleted: false,
+          },
+          { onConflict: 'product_id' }
+        );
+        if (invErr) throw invErr;
+      }
+
+      toast.success(`Forecast updated for ${targetRow.productCode}`);
+      setForecastOpen(false);
+      await loadData();
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to save forecast.');
+    } finally {
+      setSavingForecast(false);
+    }
+  };
+
   const priorityColor: Record<string, string> = {
     critical: 'bg-rose-100 text-rose-700 border-rose-200',
     high: 'bg-amber-100 text-amber-700 border-amber-200',
@@ -198,6 +289,10 @@ export default function DemandPlanner() {
             onChange={(e) => setProductionDate(e.target.value)}
             className="w-40"
           />
+          <Button variant="outline" onClick={() => openForecastModal()}>
+            <Plus className="w-4 h-4 mr-1" />
+            Set Forecast
+          </Button>
           <Button variant="outline" onClick={loadData} disabled={loading}>
             <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
             Refresh
@@ -250,7 +345,7 @@ export default function DemandPlanner() {
             </thead>
             <tbody className="divide-y">
               {rows.map((r) => (
-                <tr key={r.productId} className="hover:bg-slate-50/70">
+                <tr key={r.productId} className="hover:bg-slate-50/10">
                   <td className="p-3">
                     <div className="font-medium text-slate-900">{r.productName}</div>
                     <div className="text-xs text-slate-500">
@@ -302,6 +397,83 @@ export default function DemandPlanner() {
           </table>
         </CardContent>
       </Card>
+
+      <ForecastDialog open={forecastOpen} onOpenChange={(v: boolean) => !v && !savingForecast && setForecastOpen(false)}>
+        <ForecastDialogContent className="sm:max-w-md bg-white">
+          <ForecastDialogHeader>
+            <ForecastDialogTitle>Set Forecast & Reorder</ForecastDialogTitle>
+          </ForecastDialogHeader>
+          <form onSubmit={handleSaveForecast} className="space-y-3">
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-slate-600">Product *</label>
+              <SearchableSelect
+                value={forecastForm.product_id}
+                onValueChange={(v) => {
+                  const found = rows.find((r) => r.productId === v);
+                  setForecastForm({
+                    product_id: v,
+                    forecast_quantity: found ? String(found.forecastQty || 0) : '100',
+                    reorder_level: found ? String(found.reorderLevel || 0) : '50',
+                    buffer_percentage: '1.1',
+                    available_stock_cartons: found ? String(found.currentStockCartons || 0) : '',
+                  });
+                }}
+                options={rows.map((r) => ({ value: r.productId, label: `${r.productCode} — ${r.productName}` }))}
+                placeholder="Select product..."
+                searchPlaceholder="Search code or name..."
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-slate-600">Forecast (Ctns)</label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={forecastForm.forecast_quantity}
+                  onChange={(e) => setForecastForm({ ...forecastForm, forecast_quantity: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-slate-600">Reorder Level</label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={forecastForm.reorder_level}
+                  onChange={(e) => setForecastForm({ ...forecastForm, reorder_level: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-slate-600">Buffer Multiplier</label>
+                <Input
+                  type="number"
+                  step="0.05"
+                  min="1"
+                  value={forecastForm.buffer_percentage}
+                  onChange={(e) => setForecastForm({ ...forecastForm, buffer_percentage: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-slate-600">Current Stock (Ctns)</label>
+                <Input
+                  type="number"
+                  min="0"
+                  placeholder="Optional"
+                  value={forecastForm.available_stock_cartons}
+                  onChange={(e) => setForecastForm({ ...forecastForm, available_stock_cartons: e.target.value })}
+                />
+              </div>
+            </div>
+            <ForecastDialogFooter className="pt-2">
+              <Button type="button" variant="outline" onClick={() => setForecastOpen(false)} disabled={savingForecast}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={savingForecast}>
+                {savingForecast ? 'Saving...' : 'Save'}
+              </Button>
+            </ForecastDialogFooter>
+          </form>
+        </ForecastDialogContent>
+      </ForecastDialog>
     </div>
   );
 }

@@ -8,7 +8,7 @@ import {
   LayoutDashboard, Users, Upload, PackagePlus, Boxes, PackageMinus, Layers,
   ArrowLeftRight, ClipboardCheck, Package, FlaskConical, ListChecks,
   CalendarDays, Trash2, Tag, History, Scale, X, LogOut, PanelLeftClose, PanelLeftOpen,
-  Cpu, TrendingUp, ShoppingCart, LayoutGrid, QrCode, FileSpreadsheet, PlusCircle
+  Cpu, TrendingUp, ShoppingCart, LayoutGrid, QrCode
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -22,11 +22,9 @@ const factoryItems = [
 ];
 
 const planningItems = [
-  { key: "pic_product_entry", label: "PIC Product Entry", icon: PackagePlus },
   { key: "product_master", label: "Product Master", icon: Package },
   { key: "recipe_master", label: "Recipe Master", icon: FlaskConical },
   { key: "machines", label: "Machines", icon: Cpu },
-  { key: "insert_data", label: "Insert New Data", icon: PlusCircle },
   { key: "demand_planner", label: "Demand Planner", icon: TrendingUp },
   { key: "procurement", label: "Procurement (PR/PO)", icon: ShoppingCart },
   { key: "production_orders", label: "Production Orders", icon: ListChecks },
@@ -53,8 +51,7 @@ const warehouseItems = [
 
 const systemItems = [
   { key: "user_management", label: "Users", icon: Users, adminOnly: true },
-  { key: "sheet_migration", label: "Sheet Migration", icon: FileSpreadsheet, adminOnly: true },
-  { key: "data_import", label: "Import CSV", icon: Upload, adminOnly: true },
+  { key: "data_import", label: "Data Import", icon: Upload, adminOnly: true },
   { key: "recently_deleted", label: "Recently Deleted", icon: Trash2, adminOnly: true },
 ];
 

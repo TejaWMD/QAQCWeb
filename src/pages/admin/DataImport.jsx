@@ -5,15 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Upload } from "lucide-react";
 import CsvImportPanel from "@/components/import/CsvImportPanel";
 import ProductImportWizard from "@/components/productmaster/ProductImportWizard";
+import SheetMigration from "@/pages/admin/SheetMigration";
 import { IMPORT_ENTITY_CONFIGS } from "@/lib/importEntityConfigs";
 import { loadProductSettings } from "@/lib/productMaster";
 import { loadRecipes } from "@/lib/recipeMaster";
 import { panelClass, primaryButton } from "@/components/planning/styles";
 
-// CSV Data Import (admin only): the Product Master datasheet plus the CSV
-// exports from the original app. Imports never delete existing records.
+// Unified Data Import (admin only): Excel/Sheet migration, Product Master datasheet, and CSV entity imports.
 export default function DataImport() {
-  const [destination, setDestination] = useState(IMPORT_ENTITY_CONFIGS[0].entity);
+  const [destination, setDestination] = useState("sheet_migration");
   const [wizardOpen, setWizardOpen] = useState(false);
   const [seed, setSeed] = useState({ products: [], recipes: [], settings: { id: "", brands: [], channels: [], mapping: null, mapping_signature: "" } });
 
@@ -54,12 +54,18 @@ export default function DataImport() {
 
       <Tabs value={destination} onValueChange={setDestination}>
         <TabsList className="bg-white border border-[#E2E8F0] flex-wrap h-auto">
+          <TabsTrigger value="sheet_migration" className="data-[state=active]:bg-[#0F294A] data-[state=active]:text-white text-[#64748B]">
+            Excel / Sheet Migration
+          </TabsTrigger>
           {IMPORT_ENTITY_CONFIGS.map((c) => (
             <TabsTrigger key={c.entity} value={c.entity} className="data-[state=active]:bg-[#0F294A] data-[state=active]:text-white text-[#64748B]">
               {c.tabLabel}
             </TabsTrigger>
           ))}
         </TabsList>
+        <TabsContent value="sheet_migration" className="mt-3">
+          <SheetMigration embedded />
+        </TabsContent>
         {IMPORT_ENTITY_CONFIGS.map((c) => (
           <TabsContent key={c.entity} value={c.entity} className="mt-3">
             <CsvImportPanel config={c} />

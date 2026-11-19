@@ -27,8 +27,6 @@ export const MODULES = [
   { key: "capa_tracker", label: "Unified CAPA Tracker", path: "/capa-tracker", description: "Corrective and preventive actions" },
   { key: "kpi_scorecards", label: "Role KPI Scorecards", path: "/kpi-scorecards", description: "Per-role performance scorecards" },
   { key: "audit_trail", label: "Audit Trail Log", path: "/audit-trail", description: "Chronological record of actions across modules" },
-  { key: "activity_history", label: "Activity History", path: "/activity-history", description: "Every user action, system action and data change in one timeline" },
-  { key: "activity_logs", label: "Activity Logs", path: "/activity-logs", description: "All recorded shift log entries" },
   { key: "warehouse_receiving", label: "Goods Receiving", path: "/goods-receiving", description: "Record goods received against a delivery note" },
   { key: "wms_warehouse", label: "Finished Goods WMS", path: "/wms", description: "QR scan-in, visual G/M/T rack floor, PL outbound picking & stock take" },
   { key: "goods_tracker", label: "Goods Tracker", path: "/goods-tracker", description: "Searchable log of everything received into the warehouse" },
@@ -36,14 +34,11 @@ export const MODULES = [
   { key: "packaging_stock", label: "Packaging Stock", path: "/packaging-stock", description: "Packaging material stock with in, use and count movements" },
   { key: "packaging_movements", label: "Stock Movements", path: "/packaging-movements", description: "Full log of stock in, use and adjustments" },
   { key: "packaging_approvals", label: "Stock Approvals", path: "/packaging-approvals", description: "Stock count and high-value issue approvals" },
-  { key: "pic_product_entry", label: "PIC Product Entry", path: "/pic-product-entry", description: "Direct product entry & Supabase live sync for PIC" },
   { key: "product_master", label: "Product Master", path: "/product-master", description: "Product codes, carton sizes and packaging used per carton" },
   { key: "recipe_master", label: "Recipe Master", path: "/recipe-master", description: "Versioned recipes per product with ingredient lists" },
   { key: "machines", label: "Machines", path: "/machines", description: "Machine list with capacity and maintenance status" },
   { key: "user_management", label: "User Management", path: "/users", description: "Members, roles and invitations", adminOnly: true },
-  { key: "data_import", label: "Import CSV Data", path: "/data-import", description: "Bulk import legacy records from CSV files", adminOnly: true },
-  { key: "sheet_migration", label: "Excel / Sheet Migration", path: "/sheet-migration", description: "Transfer Excel/Google Sheets data into Supabase", adminOnly: true },
-  { key: "insert_data", label: "Insert New Data", path: "/insert-data", description: "Add new Products, Recipes, Forecasts, Packaging & Machines" }
+  { key: "data_import", label: "Data Import", path: "/data-import", description: "Bulk import Excel, Google Sheets, and CSV data", adminOnly: true },
 ];
 
 // Modules an invitation offers by default; they are only granted once the invitation is
@@ -60,8 +55,8 @@ export const isAdminUser = (user) => user?.role === "admin" || user?.role === "s
 // role keep whatever modules were assigned to them individually.
 export const APP_ROLES = [
   { key: "operator", label: "Operator / Line Leader", preset: ["shift_log", "downtime", "qa_haccp", "production_orders", "production_schedule", "create_batch", "batch_records", "yield_loss"] },
-  { key: "supervisor", label: "Supervisor", preset: ["task_matrix", "shift_log", "downtime", "pic_product_entry", "product_master", "production_orders", "production_schedule", "create_batch", "batch_records", "yield_loss"] },
-  { key: "qa_officer", label: "QA Officer", preset: ["qa_haccp", "capa_tracker", "pic_product_entry", "product_master", "recipe_master", "yield_loss"] },
+  { key: "supervisor", label: "Supervisor", preset: ["task_matrix", "shift_log", "downtime", "product_master", "production_orders", "production_schedule", "create_batch", "batch_records", "yield_loss"] },
+  { key: "qa_officer", label: "QA Officer", preset: ["qa_haccp", "capa_tracker", "product_master", "recipe_master", "yield_loss"] },
   { key: "warehouse_staff", label: "Warehouse Staff", preset: ["warehouse_receiving", "goods_tracker", "goods_issued", "packaging_stock"] },
   { key: "warehouse_supervisor", label: "Warehouse Supervisor", preset: ["warehouse_receiving", "goods_tracker", "goods_issued", "packaging_stock", "packaging_movements", "packaging_approvals"] },
   { key: "manager", label: "Production Manager / MD", preset: ASSIGNABLE_MODULE_KEYS },

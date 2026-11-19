@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { Toaster as SonnerToaster } from "@/components/ui/sonner"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
-import { HashRouter as Router, Route, Routes } from 'react-router-dom';
+import { HashRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -52,18 +52,13 @@ import WmsWarehouse from './pages/wms/WmsWarehouse';
 
 // Master Data & Entry
 import ProductMaster from './pages/masters/ProductMaster';
-import PicProductEntry from './pages/masters/PicProductEntry';
 import RecipeMaster from './pages/masters/RecipeMaster';
 import Machines from './pages/masters/Machines';
-import InsertData from './pages/masters/InsertData';
 
 // System Admin & Governance
 import UserManagement from './pages/admin/UserManagement';
 import DataImport from './pages/admin/DataImport';
-import SheetMigration from './pages/admin/SheetMigration';
 import AuditTrailLog from './pages/admin/AuditTrailLog';
-import ActivityHistory from './pages/admin/ActivityHistory';
-import ActivityLogs from './pages/admin/ActivityLogs';
 import RecentlyDeletedOrders from './pages/admin/RecentlyDeletedOrders';
 
 // Auth
@@ -113,8 +108,8 @@ const AuthenticatedApp = () => {
           <Route path="/capa-tracker" element={<CapaTracker />} />
           <Route path="/kpi-scorecards" element={<KpiScorecards />} />
           <Route path="/audit-trail" element={<AuditTrailLog />} />
-          <Route path="/activity-history" element={<ActivityHistory />} />
-          <Route path="/activity-logs" element={<ActivityLogs />} />
+          <Route path="/activity-history" element={<Navigate to="/audit-trail" replace />} />
+          <Route path="/activity-logs" element={<Navigate to="/audit-trail" replace />} />
           <Route path="/users" element={<UserManagement />} />
           <Route path="/data-import" element={<DataImport />} />
           <Route path="/overtime-record" element={<OvertimeRecord />} />
@@ -130,7 +125,7 @@ const AuthenticatedApp = () => {
           <Route path="/packaging-stock" element={<PackagingStock />} />
           <Route path="/packaging-movements" element={<PackagingMovements />} />
           <Route path="/packaging-approvals" element={<PackagingApprovals />} />
-          <Route path="/pic-product-entry" element={<PicProductEntry />} />
+          <Route path="/pic-product-entry" element={<Navigate to="/product-master" replace />} />
           <Route path="/product-master" element={<ProductMaster />} />
           <Route path="/recipe-master" element={<RecipeMaster />} />
           <Route path="/machines" element={<Machines />} />
@@ -143,8 +138,8 @@ const AuthenticatedApp = () => {
           <Route path="/procurement" element={<Procurement />} />
           <Route path="/batch-scan" element={<BarcodeLookup />} />
           <Route path="/wms" element={<WmsWarehouse />} />
-          <Route path="/sheet-migration" element={<SheetMigration />} />
-          <Route path="/insert-data" element={<InsertData />} />
+          <Route path="/sheet-migration" element={<Navigate to="/data-import" replace />} />
+          <Route path="/insert-data" element={<Navigate to="/product-master" replace />} />
           <Route path="/recently-deleted" element={<RecentlyDeletedOrders />} />
         </Route>
       </Route>

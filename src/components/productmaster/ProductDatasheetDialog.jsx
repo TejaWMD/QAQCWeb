@@ -80,7 +80,6 @@ export default function ProductDatasheetDialog({
       <DialogContent className={cn(dialogClass, "max-w-4xl")}>
         <DialogHeader>
           <DialogTitle className="text-[#0F294A]">{product ? `Edit ${product.product_code}` : "Add Product"}</DialogTitle>
-          <p className="text-xs text-[#64748B]">Item Code is the key every module uses. Net filling and cartons per batch are calculated.</p>
         </DialogHeader>
 
         <DatasheetFields

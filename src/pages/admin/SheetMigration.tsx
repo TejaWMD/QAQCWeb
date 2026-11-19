@@ -10,7 +10,7 @@ import { FileSpreadsheet, Upload, Download, CheckCircle2 } from 'lucide-react';
 
 type ImportTarget = 'products' | 'forecasts' | 'warehouse_stock' | 'packaging';
 
-export default function SheetMigration() {
+export default function SheetMigration({ embedded = false }: { embedded?: boolean }) {
   const [target, setTarget] = useState<ImportTarget>('products');
   const [rows, setRows] = useState<Record<string, any>[]>([]);
   const [fileName, setFileName] = useState('');
@@ -127,16 +127,18 @@ export default function SheetMigration() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F6F8FC] p-4 sm:p-6 w-full space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-          <FileSpreadsheet className="w-6 h-6 text-emerald-600" />
-          Excel / Google Sheet Migration Center
-        </h1>
-        <p className="text-sm text-slate-500">
-          Export your previous Google Sheets as .xlsx or .csv and upload them here to seed your Supabase database cleanly.
-        </p>
-      </div>
+    <div className={embedded ? "space-y-4" : "min-h-screen bg-[#F6F8FC] p-4 sm:p-6 w-full space-y-6"}>
+      {!embedded && (
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+            <FileSpreadsheet className="w-6 h-6 text-emerald-600" />
+            Excel / Google Sheet Migration Center
+          </h1>
+          <p className="text-sm text-slate-500">
+            Export your previous Google Sheets as .xlsx or .csv and upload them here to seed your Supabase database cleanly.
+          </p>
+        </div>
+      )}
 
       <Card>
         <CardHeader><CardTitle className="text-base">1. Select Target Table & Download Template</CardTitle></CardHeader>
