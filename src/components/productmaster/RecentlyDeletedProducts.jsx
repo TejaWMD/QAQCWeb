@@ -51,7 +51,7 @@ export default function RecentlyDeletedProducts({ products = [], user, onReload 
               <td className="px-3 py-2 text-[#64748B] max-w-[280px] truncate" title={p.product_name}>{p.product_name}</td>
               <td className="px-3 py-2 text-[#64748B]">{p.brand || "—"}</td>
               <td className="px-3 py-2 text-[#64748B]">{p.deleted_by || "—"}</td>
-              <td className="px-3 py-2 text-[#64748B] whitespace-nowrap">{when(p.deleted_date)}</td>
+              <td className="px-3 py-2 text-[#64748B] whitespace-nowrap">{when(p.deleted_at || p.deleted_date)}</td>
               <td className="px-3 py-2 text-right">
                 <Button variant="outline" onClick={() => restore(p)} disabled={busy === p.id} className={subtleButton}>
                   <RotateCcw className="w-3.5 h-3.5 mr-1.5" /> Restore

@@ -8,6 +8,11 @@ import { SearchableSelect } from '@/components/ui/searchable-select';
 import { toast } from 'sonner';
 import { PlusCircle, Package, BookOpen, TrendingUp, Boxes, Cpu, Trash2, AlertTriangle } from 'lucide-react';
 import {
+  archiveMachineSafely,
+  archiveProductSafely,
+  archiveRecipeSafely,
+} from '@/lib/deleteIntegrity';
+import {
   loadMachineLocationOptions,
   loadMachineOptions,
   loadPackagingCategoryOptions,
@@ -20,6 +25,7 @@ type DeleteTarget = {
   id: string;
   label: string;
   warning: string;
+  item?: any;
 };
 
 export default function InsertData() {
@@ -256,7 +262,7 @@ export default function InsertData() {
       warning = 'This will remove this sales forecast entry from planning.';
     }
 
-    setDeleteTarget({ type, id: item.id, label, warning });
+    setDeleteTarget({ type, id: item.id, label, warning, item });
   };
 
   const confirmDelete = async () => {
@@ -265,25 +271,16 @@ export default function InsertData() {
     try {
       let error = null;
       if (deleteTarget.type === 'product') {
-        ({ error } = await supabase
-          .from('products')
-          .update({ deleted: true, active: false, updated_at: new Date().toISOString() })
-          .eq('id', deleteTarget.id));
+        await archiveProductSafely(deleteTarget.item || { id: deleteTarget.id, product_code: deleteTarget.label }, 'Admin');
       } else if (deleteTarget.type === 'recipe') {
-        ({ error } = await supabase
-          .from('recipes')
-          .update({ deleted: true, updated_at: new Date().toISOString() })
-          .eq('id', deleteTarget.id));
+        await archiveRecipeSafely(deleteTarget.id);
       } else if (deleteTarget.type === 'packaging') {
         ({ error } = await supabase
           .from('packaging_items')
           .update({ deleted: true, active: false, updated_at: new Date().toISOString() })
           .eq('id', deleteTarget.id));
       } else if (deleteTarget.type === 'machine') {
-        ({ error } = await supabase
-          .from('machines')
-          .update({ deleted: true, updated_at: new Date().toISOString() })
-          .eq('id', deleteTarget.id));
+        await archiveMachineSafely(deleteTarget.id, deleteTarget.item?.name);
       } else if (deleteTarget.type === 'forecast') {
         ({ error } = await supabase.from('sales_planning').delete().eq('id', deleteTarget.id));
       }

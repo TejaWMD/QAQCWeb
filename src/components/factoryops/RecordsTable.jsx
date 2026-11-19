@@ -10,6 +10,7 @@ import { Plus, Trash2 } from "lucide-react";
 import AddRecordDialog from "@/components/factoryops/AddRecordDialog";
 import StatusBadge from "@/components/factoryops/StatusBadge";
 import { logSystemAction } from "@/lib/historyLog";
+import { deleteEntityWithCleanup } from "@/lib/deleteIntegrity";
 
 const eventStamp = () => {
   const d = new Date();
@@ -127,7 +128,7 @@ export default function RecordsTable({
   const remove = async (record) => {
     if (!window.confirm("Delete this record?")) return;
     try {
-      await base44.entities[entity].delete(record.id);
+      await deleteEntityWithCleanup(entity, record.id);
       await audit("Deleted", record.id, "Record deleted");
       toast.success("Record deleted successfully.");
     } catch (err) {

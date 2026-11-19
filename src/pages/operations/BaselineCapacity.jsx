@@ -65,6 +65,7 @@ export default function BaselineCapacity() {
   };
 
   const handleDelete = async (id) => {
+    if (!window.confirm("Delete this baseline capacity record?")) return;
     try {
       await base44.entities.BaselineCapacity.delete(id);
       toast.success("Baseline capacity deleted.");

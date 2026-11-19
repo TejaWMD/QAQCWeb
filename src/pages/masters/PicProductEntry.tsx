@@ -26,6 +26,7 @@ import {
 import * as XLSX from 'xlsx';
 import { toast } from 'sonner';
 import { SearchableSelect } from '@/components/ui/searchable-select';
+import { archiveProductSafely } from '@/lib/deleteIntegrity';
 import './PicProductEntry.css';
 
 const BLANK_FORM: ProductInput = {
@@ -229,7 +230,7 @@ export default function PicProductEntry() {
   const handleDelete = async (product: Product) => {
     if (!window.confirm(`Are you sure you want to delete ${product.product_code}?`)) return;
     try {
-      await productService.softDeleteProduct(product.id, 'PIC');
+      await archiveProductSafely(product, 'PIC');
       toast.success(`Product ${product.product_code} deleted.`);
       await loadData();
     } catch (err: any) {

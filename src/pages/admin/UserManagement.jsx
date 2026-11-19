@@ -14,12 +14,26 @@ import {
   effectiveModuleKeys,
 } from "@/lib/permissions";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+} from "@/components/ui/table";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import {
   Dialog,
   DialogContent,
@@ -45,6 +59,10 @@ import {
   RefreshCw,
   CheckCircle2,
   AlertCircle,
+  SlidersHorizontal,
+  Building2,
+  UserCheck,
+  Shield,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -63,11 +81,14 @@ export default function UserManagement() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState("all");
+  const [deptFilter, setDeptFilter] = useState("all");
   const [moduleSearch, setModuleSearch] = useState("");
   const [selectedUserId, setSelectedUserId] = useState(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [draftPermissions, setDraftPermissions] = useState([]);
   const [saving, setSaving] = useState(false);
-  const [feedback, setFeedback] = useState(null); // { type: "success" | "error", message: string }
+  const [feedback, setFeedback] = useState(null);
 
   // Add User modal state
   const [addOpen, setAddOpen] = useState(false);
@@ -88,11 +109,11 @@ export default function UserManagement() {
     try {
       const list = await listAllUsers();
       setUsers(list);
-      if (list.length > 0) {
-        const currentSelected = list.find((u) => u.id === selectedUserId);
-        const target = currentSelected || list.find((u) => u.role !== "admin") || list[0];
-        setSelectedUserId(target.id);
-        setDraftPermissions(initialDraftForUser(target));
+      if (selectedUserId) {
+        const refreshed = list.find((u) => u.id === selectedUserId);
+        if (refreshed) {
+          setDraftPermissions(initialDraftForUser(refreshed));
+        }
       }
       if (showToast) {
         toast.success(`Loaded ${list.length} user(s) from Supabase.`);
@@ -116,23 +137,44 @@ export default function UserManagement() {
     [users, selectedUserId]
   );
 
-  const handleSelectUser = (u) => {
+  const openUserDrawer = (u) => {
     setSelectedUserId(u.id);
     setDraftPermissions(initialDraftForUser(u));
+    setModuleSearch("");
     setFeedback(null);
+    setDrawerOpen(true);
   };
+
+  const departments = useMemo(() => {
+    return [...new Set(users.map((u) => u.dept).filter(Boolean))].sort();
+  }, [users]);
+
+  const stats = useMemo(() => {
+    const admins = users.filter((u) => isAdminUser(u)).length;
+    const staff = users.length - admins;
+    return {
+      total: users.length,
+      admins,
+      staff,
+      depts: departments.length,
+    };
+  }, [users, departments]);
 
   const filteredUsers = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return users;
-    return users.filter(
-      (u) =>
+    return users.filter((u) => {
+      if (roleFilter === "admin" && !isAdminUser(u)) return false;
+      if (roleFilter === "staff" && isAdminUser(u)) return false;
+      if (deptFilter !== "all" && (u.dept || "") !== deptFilter) return false;
+      if (!q) return true;
+      return (
         (u.name || "").toLowerCase().includes(q) ||
         (u.email || "").toLowerCase().includes(q) ||
         (u.dept || "").toLowerCase().includes(q) ||
         (u.role_label || "").toLowerCase().includes(q)
-    );
-  }, [users, search]);
+      );
+    });
+  }, [users, search, roleFilter, deptFilter]);
 
   const filteredModules = useMemo(() => {
     const q = moduleSearch.trim().toLowerCase();
@@ -167,7 +209,6 @@ export default function UserManagement() {
     setSaving(true);
     setFeedback(null);
     try {
-      // Always include attention_dashboard so explicit permissions remain non-empty and take precedence
       const permissionsToSave = [...new Set(["attention_dashboard", ...draftPermissions])];
       const updated = await updateUserPermissions(selectedUser.id, permissionsToSave);
       setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
@@ -218,8 +259,6 @@ export default function UserManagement() {
         permissions: newUser.role === "admin" ? ["*"] : ["attention_dashboard"],
       });
       setUsers((prev) => [...prev, created]);
-      setSelectedUserId(created.id);
-      setDraftPermissions(initialDraftForUser(created));
       setNewUser({
         id: "",
         name: "",
@@ -231,9 +270,8 @@ export default function UserManagement() {
         avatar_initials: "",
       });
       setAddOpen(false);
-      const msg = `User "${created.name}" created in Supabase.`;
-      setFeedback({ type: "success", message: msg });
-      toast.success(msg);
+      toast.success(`User "${created.name}" created in Supabase.`);
+      openUserDrawer(created);
     } catch (err) {
       const msg = err?.message || "Failed to create user.";
       toast.error(msg);
@@ -244,353 +282,500 @@ export default function UserManagement() {
 
   if (!isAdminUser(currentUser)) {
     return (
-      <div className="min-h-screen bg-[#0a0e17] p-6 flex items-start justify-center">
-        <Card className="max-w-xl w-full bg-[#131926] border-[#1e2740]">
-          <CardHeader>
-            <CardTitle className="text-base text-white">Admin Access Required</CardTitle>
-            <CardDescription className="text-[#94a3b8]">
-              Only administrators can view and manage user module access.
-            </CardDescription>
-          </CardHeader>
-        </Card>
+      <div className="min-h-screen bg-[#F6F8FC] p-4 md:p-6 flex items-start justify-center">
+        <div className="max-w-xl w-full bg-white rounded-xl border border-[#E2E8F0] p-6">
+          <h2 className="text-base font-semibold text-[#0F294A]">Admin Access Required</h2>
+          <p className="text-sm text-[#64748B] mt-1">
+            Only administrators can view and manage user module access.
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0e17] p-4 sm:p-6 w-full">
-      <div className="w-full space-y-6">
-        {/* Page Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="min-h-screen bg-[#F6F8FC] p-4 md:p-6 space-y-4">
+      {/* Page Header */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-[#0F294A] text-lg font-semibold flex items-center gap-2">
+            <Users className="w-5 h-5 text-[#1D4ED8] shrink-0" />
+            User &amp; Module Access
+          </h2>
+          <p className="text-[#64748B] text-sm mt-1">
+            Manage registered users, roles, and module permissions. Changes save directly to Supabase.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => loadUsers(true)}
+            disabled={loading}
+            className="bg-white border-[#E2E8F0] text-[#0F294A] hover:bg-[#F1F5F9]"
+          >
+            <RefreshCw className={`w-4 h-4 mr-1.5 ${loading ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => setAddOpen(true)}
+            className="bg-[#0F294A] hover:bg-[#193B68] text-white"
+          >
+            <UserPlus className="w-4 h-4 mr-1.5" />
+            Add User
+          </Button>
+        </div>
+      </div>
+
+      {/* Summary KPI Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="bg-white rounded-xl border border-[#E2E8F0] p-4 flex items-center justify-between">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2.5 tracking-tight">
-              <Users className="w-6 h-6 text-[#00e5ff] shrink-0" />
-              User &amp; Module Access
-            </h1>
-            <p className="text-sm text-[#94a3b8] mt-1">
-              Select a registered user to configure their role and module permissions. Changes save directly to Supabase.
-            </p>
+            <p className="text-[11px] uppercase tracking-wider font-semibold text-[#64748B]">Total Users</p>
+            <p className="text-2xl font-bold text-[#0F294A] mt-1">{stats.total}</p>
           </div>
-          <div className="flex items-center gap-2.5">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => loadUsers(true)}
-              disabled={loading}
-              className="bg-[#131926] border-[#1e2740] text-[#e2e8f0] hover:bg-[#1a2234] hover:text-white"
-            >
-              <RefreshCw className={`w-4 h-4 mr-1.5 ${loading ? "animate-spin" : ""}`} />
-              Refresh
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => setAddOpen(true)}
-              className="bg-[#00e5ff] hover:bg-[#00c3d7] text-[#0a0e17] font-semibold"
-            >
-              <UserPlus className="w-4 h-4 mr-1.5" />
-              Add User
-            </Button>
+          <div className="w-10 h-10 rounded-lg bg-[#EFF6FF] text-[#1D4ED8] flex items-center justify-center shrink-0">
+            <Users className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* Left: Registered Users List */}
-          <Card className="lg:col-span-5 bg-[#131926] border-[#1e2740]">
-            <CardHeader className="pb-3 border-b border-[#1e2740]">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base font-semibold text-white">
-                  Registered Users
-                </CardTitle>
-                <Badge className="bg-[#00e5ff]/15 text-[#00e5ff] border border-[#00e5ff]/30 hover:bg-[#00e5ff]/15">
-                  {users.length}
-                </Badge>
-              </div>
-              <div className="relative mt-2.5">
-                <Search className="w-4 h-4 text-[#94a3b8] absolute left-3 top-1/2 -translate-y-1/2" />
-                <Input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search name, email, dept..."
-                  className="pl-9 bg-[#0e131d] border-[#1e2740] text-white placeholder:text-[#64748b] focus-visible:ring-[#00e5ff]"
-                />
-              </div>
-            </CardHeader>
-            <CardContent className="p-3 space-y-2 max-h-[620px] overflow-y-auto">
-              {loading ? (
-                <p className="text-sm text-[#94a3b8] py-8 text-center">Loading users...</p>
-              ) : filteredUsers.length === 0 ? (
-                <p className="text-sm text-[#94a3b8] py-8 text-center">No matching users found.</p>
-              ) : (
-                filteredUsers.map((u) => {
-                  const isSelected = u.id === selectedUserId;
-                  const modCount = isAdminUser(u)
-                    ? MODULES.length
-                    : effectiveModuleKeys(u).length;
-                  return (
-                    <button
-                      key={u.id}
-                      type="button"
-                      onClick={() => handleSelectUser(u)}
-                      className={`w-full text-left p-3 rounded-xl border transition-all flex items-center gap-3 ${
-                        isSelected
-                          ? "border-[#00e5ff] bg-[#00e5ff]/10 shadow-sm"
-                          : "border-[#1e2740] bg-[#0e131d]/60 hover:bg-white/5"
-                      }`}
-                    >
-                      <div
-                        className={`w-10 h-10 rounded-full font-bold text-xs flex items-center justify-center shrink-0 ring-1 ${
-                          isSelected
-                            ? "bg-[#00e5ff] text-[#0a0e17] ring-[#00e5ff]"
-                            : "bg-[#00e5ff]/15 text-[#00e5ff] ring-[#00e5ff]/30"
-                        }`}
-                      >
-                        {u.avatar_initials || "U"}
+        <div className="bg-white rounded-xl border border-[#E2E8F0] p-4 flex items-center justify-between">
+          <div>
+            <p className="text-[11px] uppercase tracking-wider font-semibold text-[#64748B]">Administrators</p>
+            <p className="text-2xl font-bold text-[#0F294A] mt-1">{stats.admins}</p>
+          </div>
+          <div className="w-10 h-10 rounded-lg bg-[#ECFDF5] text-[#059669] flex items-center justify-center shrink-0">
+            <Shield className="w-5 h-5" />
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl border border-[#E2E8F0] p-4 flex items-center justify-between">
+          <div>
+            <p className="text-[11px] uppercase tracking-wider font-semibold text-[#64748B]">Staff Accounts</p>
+            <p className="text-2xl font-bold text-[#0F294A] mt-1">{stats.staff}</p>
+          </div>
+          <div className="w-10 h-10 rounded-lg bg-[#F1F5F9] text-[#334155] flex items-center justify-center shrink-0">
+            <UserCheck className="w-5 h-5" />
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl border border-[#E2E8F0] p-4 flex items-center justify-between">
+          <div>
+            <p className="text-[11px] uppercase tracking-wider font-semibold text-[#64748B]">Departments</p>
+            <p className="text-2xl font-bold text-[#0F294A] mt-1">{stats.depts}</p>
+          </div>
+          <div className="w-10 h-10 rounded-lg bg-[#FFFBEB] text-[#D97706] flex items-center justify-center shrink-0">
+            <Building2 className="w-5 h-5" />
+          </div>
+        </div>
+      </div>
+
+      {/* Filter Bar */}
+      <div className="bg-white rounded-xl border border-[#E2E8F0] px-4 py-3 flex flex-col sm:flex-row sm:items-end gap-3">
+        <div className="flex-1 min-w-0 space-y-1">
+          <span className="text-[11px] text-[#64748B]">Search</span>
+          <div className="relative">
+            <Search className="w-4 h-4 text-[#64748B] absolute left-3 top-1/2 -translate-y-1/2" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search name, email, department, or role..."
+              className="pl-9 bg-white border-[#E2E8F0] text-[#0F294A] h-9 w-full"
+            />
+          </div>
+        </div>
+
+        <div className="w-full sm:w-[160px] space-y-1">
+          <span className="text-[11px] text-[#64748B]">Role</span>
+          <Select value={roleFilter} onValueChange={setRoleFilter}>
+            <SelectTrigger className="bg-white border-[#E2E8F0] text-[#0F294A] h-9 w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-white border-[#E2E8F0] text-[#0F294A]">
+              <SelectItem value="all">All roles</SelectItem>
+              <SelectItem value="admin">Admin</SelectItem>
+              <SelectItem value="staff">Staff</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="w-full sm:w-[180px] space-y-1">
+          <span className="text-[11px] text-[#64748B]">Department</span>
+          <Select value={deptFilter} onValueChange={setDeptFilter}>
+            <SelectTrigger className="bg-white border-[#E2E8F0] text-[#0F294A] h-9 w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-white border-[#E2E8F0] text-[#0F294A]">
+              <SelectItem value="all">All departments</SelectItem>
+              {departments.map((d) => (
+                <SelectItem key={d} value={d}>
+                  {d}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* User Directory: Table on md+, Cards on mobile */}
+      <div className="bg-white rounded-xl border border-[#E2E8F0] overflow-hidden">
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <div className="w-8 h-8 border-4 border-[#E2E8F0] border-t-[#0F294A] rounded-full animate-spin" />
+          </div>
+        ) : filteredUsers.length === 0 ? (
+          <div className="py-12 text-center text-sm text-[#64748B]">
+            No matching users found.
+          </div>
+        ) : (
+          <>
+            {/* Mobile Card List */}
+            <div className="md:hidden divide-y divide-[#E2E8F0]">
+              {filteredUsers.map((u) => {
+                const admin = isAdminUser(u);
+                const modCount = admin ? MODULES.length : effectiveModuleKeys(u).length;
+                return (
+                  <div key={u.id} className="p-4 space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-10 h-10 rounded-full bg-[#EFF6FF] text-[#1D4ED8] border border-[#BFDBFE] font-bold text-xs flex items-center justify-center shrink-0">
+                          {u.avatar_initials || "U"}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-semibold text-sm text-[#0F294A] truncate">
+                              {u.name}
+                            </span>
+                            <Badge
+                              className={`text-[10px] capitalize ${
+                                admin
+                                  ? "bg-[#EFF6FF] text-[#1D4ED8] border border-[#BFDBFE] hover:bg-[#EFF6FF]"
+                                  : "bg-[#F1F5F9] text-[#334155] border border-[#E2E8F0] hover:bg-[#F1F5F9]"
+                              }`}
+                            >
+                              {u.role}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-[#64748B] truncate mt-0.5">{u.email}</p>
+                        </div>
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-semibold text-sm text-white truncate">
-                            {u.name}
-                          </span>
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[#64748B]">
+                      <span>
+                        {[u.role_label, u.dept].filter(Boolean).join(" · ") || "No department"}
+                      </span>
+                      <span className="font-medium text-[#0F294A]">
+                        {admin ? "All modules" : `${modCount} modules`}
+                      </span>
+                    </div>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openUserDrawer(u)}
+                      className="w-full bg-white border-[#E2E8F0] text-[#0F294A] hover:bg-[#F1F5F9]"
+                    >
+                      <SlidersHorizontal className="w-3.5 h-3.5 mr-1.5" />
+                      Manage Role &amp; Access
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop / Tablet Table */}
+            <div className="hidden md:block overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-[#E2E8F0] hover:bg-transparent bg-[#F8FAFC]">
+                    <TableHead className="text-[#64748B]">User</TableHead>
+                    <TableHead className="text-[#64748B]">Email</TableHead>
+                    <TableHead className="text-[#64748B]">Role Label &amp; Dept</TableHead>
+                    <TableHead className="text-[#64748B]">Access Level</TableHead>
+                    <TableHead className="text-[#64748B]">Modules</TableHead>
+                    <TableHead className="text-[#64748B] text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredUsers.map((u) => {
+                    const admin = isAdminUser(u);
+                    const modCount = admin ? MODULES.length : effectiveModuleKeys(u).length;
+                    return (
+                      <TableRow
+                        key={u.id}
+                        className="border-[#E2E8F0] hover:bg-[#F8FAFC] cursor-pointer"
+                        onClick={() => openUserDrawer(u)}
+                      >
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-full bg-[#EFF6FF] text-[#1D4ED8] border border-[#BFDBFE] font-bold text-xs flex items-center justify-center shrink-0">
+                              {u.avatar_initials || "U"}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-semibold text-sm text-[#0F294A] truncate">{u.name}</p>
+                              <p className="text-[11px] text-[#64748B] truncate">{u.id}</p>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-sm text-[#334155]">{u.email}</TableCell>
+                        <TableCell className="text-sm text-[#64748B]">
+                          {[u.role_label, u.dept].filter(Boolean).join(" · ") || "—"}
+                        </TableCell>
+                        <TableCell>
                           <Badge
-                            className={`text-[10px] capitalize ${
-                              u.role === "admin"
-                                ? "bg-[#00e5ff]/15 text-[#00e5ff] border border-[#00e5ff]/30"
-                                : "bg-[#1e2740] text-[#cbd5e1] border border-[#2d3a5c]"
+                            className={`text-xs capitalize ${
+                              admin
+                                ? "bg-[#EFF6FF] text-[#1D4ED8] border border-[#BFDBFE] hover:bg-[#EFF6FF]"
+                                : "bg-[#F1F5F9] text-[#334155] border border-[#E2E8F0] hover:bg-[#F1F5F9]"
                             }`}
                           >
                             {u.role}
                           </Badge>
-                        </div>
-                        <p className="text-xs text-[#94a3b8] truncate mt-0.5">{u.email}</p>
-                        <p className="text-[11px] text-[#64748b] truncate mt-0.5">
-                          {[u.role_label, u.dept].filter(Boolean).join(" · ") || "No dept"} ·{" "}
-                          {modCount} modules
-                        </p>
-                      </div>
-                    </button>
-                  );
-                })
-              )}
-            </CardContent>
-          </Card>
+                        </TableCell>
+                        <TableCell className="text-sm font-medium text-[#0F294A]">
+                          {admin ? `All (${MODULES.length})` : `${modCount} modules`}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openUserDrawer(u);
+                            }}
+                            className="bg-white border-[#E2E8F0] text-[#0F294A] hover:bg-[#F1F5F9]"
+                          >
+                            <SlidersHorizontal className="w-3.5 h-3.5 mr-1.5" />
+                            Manage Access
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          </>
+        )}
+      </div>
 
-          {/* Right: Module Access Editor */}
-          <Card className="lg:col-span-7 bg-[#131926] border-[#1e2740]">
-            {!selectedUser ? (
-              <CardContent className="py-20 text-center text-sm text-[#94a3b8]">
-                Select a user from the list to manage their module access.
-              </CardContent>
-            ) : (
-              <>
-                <CardHeader className="border-b border-[#1e2740] pb-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-11 h-11 rounded-full bg-[#00e5ff]/15 text-[#00e5ff] ring-1 ring-[#00e5ff]/30 font-bold text-sm flex items-center justify-center shrink-0">
-                        {selectedUser.avatar_initials || "U"}
-                      </div>
-                      <div className="min-w-0">
-                        <CardTitle className="text-base font-semibold text-white flex items-center gap-2 flex-wrap">
-                          <span className="truncate">{selectedUser.name}</span>
-                          <span className="text-xs font-normal text-[#64748b]">
-                            ({selectedUser.id})
-                          </span>
-                        </CardTitle>
-                        <CardDescription className="text-xs text-[#94a3b8] mt-0.5 truncate">
-                          {selectedUser.email} · {selectedUser.role_label || selectedUser.role}
-                          {selectedUser.dept ? ` · ${selectedUser.dept}` : ""}
-                        </CardDescription>
-                      </div>
+      {/* Slide-over Permission & Role Drawer */}
+      <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
+        <SheetContent
+          side="right"
+          className="w-full sm:max-w-xl bg-white border-l border-[#E2E8F0] text-[#0F294A] flex flex-col p-0 overflow-hidden"
+        >
+          {selectedUser && (
+            <>
+              <SheetHeader className="px-5 py-4 border-b border-[#E2E8F0] bg-[#F8FAFC] text-left shrink-0">
+                <div className="flex items-start justify-between gap-3 pr-6">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-11 h-11 rounded-full bg-[#EFF6FF] text-[#1D4ED8] border border-[#BFDBFE] font-bold text-sm flex items-center justify-center shrink-0">
+                      {selectedUser.avatar_initials || "U"}
                     </div>
-
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-xs text-[#94a3b8]">Role:</span>
-                      <Select
-                        value={selectedUser.role}
-                        onValueChange={(val) => handleRoleChange(selectedUser, val)}
-                        disabled={selectedUser.id === currentUser?.id}
-                      >
-                        <SelectTrigger className="w-28 h-8 text-xs bg-[#0e131d] border-[#1e2740] text-white">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="bg-[#131926] border-[#1e2740] text-white">
-                          <SelectItem value="staff">staff</SelectItem>
-                          <SelectItem value="admin">admin</SelectItem>
-                        </SelectContent>
-                      </Select>
+                    <div className="min-w-0">
+                      <SheetTitle className="text-base font-semibold text-[#0F294A] truncate">
+                        {selectedUser.name}
+                      </SheetTitle>
+                      <SheetDescription className="text-xs text-[#64748B] truncate mt-0.5">
+                        {selectedUser.email}
+                        {selectedUser.dept ? ` · ${selectedUser.dept}` : ""}
+                      </SheetDescription>
                     </div>
                   </div>
-                </CardHeader>
+                </div>
 
-                <CardContent className="pt-4 space-y-4">
-                  {feedback && (
-                    <div
-                      className={`p-3 rounded-lg border flex items-center gap-2.5 text-sm ${
-                        feedback.type === "success"
-                          ? "bg-[#00ff9d]/10 border-[#00ff9d]/30 text-[#00ff9d]"
-                          : "bg-[#ff4d4d]/10 border-[#ff4d4d]/30 text-[#ff6b6b]"
-                      }`}
-                    >
-                      {feedback.type === "success" ? (
-                        <CheckCircle2 className="w-4 h-4 shrink-0" />
-                      ) : (
-                        <AlertCircle className="w-4 h-4 shrink-0" />
-                      )}
-                      <span>{feedback.message}</span>
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-3">
+                  <span className="text-xs font-medium text-[#64748B]">Account Role</span>
+                  <Select
+                    value={selectedUser.role}
+                    onValueChange={(val) => handleRoleChange(selectedUser, val)}
+                    disabled={selectedUser.id === currentUser?.id}
+                  >
+                    <SelectTrigger className="w-32 h-8 text-xs bg-white border-[#E2E8F0] text-[#0F294A]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border-[#E2E8F0] text-[#0F294A]">
+                      <SelectItem value="staff">staff</SelectItem>
+                      <SelectItem value="admin">admin</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </SheetHeader>
+
+              <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+                {feedback && (
+                  <div
+                    className={`p-3 rounded-lg border flex items-center gap-2.5 text-sm ${
+                      feedback.type === "success"
+                        ? "bg-[#ECFDF5] border-[#A7F3D0] text-[#065F46]"
+                        : "bg-rose-50 border-rose-200 text-rose-700"
+                    }`}
+                  >
+                    {feedback.type === "success" ? (
+                      <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 shrink-0" />
+                    )}
+                    <span>{feedback.message}</span>
+                  </div>
+                )}
+
+                {isAdminUser(selectedUser) ? (
+                  <div className="p-4 rounded-xl bg-[#EFF6FF] border border-[#BFDBFE] flex items-start gap-3">
+                    <ShieldCheck className="w-5 h-5 text-[#1D4ED8] shrink-0 mt-0.5" />
+                    <div className="text-sm text-[#334155]">
+                      <p className="font-semibold text-[#0F294A]">Administrator Account</p>
+                      <p className="text-xs text-[#64748B] mt-1">
+                        Admins automatically have access to all modules including User Management. Change role to{" "}
+                        <strong className="text-[#0F294A]">staff</strong> above to restrict them to specific modules.
+                      </p>
                     </div>
-                  )}
-
-                  {isAdminUser(selectedUser) ? (
-                    <div className="p-4 rounded-xl bg-[#00e5ff]/10 border border-[#00e5ff]/30 flex items-start gap-3">
-                      <ShieldCheck className="w-5 h-5 text-[#00e5ff] shrink-0 mt-0.5" />
-                      <div className="text-sm text-[#e2e8f0]">
-                        <p className="font-semibold text-white">Administrator Account</p>
-                        <p className="text-xs text-[#94a3b8] mt-1">
-                          Admins automatically have access to all modules including User Management. Change role to{" "}
-                          <strong className="text-white">staff</strong> above if you want to restrict them to specific modules.
-                        </p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                      <div className="relative flex-1">
+                        <Search className="w-4 h-4 text-[#64748B] absolute left-3 top-1/2 -translate-y-1/2" />
+                        <Input
+                          value={moduleSearch}
+                          onChange={(e) => setModuleSearch(e.target.value)}
+                          placeholder="Filter modules..."
+                          className="pl-9 h-9 bg-white border-[#E2E8F0] text-[#0F294A]"
+                        />
                       </div>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-                        <div className="relative flex-1">
-                          <Search className="w-4 h-4 text-[#94a3b8] absolute left-3 top-1/2 -translate-y-1/2" />
-                          <Input
-                            value={moduleSearch}
-                            onChange={(e) => setModuleSearch(e.target.value)}
-                            placeholder="Filter modules..."
-                            className="pl-9 h-9 bg-[#0e131d] border-[#1e2740] text-white placeholder:text-[#64748b] focus-visible:ring-[#00e5ff]"
-                          />
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={selectAllModules}
-                            className="bg-[#0e131d] border-[#1e2740] text-[#e2e8f0] hover:bg-white/5 hover:text-white"
-                          >
-                            <CheckSquare className="w-3.5 h-3.5 mr-1.5" /> Select All
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={clearAllModules}
-                            className="bg-[#0e131d] border-[#1e2740] text-[#e2e8f0] hover:bg-white/5 hover:text-white"
-                          >
-                            <Square className="w-3.5 h-3.5 mr-1.5" /> Clear All
-                          </Button>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[420px] overflow-y-auto pr-1">
-                        {filteredModules.map((mod) => {
-                          const checked = draftPermissions.includes(mod.key);
-                          return (
-                            <label
-                              key={mod.key}
-                              className={`flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition-colors ${
-                                checked
-                                  ? "border-[#00e5ff]/60 bg-[#00e5ff]/10"
-                                  : "border-[#1e2740] bg-[#0e131d]/60 hover:bg-white/5"
-                              }`}
-                            >
-                              <Checkbox
-                                checked={checked}
-                                onCheckedChange={() => toggleModule(mod.key)}
-                                className="mt-0.5 border-[#334155] data-[state=checked]:bg-[#00e5ff] data-[state=checked]:text-[#0a0e17] data-[state=checked]:border-[#00e5ff]"
-                              />
-                              <div className="min-w-0">
-                                <p className="text-xs font-semibold text-white">{mod.label}</p>
-                                <p className="text-[11px] text-[#94a3b8] line-clamp-2 mt-0.5">
-                                  {mod.description}
-                                </p>
-                              </div>
-                            </label>
-                          );
-                        })}
-                      </div>
-
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-[#1e2740]">
-                        <span className="text-xs text-[#94a3b8]">
-                          {draftPermissions.length} module(s) selected (+ Attention Dashboard home)
-                        </span>
+                      <div className="flex items-center gap-2">
                         <Button
-                          onClick={handleSavePermissions}
-                          disabled={saving}
-                          className="bg-[#00e5ff] hover:bg-[#00c3d7] text-[#0a0e17] font-semibold"
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={selectAllModules}
+                          className="flex-1 sm:flex-none bg-white border-[#E2E8F0] text-[#0F294A] hover:bg-[#F1F5F9]"
                         >
-                          <Save className="w-4 h-4 mr-1.5" />
-                          {saving ? "Saving..." : "Save Module Access"}
+                          <CheckSquare className="w-3.5 h-3.5 mr-1.5" /> Select All
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={clearAllModules}
+                          className="flex-1 sm:flex-none bg-white border-[#E2E8F0] text-[#0F294A] hover:bg-[#F1F5F9]"
+                        >
+                          <Square className="w-3.5 h-3.5 mr-1.5" /> Clear All
                         </Button>
                       </div>
-                    </>
-                  )}
-                </CardContent>
-              </>
-            )}
-          </Card>
-        </div>
-      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      {filteredModules.map((mod) => {
+                        const checked = draftPermissions.includes(mod.key);
+                        return (
+                          <label
+                            key={mod.key}
+                            className={`flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition-colors ${
+                              checked
+                                ? "border-[#1D4ED8]/50 bg-[#EFF6FF]"
+                                : "border-[#E2E8F0] bg-white hover:bg-[#F8FAFC]"
+                            }`}
+                          >
+                            <Checkbox
+                              checked={checked}
+                              onCheckedChange={() => toggleModule(mod.key)}
+                              className="mt-0.5 border-[#CBD5E1] data-[state=checked]:bg-[#0F294A] data-[state=checked]:text-white data-[state=checked]:border-[#0F294A]"
+                            />
+                            <div className="min-w-0">
+                              <p className="text-xs font-semibold text-[#0F294A]">{mod.label}</p>
+                              <p className="text-[11px] text-[#64748B] line-clamp-2 mt-0.5">
+                                {mod.description}
+                              </p>
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {!isAdminUser(selectedUser) && (
+                <div className="px-5 py-3 border-t border-[#E2E8F0] bg-[#F8FAFC] flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shrink-0">
+                  <span className="text-xs text-[#64748B]">
+                    {draftPermissions.length} module(s) selected (+ Attention Dashboard)
+                  </span>
+                  <Button
+                    onClick={handleSavePermissions}
+                    disabled={saving}
+                    className="w-full sm:w-auto bg-[#0F294A] hover:bg-[#193B68] text-white font-semibold"
+                  >
+                    <Save className="w-4 h-4 mr-1.5" />
+                    {saving ? "Saving..." : "Save Module Access"}
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
 
       {/* Add User Dialog */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent className="max-w-md bg-[#131926] border-[#1e2740] text-white">
+        <DialogContent className="w-[calc(100%-2rem)] max-w-md max-h-[90vh] overflow-y-auto bg-white border-[#E2E8F0] text-[#0F294A]">
           <DialogHeader>
-            <DialogTitle className="text-white">Add Registered User</DialogTitle>
+            <DialogTitle className="text-[#0F294A]">Add Registered User</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleCreateUser} className="space-y-3">
             <div>
-              <Label className="text-xs text-[#94a3b8]">Full Name *</Label>
+              <Label className="text-xs text-[#64748B]">Full Name *</Label>
               <Input
                 value={newUser.name}
                 onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
                 placeholder="John Doe"
                 required
-                className="mt-1 bg-[#0e131d] border-[#1e2740] text-white"
+                className="mt-1 bg-white border-[#E2E8F0] text-[#0F294A]"
               />
             </div>
             <div>
-              <Label className="text-xs text-[#94a3b8]">Email *</Label>
+              <Label className="text-xs text-[#64748B]">Email *</Label>
               <Input
                 type="email"
                 value={newUser.email}
                 onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
                 placeholder="john@wmg.local"
                 required
-                className="mt-1 bg-[#0e131d] border-[#1e2740] text-white"
+                className="mt-1 bg-white border-[#E2E8F0] text-[#0F294A]"
               />
             </div>
             <div>
-              <Label className="text-xs text-[#94a3b8]">Password *</Label>
+              <Label className="text-xs text-[#64748B]">Password *</Label>
               <Input
                 type="text"
                 value={newUser.password}
                 onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
                 placeholder="Enter password"
                 required
-                className="mt-1 bg-[#0e131d] border-[#1e2740] text-white"
+                className="mt-1 bg-white border-[#E2E8F0] text-[#0F294A]"
               />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
-                <Label className="text-xs text-[#94a3b8]">Role</Label>
+                <Label className="text-xs text-[#64748B]">Role</Label>
                 <Select
                   value={newUser.role}
                   onValueChange={(val) => setNewUser({ ...newUser, role: val })}
                 >
-                  <SelectTrigger className="mt-1 bg-[#0e131d] border-[#1e2740] text-white">
+                  <SelectTrigger className="mt-1 bg-white border-[#E2E8F0] text-[#0F294A]">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-[#131926] border-[#1e2740] text-white">
+                  <SelectContent className="bg-white border-[#E2E8F0] text-[#0F294A]">
                     <SelectItem value="staff">staff</SelectItem>
                     <SelectItem value="admin">admin</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <Label className="text-xs text-[#94a3b8]">Role Label</Label>
+                <Label className="text-xs text-[#64748B]">Role Label</Label>
                 <div className="mt-1">
                   <SearchableSelect
                     value={newUser.role_label}
@@ -599,12 +784,12 @@ export default function UserManagement() {
                     placeholder="Select role..."
                     searchPlaceholder="Search role..."
                     allowCustom
-                    className="bg-[#0e131d] border-[#1e2740] text-white hover:bg-[#131926] hover:text-white"
+                    className="bg-white border-[#E2E8F0] text-[#0F294A] hover:bg-[#F8FAFC]"
                   />
                 </div>
               </div>
               <div>
-                <Label className="text-xs text-[#94a3b8]">Dept</Label>
+                <Label className="text-xs text-[#64748B]">Dept</Label>
                 <div className="mt-1">
                   <SearchableSelect
                     value={newUser.dept}
@@ -613,24 +798,24 @@ export default function UserManagement() {
                     placeholder="Select dept..."
                     searchPlaceholder="Search dept..."
                     allowCustom
-                    className="bg-[#0e131d] border-[#1e2740] text-white hover:bg-[#131926] hover:text-white"
+                    className="bg-white border-[#E2E8F0] text-[#0F294A] hover:bg-[#F8FAFC]"
                   />
                 </div>
               </div>
             </div>
-            <DialogFooter className="pt-3">
+            <DialogFooter className="pt-3 gap-2">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setAddOpen(false)}
-                className="bg-[#0e131d] border-[#1e2740] text-[#e2e8f0] hover:bg-white/5"
+                className="bg-white border-[#E2E8F0] text-[#0F294A] hover:bg-[#F1F5F9]"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
                 disabled={creating}
-                className="bg-[#00e5ff] hover:bg-[#00c3d7] text-[#0a0e17] font-semibold"
+                className="bg-[#0F294A] hover:bg-[#193B68] text-white font-semibold"
               >
                 {creating ? "Creating..." : "Create User"}
               </Button>

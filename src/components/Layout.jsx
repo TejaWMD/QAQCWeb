@@ -30,7 +30,7 @@ export default function Layout() {
   };
 
   return (
-    <div className="h-screen overflow-hidden bg-[#0a0e17] text-white flex">
+    <div className="h-[100dvh] overflow-hidden bg-[#0a0e17] text-white flex">
       <FactorySidebar
         mobileOpen={mobileMenuOpen}
         onClose={() => setMobileMenuOpen(false)}
@@ -38,7 +38,7 @@ export default function Layout() {
         onToggleCollapse={toggleSidebar}
       />
 
-      <div className="flex-1 min-w-0 flex flex-col h-screen overflow-y-auto overflow-x-hidden">
+      <div className="flex-1 min-w-0 flex flex-col h-[100dvh] overflow-y-auto overflow-x-hidden overscroll-y-contain">
         <div className="lg:hidden h-16 px-4 bg-[#0e131d] border-b border-[#1e2740] flex items-center justify-between shrink-0 sticky top-0 z-30">
           <div className="flex items-center gap-3 min-w-0">
             <Button

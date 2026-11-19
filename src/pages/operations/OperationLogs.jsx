@@ -91,6 +91,7 @@ export default function OperationLogs() {
 
   // Removing a row removes the shift log session it came from, across every page.
   const handleDelete = async (id) => {
+    if (!window.confirm("Delete this operation log and its linked shift, OT, and wastage records?")) return;
     try {
       await base44.functions.invoke("deleteShiftLog", { operationLogId: id });
       toast.success("Operation log deleted.");

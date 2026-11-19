@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Plus, Trash2 } from "lucide-react";
+import { deleteWarehouseRackSafely } from "@/lib/deleteIntegrity";
 
 const FIELD = "bg-white border-[#E2E8F0] text-[#0F294A]";
 
@@ -49,10 +50,17 @@ export default function RackSettingsCard() {
   };
 
   const remove = async (rack) => {
+    if (!window.confirm(`Remove rack "${rack.rack_code}"?`)) return;
     setBusy(true);
+    setError("");
     try {
-      await base44.entities.WarehouseRack.delete(rack.id);
+      const res = await deleteWarehouseRackSafely(rack);
+      if (res.action === "deactivated") {
+        setError(`Rack "${rack.rack_code}" is used by ${res.refCount} item(s), so it was set Inactive instead of deleted.`);
+      }
       await load();
+    } catch (e) {
+      setError(e?.message || "Could not remove the rack.");
     } finally {
       setBusy(false);
     }

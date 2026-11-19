@@ -95,16 +95,16 @@ export default function AuditTrailLog() {
         </Button>
       </div>
 
-      <div className="bg-white rounded-xl border border-[#E2E8F0] px-4 py-3 flex flex-wrap items-end gap-3">
-        <div className="space-y-1">
+      <div className="bg-white rounded-xl border border-[#E2E8F0] px-4 py-3 grid grid-cols-1 sm:flex sm:flex-wrap items-end gap-3">
+        <div className="space-y-1 w-full sm:w-[150px]">
           <span className="text-[11px] text-[#64748B]">From</span>
-          <Input type="date" value={filters.from} onChange={(e) => set("from", e.target.value)} className="bg-white border-[#E2E8F0] text-[#0F294A] h-9 w-[150px]" />
+          <Input type="date" value={filters.from} onChange={(e) => set("from", e.target.value)} className="bg-white border-[#E2E8F0] text-[#0F294A] h-9 w-full" />
         </div>
-        <div className="space-y-1">
+        <div className="space-y-1 w-full sm:w-[150px]">
           <span className="text-[11px] text-[#64748B]">To</span>
-          <Input type="date" value={filters.to} onChange={(e) => set("to", e.target.value)} className="bg-white border-[#E2E8F0] text-[#0F294A] h-9 w-[150px]" />
+          <Input type="date" value={filters.to} onChange={(e) => set("to", e.target.value)} className="bg-white border-[#E2E8F0] text-[#0F294A] h-9 w-full" />
         </div>
-        <div className="space-y-1 w-[190px]">
+        <div className="space-y-1 w-full sm:w-[190px]">
           <span className="text-[11px] text-[#64748B]">Module</span>
           <SearchableSelect
             value={filters.module}
@@ -116,7 +116,7 @@ export default function AuditTrailLog() {
             clearable
           />
         </div>
-        <div className="space-y-1 w-[190px]">
+        <div className="space-y-1 w-full sm:w-[190px]">
           <span className="text-[11px] text-[#64748B]">User</span>
           <SearchableSelect
             value={filters.user}
@@ -128,10 +128,10 @@ export default function AuditTrailLog() {
             clearable
           />
         </div>
-        <div className="space-y-1">
+        <div className="space-y-1 w-full sm:w-[140px]">
           <span className="text-[11px] text-[#64748B]">Action</span>
           <Select value={filters.action} onValueChange={(v) => set("action", v)}>
-            <SelectTrigger className="bg-white border-[#E2E8F0] text-[#0F294A] h-9 w-[140px]">
+            <SelectTrigger className="bg-white border-[#E2E8F0] text-[#0F294A] h-9 w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

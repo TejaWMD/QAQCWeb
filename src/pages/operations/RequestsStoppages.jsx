@@ -12,6 +12,7 @@ import FormSettingsDialog from "@/components/requests/FormSettingsDialog";
 import RequestsList from "@/components/requests/RequestsList";
 import IncomingRequestsTab from "@/components/requests/IncomingRequestsTab";
 import RequestDecisionDialog from "@/components/requests/RequestDecisionDialog";
+import { deleteEntityWithCleanup } from "@/lib/deleteIntegrity";
 import {
   REQUEST_TYPES,
   DOWNTIME_TYPE,
@@ -140,7 +141,7 @@ export default function RequestsStoppages() {
     if (!window.confirm("Delete this record?")) return;
     try {
       const entity = row._type === DOWNTIME_TYPE ? "Downtime" : "Request";
-      await base44.entities[entity].delete(row.id);
+      await deleteEntityWithCleanup(entity, row.id);
       await audit("Deleted", row.id, "Record deleted");
       toast.success("Record deleted successfully.");
       await load(true);

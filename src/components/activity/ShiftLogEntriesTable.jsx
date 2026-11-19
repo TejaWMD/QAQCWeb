@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { groupByDate, formatDateHeader } from "@/lib/logGrouping";
 
 // Every packaged shift log entry, newest first, with admin delete. Kept live:
@@ -30,8 +31,14 @@ export default function ShiftLogEntriesTable() {
   }, []);
 
   const handleDelete = async (id) => {
-    await base44.functions.invoke("deleteShiftLog", { shiftLogId: id });
-    loadLogs(true);
+    if (!window.confirm("Delete this shift log entry and all its linked operation, OT, and wastage records?")) return;
+    try {
+      await base44.functions.invoke("deleteShiftLog", { shiftLogId: id });
+      toast.success("Shift log and linked records deleted.");
+      loadLogs(true);
+    } catch (err) {
+      toast.error(err?.message || "Failed to delete shift log.");
+    }
   };
 
   if (loading) {
