@@ -456,15 +456,17 @@ export async function deleteShiftSession(args: {
   actor?: { email?: string; full_name?: string; id?: string };
 }) {
   let sessionId: string | null = null;
+  let shiftIdsToClean: string[] = [];
   let details = 'Deleted shift session';
 
   if (args.shiftLogId) {
     const { data } = await supabase
       .from('shift_logs')
-      .select('session_id, production_line, shift_date, product_name')
+      .select('id, session_id, production_line, shift_date, product_name')
       .eq('id', args.shiftLogId)
       .maybeSingle();
     sessionId = data?.session_id || args.shiftLogId;
+    shiftIdsToClean.push(args.shiftLogId);
     if (data) details = `Deleted ${data.production_line} (${data.shift_date})`;
     await supabase.from('shift_logs').delete().eq('id', args.shiftLogId);
   } else if (args.operationLogId) {
@@ -479,25 +481,50 @@ export async function deleteShiftSession(args: {
   }
 
   if (sessionId) {
+    const { data: linkedShifts } = await supabase
+      .from('shift_logs')
+      .select('id')
+      .eq('session_id', sessionId);
+    (linkedShifts || []).forEach((s: any) => {
+      if (s?.id && !shiftIdsToClean.includes(s.id)) shiftIdsToClean.push(s.id);
+    });
+
     await Promise.all([
       supabase.from('shift_logs').delete().eq('session_id', sessionId),
       supabase.from('operation_logs').delete().eq('session_id', sessionId),
       supabase.from('otlogs').delete().eq('session_id', sessionId),
       supabase.from('wastage_logs').delete().eq('session_id', sessionId),
+      ...(shiftIdsToClean.length
+        ? [supabase.from('packaging_wastes').delete().in('shift_log_id', shiftIdsToClean)]
+        : []),
     ]);
   }
 
-  await supabase.from('activity_logs').insert({
-    event_time: new Date().toISOString(),
-    user_name: args.actor?.full_name || args.actor?.email || 'System',
-    user_email: args.actor?.email || null,
-    user_id: args.actor?.id || null,
-    module: 'Shift Log',
-    action_type: 'Data Deleted',
-    record_id: args.shiftLogId || args.operationLogId || null,
-    session_id: sessionId,
-    details,
-  });
+  const nowIso = new Date().toISOString();
+  const actorName = args.actor?.full_name || args.actor?.email || 'System';
+  await Promise.all([
+    supabase.from('activity_logs').insert({
+      event_time: nowIso,
+      user_name: actorName,
+      user_email: args.actor?.email || null,
+      user_id: args.actor?.id || null,
+      module: 'Shift Log',
+      action_type: 'Data Deleted',
+      record_id: args.shiftLogId || args.operationLogId || null,
+      session_id: sessionId,
+      details,
+    }),
+    supabase.from('audit_logs').insert({
+      event_time: nowIso,
+      event_stamp: nowIso.slice(0, 19).replace('T', ' '),
+      user_name: actorName,
+      module: 'Daily Line Entry',
+      action: 'Deleted',
+      entity: 'ShiftLog',
+      record_id: args.shiftLogId || args.operationLogId || null,
+      details,
+    }),
+  ]);
 
   return { deleted: true };
 }

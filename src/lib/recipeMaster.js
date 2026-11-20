@@ -9,7 +9,7 @@ const num = (value) => (Number.isFinite(Number(value)) ? Number(value) : 0);
 
 export const loadRecipes = async () => {
   const rows = await base44.entities.Recipe.list("-created_date", 1000).catch(() => []);
-  return Array.isArray(rows) ? rows : [];
+  return Array.isArray(rows) ? rows.filter((r) => !r.deleted) : [];
 };
 
 // products: [{ id, recipe_name, cooking_time_hr, batch_output_kg, product_code, product_name }]

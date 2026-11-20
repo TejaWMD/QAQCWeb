@@ -3,15 +3,14 @@ import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CalendarDays, Plus, Settings } from "lucide-react";
+import { CalendarDays, Plus } from "lucide-react";
 import ScheduleGrid from "@/components/production/ScheduleGrid";
 import GenerateOrderDialog from "@/components/production/GenerateOrderDialog";
-import ProductionSettingsDialog from "@/components/production/ProductionSettingsDialog";
 import PlanChangeDialog from "@/components/production/PlanChangeDialog";
 import OrderDetailDialog from "@/components/production/OrderDetailDialog";
 import useProductionData from "@/hooks/useProductionData";
 import { todayStr } from "@/lib/warehouse";
-import { canEditProductionSettings, canPlanOrders, liveOrders, ordersOnDate } from "@/lib/production";
+import { canPlanOrders, liveOrders, ordersOnDate } from "@/lib/production";
 import { inputClass, selectClass, primaryButton, subtleButton, labelClass } from "@/components/planning/styles";
 
 // Day view: one column per machine, 00:00 to 24:00 down the side.
@@ -21,7 +20,6 @@ export default function ProductionSchedule() {
   const [date, setDate] = useState(todayStr());
   const [location, setLocation] = useState("all");
   const [generateOpen, setGenerateOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [move, setMove] = useState(null);
   const [detailId, setDetailId] = useState(null);
 
@@ -35,20 +33,13 @@ export default function ProductionSchedule() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-[#0F294A] text-lg font-semibold">Production Schedule</h2>
-          <p className="text-[#64748B] text-sm mt-1">Drag an order to another time or machine. Every move asks for a reason.</p>
+          <p className="text-[#64748B] text-sm mt-1">Drag orders across machines or time slots to reschedule.</p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          {canEditProductionSettings(user) && (
-            <Button variant="outline" onClick={() => setSettingsOpen(true)} className={subtleButton}>
-              <Settings className="w-4 h-4 mr-1.5" /> Settings
-            </Button>
-          )}
-          {canPlanOrders(user) && (
-            <Button onClick={() => setGenerateOpen(true)} className={primaryButton}>
-              <Plus className="w-4 h-4 mr-1.5" /> Generate Order
-            </Button>
-          )}
-        </div>
+        {canPlanOrders(user) && (
+          <Button onClick={() => setGenerateOpen(true)} className={primaryButton}>
+            <Plus className="w-4 h-4 mr-1.5" /> Generate Order
+          </Button>
+        )}
       </div>
 
       <div className="rounded-xl border border-[#E2E8F0] bg-white p-3 flex flex-wrap items-end gap-3">
@@ -103,14 +94,6 @@ export default function ProductionSchedule() {
         orders={orders}
         settings={settings}
         user={user}
-      />
-
-      <ProductionSettingsDialog
-        open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-        settings={settings}
-        user={user}
-        onSaved={reload}
       />
 
       <PlanChangeDialog

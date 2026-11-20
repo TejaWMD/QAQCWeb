@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
@@ -7,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Settings2, Download, CheckCircle2, Boxes } from "lucide-react";
+import { Plus, Settings2, Download, Boxes } from "lucide-react";
 import ItemCard from "@/components/packaging/ItemCard";
 import ItemDialog from "@/components/packaging/ItemDialog";
 import StockInDialog from "@/components/packaging/StockInDialog";
@@ -141,7 +140,7 @@ export default function PackagingStock() {
   return (
     <div className="min-h-screen bg-[#F6F8FC] p-4 md:p-6 space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-[#0F294A] text-lg font-semibold">Stock Counter</h2>
+        <h2 className="text-[#0F294A] text-lg font-semibold">Packaging Stock</h2>
         <div className="flex flex-wrap gap-2 w-full sm:w-auto">
           {isPackagingStaff(user) && (
             <Button onClick={() => setItemDialog({ open: true, item: null })} className="flex-1 sm:flex-none bg-[#0F294A] hover:bg-[#193B68] text-white font-semibold">
@@ -159,14 +158,6 @@ export default function PackagingStock() {
             className="flex-1 sm:flex-none border-[#E2E8F0] bg-white text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F294A]"
           >
             <Download className="w-4 h-4" /> Export
-          </Button>
-          <Button asChild variant="outline" className="flex-1 sm:flex-none border-[#E2E8F0] bg-white text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F294A]">
-            <Link to="/packaging-approvals">
-              <CheckCircle2 className="w-4 h-4" /> Approvals
-              {pendingIds.size > 0 && (
-                <span className="ml-1 rounded-full bg-amber-500 text-white text-[10px] font-bold px-1.5">{pendingIds.size}</span>
-              )}
-            </Link>
           </Button>
         </div>
       </div>

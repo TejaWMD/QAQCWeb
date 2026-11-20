@@ -56,7 +56,6 @@ import {
   UserPlus,
   CheckSquare,
   Square,
-  RefreshCw,
   CheckCircle2,
   AlertCircle,
   SlidersHorizontal,
@@ -296,36 +295,21 @@ export default function UserManagement() {
   return (
     <div className="min-h-screen bg-[#F6F8FC] p-4 md:p-6 space-y-4">
       {/* Page Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-[#0F294A] text-lg font-semibold flex items-center gap-2">
-            <Users className="w-5 h-5 text-[#1D4ED8] shrink-0" />
-            User &amp; Module Access
-          </h2>
+          <h2 className="text-[#0F294A] text-lg font-semibold">User Management</h2>
           <p className="text-[#64748B] text-sm mt-1">
-            Manage registered users, roles, and module permissions. Changes save directly to Supabase.
+            Manage user accounts, roles, and module permissions.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => loadUsers(true)}
-            disabled={loading}
-            className="bg-white border-[#E2E8F0] text-[#0F294A] hover:bg-[#F1F5F9]"
-          >
-            <RefreshCw className={`w-4 h-4 mr-1.5 ${loading ? "animate-spin" : ""}`} />
-            Refresh
-          </Button>
-          <Button
-            size="sm"
-            onClick={() => setAddOpen(true)}
-            className="bg-[#0F294A] hover:bg-[#193B68] text-white"
-          >
-            <UserPlus className="w-4 h-4 mr-1.5" />
-            Add User
-          </Button>
-        </div>
+        <Button
+          size="sm"
+          onClick={() => setAddOpen(true)}
+          className="bg-[#0F294A] hover:bg-[#193B68] text-white"
+        >
+          <UserPlus className="w-4 h-4 mr-1.5" />
+          Add User
+        </Button>
       </div>
 
       {/* Summary KPI Cards */}

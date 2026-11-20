@@ -19,12 +19,22 @@ export const productUsage = async (product) => {
   const results = await Promise.all(
     REFERENCING.map(async ([entity, label]) => {
       const [byId, byCode] = await Promise.all([
-        base44.entities[entity].count({ product_id: product.id }).catch(() => 0),
-        base44.entities[entity].count({ product_code: product.product_code }).catch(() => 0),
+        base44.entities[entity].count({ product_id: product.id, deleted: false }).catch(() => 0),
+        base44.entities[entity].count({ product_code: product.product_code, deleted: false }).catch(() => 0),
       ]);
       return { entity, label, count: Math.max(byId || 0, byCode || 0) };
     })
   );
+  const wmsCount = product.product_code
+    ? await base44.entities.WmsStockItem.count({
+        item_code: product.product_code,
+        status: { $ne: "shipped" },
+        deleted: false,
+      }).catch(() => 0)
+    : 0;
+  if (wmsCount > 0) {
+    results.push({ entity: "WmsStockItem", label: "active WMS stock batch(es)", count: wmsCount });
+  }
   return results.filter((row) => row.count > 0);
 };
 

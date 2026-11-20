@@ -410,22 +410,20 @@ export default function WmsWarehouse() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F6F8FC] p-4 sm:p-6 w-full space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
+    <div className="min-h-screen bg-[#F6F8FC] p-4 md:p-6 w-full space-y-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-            <LayoutGrid className="w-6 h-6 text-indigo-600" />
-            Finished Goods WMS (ScanStock)
-          </h1>
-          <p className="text-sm text-slate-500">
-            QR batch scan-in, visual G/M/T rack floor, PL outbound picking with carton-breaking, and stock takes.
+          <h2 className="text-[#0F294A] text-lg font-semibold">Finished Goods WMS</h2>
+          <p className="text-[#64748B] text-sm mt-1">
+            QR batch scan-in, rack floor, outbound PL picking, and stock takes.
           </p>
         </div>
         <Button
           variant="outline"
+          className="bg-white border-[#E2E8F0] text-[#0F294A]"
           onClick={() => exportToXlsx(`wms_stock_${new Date().toISOString().slice(0, 10)}.xlsx`, 'WMS Stock', stockItems)}
         >
-          <Download className="w-4 h-4 mr-1" /> Export Stock (.xlsx)
+          <Download className="w-4 h-4 mr-1.5" /> Export Stock (.xlsx)
         </Button>
       </div>
 

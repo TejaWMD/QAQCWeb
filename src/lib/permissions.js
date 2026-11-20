@@ -5,7 +5,7 @@
 export const MODULES = [
   { key: "attention_dashboard", label: "Attention Dashboard", path: "/", description: "Overdue and unverified attention items across all modules" },
   { key: "dashboard", label: "Operations Overview", path: "/operations-overview", description: "Overview of output, waste, overtime and downtime" },
-  { key: "production_line_logs", label: "Production Line Logs", path: "/production-line-logs", description: "Overview, operation, overtime, wastage, baseline and activity logs in one place" },
+  { key: "production_line_logs", label: "Production Line Logs", path: "/production-line-logs", description: "Overview, operation, overtime, wastage, and baseline logs" },
   { key: "production_orders", label: "Production Orders", path: "/production-orders", description: "Orders with batches, machine, run time and batch numbers" },
   { key: "demand_planner", label: "Demand Planner", path: "/demand-planner", description: "Shortage calculation, priority scoring & sequence optimizer" },
   { key: "procurement", label: "Procurement (PR / PO)", path: "/procurement", description: "Suppliers, purchase requests and purchase orders" },
@@ -38,7 +38,7 @@ export const MODULES = [
   { key: "recipe_master", label: "Recipe Master", path: "/recipe-master", description: "Versioned recipes per product with ingredient lists" },
   { key: "machines", label: "Machines", path: "/machines", description: "Machine list with capacity and maintenance status" },
   { key: "user_management", label: "User Management", path: "/users", description: "Members, roles and invitations", adminOnly: true },
-  { key: "data_import", label: "Data Import", path: "/data-import", description: "Bulk import Excel, Google Sheets, and CSV data", adminOnly: true },
+  { key: "data_import", label: "Data Import", path: "/data-import", description: "One-time historical CSV import for Operation & Wastage logs", adminOnly: true },
 ];
 
 // Modules an invitation offers by default; they are only granted once the invitation is

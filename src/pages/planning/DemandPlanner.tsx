@@ -17,7 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Calculator, Factory, Sparkles, CheckCircle2, AlertTriangle, RefreshCw, Plus } from 'lucide-react';
+import { Factory, Sparkles, CheckCircle2, AlertTriangle, Plus } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 
@@ -316,38 +316,35 @@ export default function DemandPlanner() {
   };
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      <div className="flex flex-wrap items-center justify-between gap-4">
+    <div className="min-h-screen bg-[#F6F8FC] p-4 md:p-6 space-y-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-            <Calculator className="w-6 h-6 text-indigo-600" />
-            Demand Planner & Order Sequence Optimizer
-          </h1>
-          <p className="text-sm text-slate-500">
-            Calculates stock shortages vs. forecast & reorder levels, scores priority, and sequences production orders.
+          <h2 className="text-[#0F294A] text-lg font-semibold">Demand Planner</h2>
+          <p className="text-[#64748B] text-sm mt-1">
+            Compare stock against forecasts and generate prioritized production orders.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Input
             type="date"
             value={productionDate}
             onChange={(e) => setProductionDate(e.target.value)}
-            className="w-40"
+            className="w-40 bg-white border-[#E2E8F0] text-[#0F294A]"
           />
-          <Button variant="outline" onClick={() => openForecastModal()}>
-            <Plus className="w-4 h-4 mr-1" />
+          <Button variant="outline" onClick={() => openForecastModal()} className="bg-white border-[#E2E8F0] text-[#0F294A]">
+            <Plus className="w-4 h-4 mr-1.5" />
             Set Forecast
           </Button>
-          <Button variant="outline" onClick={loadData} disabled={loading}>
-            <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-          <Button variant="secondary" onClick={fillFromShortages}>
-            <AlertTriangle className="w-4 h-4 mr-1" />
+          <Button variant="outline" onClick={fillFromShortages} className="bg-white border-[#E2E8F0] text-[#0F294A]">
+            <AlertTriangle className="w-4 h-4 mr-1.5" />
             Fill Shortages
           </Button>
-          <Button onClick={handleGenerateOrders} disabled={submitting || plannedOrders.ordered.length === 0}>
-            <Factory className="w-4 h-4 mr-1" />
+          <Button
+            onClick={handleGenerateOrders}
+            disabled={submitting || plannedOrders.ordered.length === 0}
+            className="bg-[#0F294A] hover:bg-[#193B68] text-white font-semibold"
+          >
+            <Factory className="w-4 h-4 mr-1.5" />
             Generate {plannedOrders.ordered.length} Orders
           </Button>
         </div>

@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { productionLines, lineCode, wasteComponents } from "@/lib/shiftLogConstants";
-import { TrendingUp, Package, Trash2, Clock, Plus, CheckCircle2, AlertCircle } from "lucide-react";
+import { TrendingUp, Package, Trash2, Clock, CheckCircle2, AlertCircle } from "lucide-react";
 import MetricCard from "@/components/dashboard/MetricCard";
 import ScrapBreakdownChart from "@/components/dashboard/ScrapBreakdownChart";
 import LineEfficiencyChart from "@/components/dashboard/LineEfficiencyChart";
@@ -13,12 +12,10 @@ import DowntimeByLineChart from "@/components/dashboard/DowntimeByLineChart";
 import DowntimeParetoChart from "@/components/dashboard/DowntimeParetoChart";
 import { buildEfficiencyData, buildDowntimeData } from "@/lib/dashboardMetrics";
 import PackagingAtRisk from "@/components/packaging/PackagingAtRisk";
-import { useNavigate } from "react-router-dom";
 
 export default function Home() {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
   const [lineFilter, setLineFilter] = useState("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
@@ -126,9 +123,6 @@ export default function Home() {
                 </div>
               </>
             )}
-            <Button size="sm" onClick={() => navigate("/shift-log-draft")} className="bg-[#0F294A] hover:bg-[#193B68] text-white rounded-full px-4">
-              <Plus className="w-4 h-4 mr-1" /> New Log
-            </Button>
           </div>
         </div>
 
@@ -165,7 +159,7 @@ export default function Home() {
 
         {logs.length === 0 ?
         <div className="bg-slate-50 rounded-xl border border-slate-200 p-12 text-center">
-            <p className="text-slate-500">No shift logs yet. Click <span className="font-semibold text-sky-600">+ New Shift Log</span> to add your first entry.</p>
+            <p className="text-slate-500">No shift logs yet. Use <span className="font-semibold text-[#0F294A]">Daily Line Entry</span> in the sidebar to add your first entry.</p>
           </div> :
 
         <>

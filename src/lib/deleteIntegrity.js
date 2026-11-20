@@ -19,6 +19,15 @@ export async function deleteEntityWithCleanup(entity, id) {
     );
   }
 
+  if (["HACCPCheck", "ProductHold", "FillCheck", "QualityDefect"].includes(entity)) {
+    const linkedCapas = await base44.entities.CAPA.filter({ source_record_id: id }, { limit: 100 }).catch(() => ({ items: [] }));
+    await Promise.all(
+      (linkedCapas.items || []).map((capa) =>
+        base44.entities.CAPA.update(capa.id, { source_record_id: "" }).catch(() => {})
+      )
+    );
+  }
+
   await base44.entities[entity].delete(id);
 }
 
@@ -59,6 +68,11 @@ export async function archiveProductSafely(product, deletedBy = "Admin") {
   if (usage.length > 0) {
     throw new Error(`Cannot delete ${product.product_code}: still used by ${usageSummary(usage)}.`);
   }
+  const now = new Date().toISOString();
+  await Promise.all([
+    supabase.from("sales_planning").update({ deleted: true, updated_at: now }).eq("product_id", product.id),
+    supabase.from("finished_goods_inventory").update({ deleted: true, updated_at: now }).eq("product_id", product.id),
+  ]);
   await productService.softDeleteProduct(product.id, deletedBy);
 }
 
@@ -107,9 +121,17 @@ export async function archiveMachineSafely(machineId, machineName) {
     }
   }
 
+  const now = new Date().toISOString();
+  if (machineName) {
+    await supabase
+      .from("products")
+      .update({ default_machine: "", updated_at: now })
+      .eq("default_machine", machineName);
+  }
+
   const { error } = await supabase
     .from("machines")
-    .update({ deleted: true, updated_at: new Date().toISOString() })
+    .update({ deleted: true, updated_at: now })
     .eq("id", machineId);
   if (error) {
     throw new Error(error.message);

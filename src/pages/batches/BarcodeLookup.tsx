@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Barcode, Search, Package, History } from 'lucide-react';
+import { Search, Package, History } from 'lucide-react';
 
 export default function BarcodeLookup() {
   const [barcode, setBarcode] = useState('');
@@ -71,14 +71,11 @@ export default function BarcodeLookup() {
   useHardwareScanner(performLookup, true);
 
   return (
-    <div className="min-h-screen bg-[#F6F8FC] p-4 sm:p-6 w-full space-y-6">
+    <div className="min-h-screen bg-[#F6F8FC] p-4 md:p-6 w-full space-y-4">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-          <Barcode className="w-6 h-6 text-indigo-600" />
-          Carton Barcode Lookup
-        </h1>
-        <p className="text-sm text-slate-500">
-          Scan a 13-digit EAN-13 carton barcode or SKU code to inspect product specs and batch history.
+        <h2 className="text-[#0F294A] text-lg font-semibold">Carton Barcode Lookup</h2>
+        <p className="text-[#64748B] text-sm mt-1">
+          Scan a carton barcode or SKU code to inspect product specs and batch history.
         </p>
       </div>
 

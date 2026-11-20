@@ -101,16 +101,11 @@ export default function BatchRecords() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-[#0F294A] text-lg font-semibold">Batch Records</h2>
-          <p className="text-[#64748B] text-sm mt-1">Every batch created with its labels, and every reprint logged.</p>
+          <p className="text-[#64748B] text-sm mt-1">All recorded production batches, labels, and reprints.</p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={exportCsv} className={subtleButton} disabled={rows.length === 0}>
-            <Download className="w-4 h-4 mr-1.5" /> Export CSV
-          </Button>
-          <Button asChild className="bg-[#0F294A] hover:bg-[#193B68] text-white font-semibold">
-            <Link to="/create-batch"><Printer className="w-4 h-4 mr-1.5" /> Create Batch</Link>
-          </Button>
-        </div>
+        <Button variant="outline" onClick={exportCsv} className={subtleButton} disabled={rows.length === 0}>
+          <Download className="w-4 h-4 mr-1.5" /> Export CSV
+        </Button>
       </div>
 
       <div className={`${panelClass} p-3`}>

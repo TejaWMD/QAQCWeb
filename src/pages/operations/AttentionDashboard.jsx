@@ -6,7 +6,7 @@ import { appRoleOf, appRoleLabel } from "@/lib/permissions";
 import { sweepOverdue } from "@/lib/overdue";
 import { productionLines } from "@/lib/shiftLogConstants";
 import { Button } from "@/components/ui/button";
-import { Factory, ShieldCheck, ClipboardList, Users, ClipboardCheck, TrendingUp, Plus, ArrowUpCircle, AlertTriangle } from "lucide-react";
+import { Factory, ShieldCheck, ClipboardList, Users, ClipboardCheck, TrendingUp, AlertTriangle } from "lucide-react";
 import KpiCard from "@/components/factoryops/KpiCard";
 import DashboardFilterBar from "@/components/factoryops/DashboardFilterBar";
 import CriticalAttentionTable from "@/components/factoryops/CriticalAttentionTable";
@@ -186,17 +186,6 @@ export default function AttentionDashboard() {
         <span className="px-3 py-1 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/30 text-xs font-semibold">
           {role === "admin" ? "Admin" : role ? appRoleLabel(role) : "Custom"}
         </span>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button size="sm" onClick={() => navigate("/shift-log-draft")} className="bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-semibold">
-            <Plus className="w-3.5 h-3.5" /> Shift Log
-          </Button>
-          <Button size="sm" variant="outline" onClick={() => navigate("/downtime")} className="bg-[#131926] hover:bg-[#1e2740] text-[#e2e8f0] border-[#1e2740] font-medium">
-            <ArrowUpCircle className="w-3.5 h-3.5" /> Downtime
-          </Button>
-          <Button size="sm" variant="outline" onClick={() => navigate("/capa-tracker")} className="bg-[#131926] hover:bg-[#1e2740] text-[#e2e8f0] border-[#1e2740] font-medium">
-            <ShieldCheck className="w-3.5 h-3.5" /> CAPA
-          </Button>
-        </div>
       </div>
 
       <DashboardFilterBar

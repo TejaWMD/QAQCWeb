@@ -1,15 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Plus, Settings as SettingsIcon } from "lucide-react";
 import TrackerFilters from "@/components/warehouse/TrackerFilters";
 import TrackerTable from "@/components/warehouse/TrackerTable";
 import EditReceiptDialog from "@/components/warehouse/EditReceiptDialog";
-import WarehouseSettingsDialog from "@/components/warehouse/WarehouseSettingsDialog";
-import { actingUserName } from "@/lib/permissions";
-import { DEFAULT_UNITS, SETTINGS_KEY, downloadCsv, isWarehouseSupervisor, todayStr } from "@/lib/warehouse";
+import { DEFAULT_UNITS, SETTINGS_KEY, downloadCsv, todayStr } from "@/lib/warehouse";
 
 const EMPTY_FILTERS = { from: "", to: "", item_code: "", batch: "", rack: "", search: "" };
 
@@ -62,7 +58,6 @@ export default function GoodsTracker() {
   const [racks, setRacks] = useState([]);
   const [units, setUnits] = useState(DEFAULT_UNITS);
   const [editing, setEditing] = useState(null);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [refresh, setRefresh] = useState(0);
 
   useEffect(() => {
@@ -75,7 +70,7 @@ export default function GoodsTracker() {
       const configured = (settingsPage.items || [])[0]?.units;
       if (Array.isArray(configured) && configured.length) setUnits(configured);
     })();
-  }, [settingsOpen, refresh]);
+  }, [refresh]);
 
   useEffect(() => {
     let alive = true;
@@ -132,23 +127,11 @@ export default function GoodsTracker() {
 
   return (
     <div className="min-h-screen bg-[#F6F8FC] p-4 md:p-6 space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="text-[#0F294A] text-lg font-semibold">Goods Tracker</h2>
-          <p className="text-[#64748B] text-sm mt-1">
-            Every item received into the warehouse, with rack location and who keyed it in.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-          {isWarehouseSupervisor(user) && (
-            <Button variant="outline" onClick={() => setSettingsOpen(true)} className="flex-1 sm:flex-none border-[#E2E8F0] bg-white text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F294A]">
-              <SettingsIcon className="w-4 h-4" /> Settings
-            </Button>
-          )}
-          <Button asChild className="flex-1 sm:flex-none bg-[#0F294A] hover:bg-[#193B68] text-white font-semibold">
-            <Link to="/goods-receiving"><Plus className="w-4 h-4" /> Receive goods</Link>
-          </Button>
-        </div>
+      <div>
+        <h2 className="text-[#0F294A] text-lg font-semibold">Goods Tracker</h2>
+        <p className="text-[#64748B] text-sm mt-1">
+          Received goods log with rack location and batch history.
+        </p>
       </div>
 
       <TrackerFilters
@@ -186,12 +169,6 @@ export default function GoodsTracker() {
           onSaved={() => setRefresh((n) => n + 1)}
         />
       )}
-
-      <WarehouseSettingsDialog
-        open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-        updatedBy={actingUserName(user)}
-      />
     </div>
   );
 }

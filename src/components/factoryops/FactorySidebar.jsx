@@ -8,7 +8,7 @@ import {
   LayoutDashboard, Users, Upload, PackagePlus, Boxes, PackageMinus, Layers,
   ArrowLeftRight, ClipboardCheck, Package, FlaskConical, ListChecks,
   CalendarDays, Trash2, Tag, History, Scale, X, LogOut, PanelLeftClose, PanelLeftOpen,
-  Cpu, TrendingUp, ShoppingCart, LayoutGrid, QrCode
+  Cpu, TrendingUp, ShoppingCart, LayoutGrid, QrCode, FilePlus2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -35,6 +35,7 @@ const productionItems = [
   { key: "create_batch", label: "Create Batch", icon: Tag },
   { key: "batch_records", label: "Batch Records", icon: History },
   { key: "batch_scan", label: "Barcode Lookup", icon: QrCode },
+  { key: "shift_log", label: "Daily Line Entry", icon: FilePlus2 },
   { key: "production_line_logs", label: "Line Logs", icon: LayoutDashboard },
   { key: "yield_loss", label: "Yield & Loss", icon: Scale },
 ];

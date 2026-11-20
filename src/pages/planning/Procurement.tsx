@@ -103,20 +103,26 @@ export default function Procurement() {
   };
 
   const deleteRecord = async (table: 'purchase_requests' | 'purchase_orders' | 'suppliers', id: string) => {
-    const { error } = await supabase.from(table).update({ deleted: true }).eq('id', id);
+    const label = table === 'purchase_requests' ? 'purchase request' : table === 'purchase_orders' ? 'purchase order' : 'supplier';
+    if (!window.confirm(`Delete this ${label}?`)) return;
+    const now = new Date().toISOString();
+    if (table === 'suppliers') {
+      await Promise.all([
+        supabase.from('purchase_requests').update({ supplier_id: null, updated_at: now }).eq('supplier_id', id),
+        supabase.from('purchase_orders').update({ supplier_id: null, updated_at: now }).eq('supplier_id', id),
+      ]);
+    }
+    const { error } = await supabase.from(table).update({ deleted: true, updated_at: now }).eq('id', id);
     if (error) return toast.error(error.message);
     toast.success('Record removed');
     loadAll();
   };
 
   return (
-    <div className="min-h-screen bg-[#F6F8FC] p-4 sm:p-6 w-full space-y-6">
+    <div className="min-h-screen bg-[#F6F8FC] p-4 md:p-6 w-full space-y-4">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-          <ShoppingCart className="w-6 h-6 text-indigo-600" />
-          Procurement & Supplier Management
-        </h1>
-        <p className="text-sm text-slate-500">Manage material suppliers, purchase requisitions (PR), and purchase orders (PO).</p>
+        <h2 className="text-[#0F294A] text-lg font-semibold">Procurement</h2>
+        <p className="text-[#64748B] text-sm mt-1">Manage suppliers, purchase requests (PR), and purchase orders (PO).</p>
       </div>
 
       <Tabs defaultValue="requests">
