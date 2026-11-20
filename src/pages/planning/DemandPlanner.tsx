@@ -2,10 +2,16 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/api/supabaseClient';
 import {
   calculateShortageAndPriority,
-  generateBatchNumber,
   optimizeProductionSequence,
   PlanningCalculation,
 } from '@/lib/planningCalc';
+import {
+  buildBatchCodes,
+  loadProductionSettings,
+  logProductionAudit,
+  nextOrderNumber,
+} from '@/lib/production';
+import { useAuth } from '@/lib/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -22,7 +28,10 @@ const ForecastDialogTitle = DialogTitle as React.ComponentType<any>;
 const ForecastDialogFooter = DialogFooter as React.ComponentType<any>;
 
 export default function DemandPlanner() {
+  const { user } = useAuth();
   const [rows, setRows] = useState<PlanningCalculation[]>([]);
+  const [productsMap, setProductsMap] = useState<Map<string, any>>(new Map());
+  const [machinesList, setMachinesList] = useState<any[]>([]);
   const [selectedQty, setSelectedQty] = useState<Record<string, number>>({});
   const [productionDate, setProductionDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [loading, setLoading] = useState(true);
@@ -40,21 +49,36 @@ export default function DemandPlanner() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [prodRes, recRes, invRes, planRes] = await Promise.all([
+      const [prodRes, recRes, invRes, wmsRes, planRes, machRes] = await Promise.all([
         supabase.from('products').select('*').eq('deleted', false),
         supabase.from('recipes').select('*').eq('deleted', false),
         supabase.from('finished_goods_inventory').select('*').eq('deleted', false),
+        supabase.from('wms_stock_items').select('item_code, carton, quantity, pcs_per_carton').eq('deleted', false).neq('status', 'shipped'),
         supabase.from('sales_planning').select('*').eq('deleted', false),
+        supabase.from('machines').select('*').eq('deleted', false),
       ]);
 
       const recipesById = new Map((recRes.data || []).map((r: any) => [r.id, r]));
       const invByProd = new Map((invRes.data || []).map((i: any) => [i.product_id, i]));
       const planByProd = new Map((planRes.data || []).map((p: any) => [p.product_id, p]));
+      setProductsMap(new Map((prodRes.data || []).map((p: any) => [p.id, p])));
+      setMachinesList(machRes.data || []);
+
+      // Live WMS finished-goods cartons summed by item_code
+      const wmsCartonsByCode = new Map<string, number>();
+      (wmsRes.data || []).forEach((w: any) => {
+        const code = String(w.item_code || '').trim().toUpperCase();
+        if (!code) return;
+        const ctns = Number(w.carton) || (Number(w.pcs_per_carton) > 0 ? Math.floor((Number(w.quantity) || 0) / Number(w.pcs_per_carton)) : 0);
+        wmsCartonsByCode.set(code, (wmsCartonsByCode.get(code) || 0) + ctns);
+      });
 
       const calculated = (prodRes.data || []).map((p: any) => {
         const rec: any = recipesById.get(p.recipe_id);
         const inv: any = invByProd.get(p.id);
         const plan: any = planByProd.get(p.id);
+        const codeUpper = String(p.product_code || '').trim().toUpperCase();
+        const wmsCtns = wmsCartonsByCode.has(codeUpper) ? wmsCartonsByCode.get(codeUpper)! : null;
 
         const pcsPerCarton = Number(p.carton_size) || Number(p.pcs_per_carton) || 1;
         const netFilling = Number(p.net_filling_kg) || (Number(p.net_weight_kg) || 0.1) * pcsPerCarton;
@@ -71,7 +95,7 @@ export default function DemandPlanner() {
           netFillingKgPerCarton: netFilling,
           batchOutputKg: batchOut,
           cookingTimeHours: cookHr,
-          currentStockCartons: Number(inv?.available_stock_cartons) || 0,
+          currentStockCartons: wmsCtns !== null ? wmsCtns : Number(inv?.available_stock_cartons) || 0,
           reorderLevel: Number(plan?.reorder_level) || 0,
           forecastQty: Number(plan?.forecast_quantity) || 0,
         });
@@ -127,18 +151,16 @@ export default function DemandPlanner() {
     }
     setSubmitting(true);
     try {
-      const { data: existingOrders } = await supabase
-        .from('production_orders')
-        .select('order_number, batch_codes')
-        .order('created_at', { ascending: false })
-        .limit(100);
+      const [{ data: existingOrders }, prodSettings] = await Promise.all([
+        supabase
+          .from('production_orders')
+          .select('order_number, batch_codes')
+          .order('created_at', { ascending: false })
+          .limit(2000),
+        loadProductionSettings(),
+      ]);
 
-      const usedBatches: string[] = [];
-      (existingOrders || []).forEach((o: any) => {
-        if (Array.isArray(o.batch_codes)) usedBatches.push(...o.batch_codes);
-      });
-
-      const baseSeq = (existingOrders?.length || 0) + 1;
+      const orderPool = [...(existingOrders || [])];
       const priorityMap: Record<string, string> = {
         critical: 'Urgent',
         high: 'High',
@@ -148,14 +170,25 @@ export default function DemandPlanner() {
       let cursorMs = new Date(`${productionDate}T08:00:00`).getTime();
       if (Number.isNaN(cursorMs)) cursorMs = Date.now();
 
-      const inserts = plannedOrders.ordered.map((item, idx) => {
-        const batchNo = generateBatchNumber(item.row.batchPrefix, productionDate, usedBatches);
-        usedBatches.push(batchNo);
-        const orderNo = `PO${productionDate.replace(/-/g, '').slice(2, 6)}${String(baseSeq + idx).padStart(3, '0')}`;
+      const inserts = plannedOrders.ordered.map((item) => {
+        const orderNo = nextOrderNumber(orderPool);
+        orderPool.push({ order_number: orderNo, batch_codes: [] });
+
+        const prod = productsMap.get(item.row.productId);
+        const machineName = prod?.default_machine || machinesList[0]?.name || '';
+        const machineRec = machinesList.find(
+          (m) => String(m.name || '').trim().toLowerCase() === String(machineName).trim().toLowerCase()
+        );
         const runMins = Math.max(30, Math.round((item.run_time_hours || 1) * 60));
         const startIso = new Date(cursorMs).toISOString();
         const endIso = new Date(cursorMs + runMins * 60000).toISOString();
         cursorMs += runMins * 60000;
+        const batchCodes = buildBatchCodes({
+          pattern: prodSettings.batch_pattern,
+          code: item.row.batchPrefix || item.row.productCode,
+          plannedStart: startIso,
+          count: item.batches,
+        });
         const batchCtns = item.row.netFillingKgPerCarton > 0
           ? Math.round(item.row.batchOutputKg / item.row.netFillingKgPerCarton)
           : item.cartons;
@@ -168,11 +201,15 @@ export default function DemandPlanner() {
           quantity_cartons: item.cartons,
           batch_cartons: batchCtns,
           batches: item.batches,
-          batch_codes: [batchNo],
+          batch_codes: batchCodes,
+          machine: machineRec?.name || machineName,
+          machine_id: machineRec?.id || '',
+          capacity_cph: Number(machineRec?.capacity_cph) || Number(prodSettings.default_cph) || 300,
           priority: priorityMap[item.priority] || 'Normal',
           status: 'Planned',
           planned_start: startIso,
           planned_end: endIso,
+          plan_changes: [],
           deleted: false,
         };
       });
@@ -180,7 +217,15 @@ export default function DemandPlanner() {
       const { error } = await supabase.from('production_orders').insert(inserts);
       if (error) throw error;
 
-      toast.success(`Generated ${inserts.length} sequenced production orders!`);
+      await logProductionAudit({
+        user,
+        action: 'Created',
+        recordId: inserts.map((i) => i.order_number).join(', '),
+        details: `Generated ${inserts.length} production order(s) from Demand Planner for ${productionDate}`,
+        newValue: 'Planned',
+      }).catch(() => {});
+
+      toast.success(`Generated ${inserts.length} sequenced production orders (ready on Production Schedule)!`);
       setSelectedQty({});
     } catch (err: any) {
       toast.error(err.message || 'Failed to generate production orders');

@@ -234,6 +234,21 @@ export default function ShiftLogDraft() {
       toast({ title: "Incomplete log", description: `Please fill: ${errors.join(", ")}`, variant: "destructive" });
       return;
     }
+
+    // Duplicate-entry guard: prevent accidental double-submission of the same run
+    const startVal = timeRows[0]?.start || "";
+    const dupMatch = logRecords.find(
+      (r) =>
+        String(r.shift_date || "").slice(0, 10) === form.shift_date &&
+        (r.production_line || "").trim().toLowerCase() === (form.production_line || "").trim().toLowerCase() &&
+        (r.product_name || "").trim().toLowerCase() === (form.product_name || "").trim().toLowerCase() &&
+        (r.batch_number || "").trim().toLowerCase() === (form.batch_number || "").trim().toLowerCase() &&
+        String(r.start_time || "").slice(0, 5) === startVal.slice(0, 5)
+    );
+    if (dupMatch && !window.confirm(`A shift log already exists for ${form.product_name} (${form.batch_number}) on ${form.shift_date} at ${startVal}. Save another entry anyway?`)) {
+      return;
+    }
+
     setSaving(true);
     try {
       const downtimeRemarks = downtimeRows.

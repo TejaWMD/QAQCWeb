@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { AlertTriangle, ArrowLeft, FlaskConical } from "lucide-react";
+import { AlertTriangle, ArrowLeft, FlaskConical, ShieldAlert, Warehouse } from "lucide-react";
 import LabelPreview from "@/components/labels/LabelPreview";
 import BatchDowntimeList from "@/components/labels/BatchDowntimeList";
 import BatchLotLinks from "@/components/labels/BatchLotLinks";
@@ -17,7 +17,7 @@ export default function Traceability() {
   const [params] = useSearchParams();
   const batch = (params.get("batch") || "").trim();
   const lot = (params.get("lot") || "").trim();
-  const { loading, record, order, downtimes, lots, packaging, lotMatches, lotInfo } = useBatchTrace(batch, lot);
+  const { loading, record, order, downtimes, lots, packaging, holds = [], defects = [], wmsStock = [], plDispatches = [], lotMatches, lotInfo } = useBatchTrace(batch, lot);
 
   const lotMissing = !!lot && !batch && lotMatches.length === 0 && lotInfo.receipts.length === 0 && lotInfo.movements.length === 0;
   const missing = lot ? lotMissing : !record;
@@ -160,6 +160,87 @@ export default function Traceability() {
           </div>
 
           <BatchLotLinks lots={lots} packaging={packaging} />
+
+          {/* QA Holds & Quality Defects */}
+          {(holds.length > 0 || defects.length > 0) && (
+            <div className={`${panelClass} p-4 space-y-3 border-rose-200 bg-rose-50/40`}>
+              <div className="flex items-center gap-2">
+                <ShieldAlert className="w-4 h-4 text-rose-600" />
+                <h3 className="text-sm font-semibold text-[#0F294A]">
+                  QA Status ({holds.length} Hold{holds.length === 1 ? "" : "s"} · {defects.length} Defect{defects.length === 1 ? "" : "s"})
+                </h3>
+              </div>
+              {holds.length > 0 && (
+                <div className="space-y-1.5">
+                  <p className={labelClass}>Product Holds</p>
+                  {holds.map((h) => (
+                    <div key={h.id} className="rounded-md border border-rose-200 bg-white px-3 py-2 text-xs flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <span className="font-semibold text-rose-700">{h.status || "Open"}</span>
+                        {" · "}
+                        <span className="text-[#0F294A]">{h.hold_reason || "No reason recorded"}</span>
+                        {h.hold_qty ? ` (${h.hold_qty} qty)` : ""}
+                      </div>
+                      <span className="text-[#64748B]">Held by {h.held_by || h.owner || "QA"}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {defects.length > 0 && (
+                <div className="space-y-1.5">
+                  <p className={labelClass}>Quality Defects</p>
+                  {defects.map((d) => (
+                    <div key={d.id} className="rounded-md border border-amber-200 bg-white px-3 py-2 text-xs flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <span className="font-semibold text-amber-700">{d.severity || "Minor"}</span>
+                        {" · "}
+                        <span className="text-[#0F294A]">{d.defect_type || "Defect"}</span>
+                        {d.defect_qty ? ` (${d.defect_qty} pcs)` : ""}
+                      </div>
+                      <span className="text-[#64748B]">{d.status || "Open"}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Finished Goods WMS Location & PL Dispatch */}
+          {(wmsStock.length > 0 || plDispatches.length > 0) && (
+            <div className={`${panelClass} p-4 space-y-3`}>
+              <div className="flex items-center gap-2">
+                <Warehouse className="w-4 h-4 text-[#1D4ED8]" />
+                <h3 className="text-sm font-semibold text-[#0F294A]">Finished Goods Warehouse &amp; Dispatch</h3>
+              </div>
+              {wmsStock.length > 0 && (
+                <div className="space-y-1.5">
+                  <p className={labelClass}>WMS Rack Locations</p>
+                  {wmsStock.map((w) => (
+                    <div key={w.id} className="rounded-md border border-[#E2E8F0] bg-white px-3 py-2 text-xs flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-[#0F294A] font-medium">
+                        Rack {w.rack || "Waiting Area"} · {w.carton || 0} ctn + {w.loose_pcs || 0} loose ({w.quantity || 0} pcs)
+                      </span>
+                      <span className="text-[#64748B] uppercase">{w.status || "received"}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {plDispatches.length > 0 && (
+                <div className="space-y-1.5">
+                  <p className={labelClass}>Packing List (PL) Outbound Dispatches</p>
+                  {plDispatches.map((p) => (
+                    <div key={p.id} className="rounded-md border border-[#E2E8F0] bg-white px-3 py-2 text-xs flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-[#0F294A] font-medium">
+                        PL {p.pl_number || "—"} · {p.cartons || 0} ctn + {p.loose_pcs || 0} loose ({p.total_pcs || 0} pcs)
+                      </span>
+                      <span className="text-[#64748B]">From {p.rack || "—"}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           <ReworkTraceList batchNumber={record.batch_number} />
         </>
       )}

@@ -1,15 +1,14 @@
-import React, { useEffect, useRef, useState } from "react";
-import * as XLSX from "xlsx";
+import React, { useEffect, useState } from "react";
 import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
-import { History, Pencil, ShieldAlert, Download, FlaskConical, Tag, Clock, Plus, Upload, Trash2 } from "lucide-react";
+import { History, Pencil, ShieldAlert, Download, FlaskConical, Tag, Clock, Plus, Trash2 } from "lucide-react";
 import RecipeDialog from "@/components/planning/RecipeDialog";
 import RecipeHistoryDialog from "@/components/planning/RecipeHistoryDialog";
 import { canEditRecipes, fmtQty, loadMaterials, loadProducts, loadRecipes } from "@/lib/planning";
 import { downloadCsv, todayStr } from "@/lib/warehouse";
-import { recipeFamilies, recipeVersionsFor, saveRecipeVersion } from "@/lib/recipeMaster";
+import { recipeFamilies, recipeVersionsFor } from "@/lib/recipeMaster";
 import { archiveRecipeSafely } from "@/lib/deleteIntegrity";
 import { inputClass, primaryButton, subtleButton, panelClass } from "@/components/planning/styles";
 
@@ -19,7 +18,6 @@ export default function RecipeMaster() {
   const { user } = useAuth();
   const { toast } = useToast();
   const canEdit = canEditRecipes(user);
-  const fileRef = useRef(null);
   const [products, setProducts] = useState([]);
   const [recipes, setRecipes] = useState([]);
   const [materials, setMaterials] = useState([]);
@@ -72,46 +70,6 @@ export default function RecipeMaster() {
     }
   };
 
-  const handleImportFile = async (e) => {
-    const file = e.target.files?.[0];
-    e.target.value = null;
-    if (!file) return;
-    try {
-      const buffer = await file.arrayBuffer();
-      const wb = XLSX.read(buffer, { type: "array" });
-      const sheet = wb.Sheets[wb.SheetNames[0]];
-      const rawRows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
-      let count = 0;
-      for (const r of rawRows) {
-        const name = String(r["Recipe Name"] || r["Recipe"] || r["recipe_name"] || r["Name"] || "").trim();
-        if (!name) continue;
-        const cookHr = Number(r["Cooking Time (hr)"] || r["cooking_time_hr"] || r["Cooking Time"] || 0) || 0;
-        const batchKg = Number(r["Batch Output (kg)"] || r["batch_output_kg"] || r["Batch Output"] || 0) || 0;
-        const batchCtns = Number(r["Cartons / Batch"] || r["batch_cartons"] || 0) || 0;
-        const yieldPct = Number(r["Std Yield %"] || r["standard_yield_pct"] || 100) || 100;
-        await saveRecipeVersion({
-          versions: [],
-          products: [],
-          recipeName: name,
-          form: {
-            recipe_name: name,
-            cooking_time_hr: cookHr,
-            batch_output_kg: batchKg,
-            batch_cartons: batchCtns,
-            standard_yield_pct: yieldPct,
-            ingredients: [],
-          },
-          user,
-        });
-        count++;
-      }
-      toast({ title: `Imported ${count} recipe(s)`, description: file.name });
-      await load();
-    } catch (err) {
-      toast({ title: "Import failed", description: err?.message || "Use a CSV or Excel file.", variant: "destructive" });
-    }
-  };
-
   const totalBrands = new Set(products.map((p) => p.brand).filter(Boolean)).size;
   const avgCooking = (() => {
     const times = rows.map((r) => Number(r.active?.cooking_time_hr || r.active?.cooking_time_hours || 0)).filter((n) => n > 0);
@@ -137,19 +95,13 @@ export default function RecipeMaster() {
           <p className="text-[#64748B] text-sm mt-1">Production recipes — the basis for all batch calculations.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={handleImportFile} />
           <Button variant="outline" onClick={exportRecipes} className={subtleButton}>
             <Download className="w-4 h-4 mr-1.5" /> Export
           </Button>
           {canEdit && (
-            <>
-              <Button variant="outline" onClick={() => fileRef.current?.click()} className={subtleButton}>
-                <Upload className="w-4 h-4 mr-1.5" /> Import File
-              </Button>
-              <Button onClick={() => openNew(null)} className={primaryButton}>
-                <Plus className="w-4 h-4 mr-1.5" /> Add Recipe
-              </Button>
-            </>
+            <Button onClick={() => openNew(null)} className={primaryButton}>
+              <Plus className="w-4 h-4 mr-1.5" /> Add Recipe
+            </Button>
           )}
         </div>
       </div>
@@ -314,6 +266,7 @@ export default function RecipeMaster() {
           product={edit.product}
           products={edit.products}
           versions={edit.versions}
+          allRecipes={recipes}
           materials={materials}
           onSaved={async () => { closeEdit(); await load(); }}
         />

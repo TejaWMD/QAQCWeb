@@ -76,6 +76,15 @@ export default function PackagingWasteDialog({ open, onClose, settings, movement
     setSaving(true);
     setError("");
     try {
+      // Prevent duplicating a PackagingWaste entry from the same Daily Line Entry shift log
+      if (pulled?.id) {
+        const existing = await base44.entities.PackagingWaste.filter({ shift_log_id: pulled.id }, { limit: 1 });
+        if (existing?.length > 0) {
+          setError("Packaging waste for this Daily Line Entry has already been recorded.");
+          setSaving(false);
+          return;
+        }
+      }
       const payload = {
         waste_date: form.waste_date,
         production_line: form.production_line,

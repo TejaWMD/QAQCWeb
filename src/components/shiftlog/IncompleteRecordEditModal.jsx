@@ -98,6 +98,7 @@ export default function IncompleteRecordEditModal({ record, open, onClose, onSav
     const otHours = calcOtHours(form.start_time, form.end_time);
     const payload = {
       ...form,
+      session_id: record.session_id || undefined,
       ot_duration_hours: Number(otHours.toFixed(2)) || 0,
       planned_cartons: record.planned_cartons ?? 0,
       pcs_per_carton: record.pcs_per_carton ?? 0,

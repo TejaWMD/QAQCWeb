@@ -16,7 +16,7 @@ import { dialogClass, inputClass, primaryButton, subtleButton } from "@/componen
 
 // Editing a recipe never overwrites history: the save creates the next version of
 // the shared recipe and every product linked to it points at the new version.
-export default function RecipeDialog({ open, onClose, recipe, product, products = [], versions = [], materials = [], onSaved }) {
+export default function RecipeDialog({ open, onClose, recipe, product, products = [], versions = [], allRecipes = [], materials = [], onSaved }) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [form, setForm] = useState({
@@ -68,8 +68,12 @@ export default function RecipeDialog({ open, onClose, recipe, product, products 
     setSaving(true);
     setError("");
     try {
+      // If adding a recipe whose name already exists, version it instead of creating a duplicate v1
+      const existingByName = versions.length
+        ? versions
+        : allRecipes.filter((r) => (r.recipe_name || "").trim().toLowerCase() === recipeName.toLowerCase());
       const saved = await saveRecipeVersion({
-        versions,
+        versions: existingByName,
         products: linked,
         recipeName,
         form: {

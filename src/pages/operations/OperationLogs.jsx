@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,7 @@ import { productionLines, lineCode } from "@/lib/shiftLogConstants";
 import { canChangeRecord } from "@/lib/permissions";
 
 export default function OperationLogs() {
+  const navigate = useNavigate();
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -198,8 +200,8 @@ export default function OperationLogs() {
               Clear
             </Button>
           )}
-          <Button size="sm" onClick={() => { setEditLog(null); setModalOpen(true); }} className="bg-[#0F294A] hover:bg-[#193B68] text-white">
-            <Plus className="w-4 h-4 mr-1" /> Add Record
+          <Button size="sm" onClick={() => navigate("/shift-log-draft")} className="bg-[#0F294A] hover:bg-[#193B68] text-white">
+            <Plus className="w-4 h-4 mr-1" /> Daily Line Entry
           </Button>
         </div>
       </div>

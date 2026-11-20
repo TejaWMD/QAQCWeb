@@ -43,6 +43,7 @@ export default function WmsWarehouse() {
   const [plPickItemId, setPlPickItemId] = useState('');
   const [plCartons, setPlCartons] = useState('');
   const [plLoose, setPlLoose] = useState('');
+  const [plPickedItems, setPlPickedItems] = useState<any[]>([]);
 
   // Stock Take state
   const [stockTakeName, setStockTakeName] = useState('');
@@ -58,20 +59,22 @@ export default function WmsWarehouse() {
     pcs_per_carton: '24',
     loose_pcs: '',
   });
-  const [opts, setOpts] = useState<{ products: any[]; batches: any[]; openPls: any[] }>({
+  const [opts, setOpts] = useState<{ products: any[]; batches: any[]; batchRecords: any[]; openPls: any[] }>({
     products: [],
     batches: [],
+    batchRecords: [],
     openPls: [],
   });
 
   const loadWms = async () => {
-    const [sRes, lRes, stRes, plRes, prods, bats, takeRes] = await Promise.all([
+    const [sRes, lRes, stRes, plRes, prods, bats, batchRecRes, takeRes] = await Promise.all([
       supabase.from('wms_stock_items').select('*').eq('deleted', false).neq('status', 'shipped').order('scanned_at', { ascending: false }),
       supabase.from('rack_lines').select('*').eq('deleted', false).order('sort_order'),
       supabase.from('staging_areas').select('*').eq('deleted', false).order('sort_order'),
       supabase.from('pl_outs').select('pl_number, status').eq('status', 'in_progress').order('created_at', { ascending: false }).limit(100),
       loadProductOptions(),
       loadBatchOptions(),
+      supabase.from('batch_records').select('batch_number, product_code, product_name, expiry_date, pcs_per_carton, quantity_cartons').eq('deleted', false).order('created_at', { ascending: false }).limit(500),
       supabase.from('stock_takes').select('*').eq('status', 'in_progress').order('created_at', { ascending: false }).limit(1).maybeSingle(),
     ]);
     setStockItems(sRes.data || []);
@@ -89,6 +92,7 @@ export default function WmsWarehouse() {
     setOpts({
       products: prods,
       batches: bats,
+      batchRecords: batchRecRes.data || [],
       openPls: (plRes.data || []).map((p: any) => p.pl_number).filter(Boolean),
     });
   };
@@ -96,6 +100,20 @@ export default function WmsWarehouse() {
   useEffect(() => {
     loadWms();
   }, []);
+
+  useEffect(() => {
+    if (!plNumber.trim()) {
+      setPlPickedItems([]);
+      return;
+    }
+    supabase
+      .from('pl_out_items')
+      .select('*')
+      .eq('pl_number', plNumber.trim())
+      .eq('deleted', false)
+      .order('created_at', { ascending: false })
+      .then(({ data }) => setPlPickedItems(data || []));
+  }, [plNumber, stockItems]);
 
   const layout = useMemo(() => buildRackLayout(rackLines), [rackLines]);
 
@@ -148,35 +166,124 @@ export default function WmsWarehouse() {
     const pcsPerCartonNum = Number(scanForm.pcs_per_carton) || 24;
     const loosePcsNum = Number(scanForm.loose_pcs) || 0;
     const totalQty = cartonNum * pcsPerCartonNum + loosePcsNum;
-    const payload = {
-      ...scanForm,
+    if (totalQty <= 0) {
+      return toast.error('Enter cartons or loose pcs greater than zero.');
+    }
+    const targetRack = scanForm.rack || DEFAULT_STAGING_AREA;
+    const nowIso = new Date().toISOString();
+
+    // Upsert / Merge: if same (item_code, batch_number, rack) is already active in stock, add to it
+    const existing = stockItems.find(
+      (s) =>
+        String(s.item_code || '').trim().toUpperCase() === scanForm.item_code.trim().toUpperCase() &&
+        String(s.batch_number || '').trim().toUpperCase() === scanForm.batch_number.trim().toUpperCase() &&
+        String(s.rack || DEFAULT_STAGING_AREA).trim().toUpperCase() === targetRack.trim().toUpperCase()
+    );
+
+    let savedId = '';
+    if (existing) {
+      const nextCarton = (Number(existing.carton) || 0) + cartonNum;
+      const nextLoose = (Number(existing.loose_pcs) || 0) + loosePcsNum;
+      const nextQty = (Number(existing.quantity) || 0) + totalQty;
+      const { data: updated, error } = await supabase
+        .from('wms_stock_items')
+        .update({
+          carton: nextCarton,
+          loose_pcs: nextLoose,
+          quantity: nextQty,
+          scanned_at: nowIso,
+          updated_at: nowIso,
+        })
+        .eq('id', existing.id)
+        .select()
+        .single();
+      if (error) return toast.error(error.message);
+      savedId = updated.id;
+    } else {
+      const payload = {
+        ...scanForm,
+        rack: targetRack,
+        carton: cartonNum,
+        pcs_per_carton: pcsPerCartonNum,
+        loose_pcs: loosePcsNum,
+        quantity: totalQty,
+        status: targetRack !== DEFAULT_STAGING_AREA ? 'stored' : 'received',
+        scanned_at: nowIso,
+      };
+      const { data: inserted, error } = await supabase.from('wms_stock_items').insert(payload).select().single();
+      if (error) return toast.error(error.message);
+      savedId = inserted.id;
+    }
+
+    await supabase.from('wms_stock_in_logs').insert({
+      stock_item_id: savedId,
+      item_code: scanForm.item_code,
+      item_name: scanForm.item_name,
+      batch_number: scanForm.batch_number,
       carton: cartonNum,
       pcs_per_carton: pcsPerCartonNum,
       loose_pcs: loosePcsNum,
       quantity: totalQty,
-      status: scanForm.rack && scanForm.rack !== DEFAULT_STAGING_AREA ? 'stored' : 'received',
-      scanned_at: new Date().toISOString(),
-    };
-
-    const { data: inserted, error } = await supabase.from('wms_stock_items').insert(payload).select().single();
-    if (error) return toast.error(error.message);
-
-    await supabase.from('wms_stock_in_logs').insert({
-      stock_item_id: inserted.id,
-      item_code: payload.item_code,
-      item_name: payload.item_name,
-      batch_number: payload.batch_number,
-      carton: payload.carton,
-      pcs_per_carton: payload.pcs_per_carton,
-      loose_pcs: payload.loose_pcs,
-      quantity: totalQty,
-      rack: payload.rack,
-      scanned_at: payload.scanned_at,
+      rack: targetRack,
+      scanned_at: nowIso,
     });
 
-    toast.success(`Stocked in ${formatQtyBreakdown(totalQty, pcsPerCartonNum)} to ${scanForm.rack}`);
+    toast.success(
+      existing
+        ? `Added ${formatQtyBreakdown(totalQty, pcsPerCartonNum)} to existing batch in ${targetRack}`
+        : `Stocked in ${formatQtyBreakdown(totalQty, pcsPerCartonNum)} to ${targetRack}`
+    );
     setQrInput('');
     setScanForm((prev) => ({ ...prev, carton: '', loose_pcs: '' }));
+    loadWms();
+  };
+
+  const handleClosePl = async () => {
+    if (!plNumber.trim()) return;
+    const { error } = await supabase
+      .from('pl_outs')
+      .update({ status: 'completed', updated_at: new Date().toISOString() })
+      .eq('pl_number', plNumber.trim())
+      .eq('status', 'in_progress');
+    if (error) return toast.error(error.message);
+    toast.success(`Packing List ${plNumber.trim()} marked as completed.`);
+    setPlNumber('');
+    setPlPickedItems([]);
+    loadWms();
+  };
+
+  const handleCompleteStockTake = async (applyVariance: boolean) => {
+    if (!activeTake) return;
+    if (applyVariance && takeItems.length > 0) {
+      for (const ti of takeItems) {
+        const match = stockItems.find(
+          (s) =>
+            String(s.item_code || '').trim().toUpperCase() === String(ti.item_code || '').trim().toUpperCase() &&
+            String(s.batch_number || '').trim().toUpperCase() === String(ti.batch_number || '').trim().toUpperCase() &&
+            String(s.rack || DEFAULT_STAGING_AREA).trim().toUpperCase() === String(ti.rack || DEFAULT_STAGING_AREA).trim().toUpperCase()
+        );
+        if (match) {
+          const countedQty = Number(ti.quantity ?? ti.total_pcs) || 0;
+          await supabase
+            .from('wms_stock_items')
+            .update({
+              carton: Number(ti.carton ?? ti.cartons) || 0,
+              loose_pcs: Number(ti.loose_pcs) || 0,
+              quantity: countedQty,
+              status: countedQty <= 0 ? 'shipped' : match.status,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', match.id);
+        }
+      }
+    }
+    await supabase
+      .from('stock_takes')
+      .update({ status: 'completed', updated_at: new Date().toISOString() })
+      .eq('id', activeTake.id);
+    toast.success(applyVariance ? 'Stock take completed & stock balances reconciled.' : 'Stock take completed (no stock changes applied).');
+    setActiveTake(null);
+    setTakeItems([]);
     loadWms();
   };
 
@@ -496,9 +603,27 @@ export default function WmsWarehouse() {
                 />
                 <SearchableSelect
                   value={scanForm.batch_number}
-                  onValueChange={(v) => setScanForm({ ...scanForm, batch_number: v })}
+                  onValueChange={(v) => {
+                    const bMatch = opts.batchRecords.find(
+                      (b) => String(b.batch_number || '').trim().toUpperCase() === String(v || '').trim().toUpperCase()
+                    );
+                    const pMatch = bMatch
+                      ? opts.products.find((p) => p.product_code === bMatch.product_code || p.product_name === bMatch.product_name)
+                      : null;
+                    setScanForm({
+                      ...scanForm,
+                      batch_number: v,
+                      ...(bMatch ? {
+                        item_code: bMatch.product_code || pMatch?.product_code || scanForm.item_code,
+                        item_name: bMatch.product_name || pMatch?.product_name || scanForm.item_name,
+                        expiry_date: bMatch.expiry_date ? String(bMatch.expiry_date).slice(0, 10) : scanForm.expiry_date,
+                        pcs_per_carton: String(Number(bMatch.pcs_per_carton) || Number(pMatch?.carton_size) || scanForm.pcs_per_carton),
+                        carton: scanForm.carton || (bMatch.quantity_cartons ? String(bMatch.quantity_cartons) : ''),
+                      } : {}),
+                    });
+                  }}
                   options={opts.batches}
-                  placeholder="Batch #"
+                  placeholder="Batch # (auto-fills product & expiry)"
                   searchPlaceholder="Search batch..."
                   allowCustom
                 />
@@ -519,10 +644,17 @@ export default function WmsWarehouse() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="plout" className="mt-4">
+        <TabsContent value="plout" className="mt-4 space-y-4">
           <Card>
-            <CardHeader><CardTitle className="text-base">Packing List Outbound Pick (Auto Carton-Breaking)</CardTitle></CardHeader>
-            <CardContent>
+            <CardHeader className="flex flex-row items-center justify-between gap-2">
+              <CardTitle className="text-base">Packing List Outbound Pick (Auto Carton-Breaking)</CardTitle>
+              {plNumber.trim() && opts.openPls.includes(plNumber.trim()) && (
+                <Button size="sm" variant="outline" onClick={handleClosePl}>
+                  Complete / Close PL
+                </Button>
+              )}
+            </CardHeader>
+            <CardContent className="space-y-4">
               <form onSubmit={handlePlPick} className="grid grid-cols-1 md:grid-cols-5 gap-3">
                 <SearchableSelect
                   value={plNumber}
@@ -549,6 +681,34 @@ export default function WmsWarehouse() {
                 <Input type="number" min={0} placeholder="Loose Pcs Out" value={plLoose} onChange={(e) => setPlLoose(e.target.value)} />
                 <Button type="submit" className="md:col-span-5">Deduct Pick from Stock</Button>
               </form>
+
+              {plNumber.trim() && plPickedItems.length > 0 && (
+                <div className="border rounded-md overflow-x-auto">
+                  <div className="px-3 py-2 bg-slate-50 border-b text-xs font-semibold text-slate-600">
+                    Picked Lines for {plNumber.trim()} ({plPickedItems.length})
+                  </div>
+                  <table className="w-full text-sm">
+                    <thead className="bg-slate-50 border-b text-xs text-slate-500">
+                      <tr>
+                        <th className="text-left p-2.5">Item</th>
+                        <th className="text-left p-2.5">Batch</th>
+                        <th className="text-left p-2.5">From Rack</th>
+                        <th className="text-right p-2.5">Picked Qty</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {plPickedItems.map((pi) => (
+                        <tr key={pi.id}>
+                          <td className="p-2.5 font-medium">{pi.item_code} — {pi.item_name}</td>
+                          <td className="p-2.5 font-mono">{pi.batch_number}</td>
+                          <td className="p-2.5">{pi.rack || '—'}</td>
+                          <td className="p-2.5 text-right font-mono">{formatQtyBreakdown(pi.total_pcs, pi.pcs_per_carton)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -564,18 +724,16 @@ export default function WmsWarehouse() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
                     <Badge>Active: {activeTake.name}</Badge>
-                    <Button
-                      size="sm"
-                      onClick={async () => {
-                        await supabase.from('stock_takes').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', activeTake.id);
-                        toast.success('Stock take completed');
-                        setActiveTake(null);
-                      }}
-                    >
-                      Complete Session
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => handleCompleteStockTake(false)}>
+                        Close Without Adjusting
+                      </Button>
+                      <Button size="sm" onClick={() => handleCompleteStockTake(true)}>
+                        Apply Variance &amp; Complete
+                      </Button>
+                    </div>
                   </div>
 
                   <form onSubmit={handleAddStockTakeRow} className="grid grid-cols-1 md:grid-cols-6 gap-2 items-end border rounded-lg p-3">
@@ -640,18 +798,35 @@ export default function WmsWarehouse() {
                             <th className="text-left p-2.5">Item</th>
                             <th className="text-left p-2.5">Batch</th>
                             <th className="text-left p-2.5">Rack</th>
+                            <th className="text-right p-2.5">System Qty</th>
                             <th className="text-right p-2.5">Counted Qty</th>
+                            <th className="text-right p-2.5">Variance</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y">
-                          {takeItems.map((ti) => (
-                            <tr key={ti.id}>
-                              <td className="p-2.5 font-medium">{ti.item_code} — {ti.item_name}</td>
-                              <td className="p-2.5 font-mono">{ti.batch_number}</td>
-                              <td className="p-2.5">{ti.rack}</td>
-                              <td className="p-2.5 text-right font-mono">{formatQtyBreakdown(ti.quantity, ti.pcs_per_carton)}</td>
-                            </tr>
-                          ))}
+                          {takeItems.map((ti) => {
+                            const sysMatch = stockItems.find(
+                              (s) =>
+                                String(s.item_code || '').trim().toUpperCase() === String(ti.item_code || '').trim().toUpperCase() &&
+                                String(s.batch_number || '').trim().toUpperCase() === String(ti.batch_number || '').trim().toUpperCase() &&
+                                String(s.rack || DEFAULT_STAGING_AREA).trim().toUpperCase() === String(ti.rack || DEFAULT_STAGING_AREA).trim().toUpperCase()
+                            );
+                            const sysQty = Number(sysMatch?.quantity) || 0;
+                            const countedQty = Number(ti.quantity ?? ti.total_pcs) || 0;
+                            const variance = countedQty - sysQty;
+                            return (
+                              <tr key={ti.id}>
+                                <td className="p-2.5 font-medium">{ti.item_code} — {ti.item_name}</td>
+                                <td className="p-2.5 font-mono">{ti.batch_number}</td>
+                                <td className="p-2.5">{ti.rack}</td>
+                                <td className="p-2.5 text-right font-mono text-slate-500">{formatQtyBreakdown(sysQty, ti.pcs_per_carton)}</td>
+                                <td className="p-2.5 text-right font-mono">{formatQtyBreakdown(countedQty, ti.pcs_per_carton)}</td>
+                                <td className={`p-2.5 text-right font-mono font-semibold ${variance === 0 ? 'text-emerald-600' : variance > 0 ? 'text-sky-600' : 'text-rose-600'}`}>
+                                  {variance > 0 ? `+${variance}` : variance} pcs
+                                </td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>

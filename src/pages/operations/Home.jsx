@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { productionLines, lineCode } from "@/lib/shiftLogConstants";
+import { productionLines, lineCode, wasteComponents } from "@/lib/shiftLogConstants";
 import { TrendingUp, Package, Trash2, Clock, Plus, CheckCircle2, AlertCircle } from "lucide-react";
 import MetricCard from "@/components/dashboard/MetricCard";
 import ScrapBreakdownChart from "@/components/dashboard/ScrapBreakdownChart";
@@ -64,15 +64,16 @@ export default function Home() {
       acc.bottles += l.bottle_waste || 0;
       acc.labels += l.label_waste || 0;
       acc.cartons += l.carton_box_waste || 0;
+      acc.allWaste += wasteComponents.reduce((sum, c) => sum + (Number(l[`${c.key}_waste`]) || 0), 0);
       acc.otHours += (l.ot_duration_hours || 0) * (l.staff_count || 0);
       acc.otSpend += (l.ot_duration_hours || 0) * (l.staff_count || 0) * (l.hourly_ot_rate || 0);
       return acc;
     },
-    { planned: 0, actual: 0, caps: 0, bottles: 0, labels: 0, cartons: 0, otHours: 0, otSpend: 0 }
+    { planned: 0, actual: 0, caps: 0, bottles: 0, labels: 0, cartons: 0, allWaste: 0, otHours: 0, otSpend: 0 }
   );
 
   const avgAchieve = metrics.planned > 0 ? metrics.actual / metrics.planned * 100 : 0;
-  const totalWaste = metrics.caps + metrics.bottles + metrics.labels + metrics.cartons;
+  const totalWaste = metrics.allWaste;
   const lossValue = (totalWaste * 0.16).toFixed(2);
 
   const lines = [...new Set(logs.map((l) => l.production_line).filter(Boolean))];

@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { supabase } from '@/api/supabaseClient';
-import { productService } from '@/services/productService';
 import { parseSpreadsheetFile, downloadTemplateXlsx } from '@/lib/excelUtils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,10 +7,10 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { FileSpreadsheet, Upload, Download, CheckCircle2 } from 'lucide-react';
 
-type ImportTarget = 'products' | 'forecasts' | 'warehouse_stock' | 'packaging';
+type ImportTarget = 'forecasts' | 'warehouse_stock' | 'packaging';
 
 export default function SheetMigration({ embedded = false }: { embedded?: boolean }) {
-  const [target, setTarget] = useState<ImportTarget>('products');
+  const [target, setTarget] = useState<ImportTarget>('forecasts');
   const [rows, setRows] = useState<Record<string, any>[]>([]);
   const [fileName, setFileName] = useState('');
   const [importing, setImporting] = useState(false);
@@ -35,36 +34,27 @@ export default function SheetMigration({ embedded = false }: { embedded?: boolea
     if (!rows.length) return toast.error('Upload a spreadsheet first.');
     setImporting(true);
     try {
-      if (target === 'products') {
-        const mapped = rows
-          .filter((r) => r.product_code || r.ItemCode || r['Item Code'] || r.product_name || r.DESCRIPTION)
-          .map((r) => ({
-            product_code: String(r.product_code || r.ItemCode || r['Item Code'] || '').trim().toUpperCase(),
-            product_name: String(r.product_name || r.DESCRIPTION || r['Carton Description'] || r.ItemCode || '').trim(),
-            brand: String(r.brand || r.Brand || '').trim(),
-            carton_size: Number(r.pcs_per_carton || r.carton_size || r['Pcs per carton'] || 1),
-            net_weight_kg: Number(r.net_weight_kg || r['Net Weight (kg)'] || 0.1),
-            batch_prefix: String(r.batch_prefix || r['Batch Code'] || '').trim().toUpperCase(),
-            shelf_life_months: Number(r.shelf_life_months || r['Shelf Life (Months)'] || 12),
-            barcode: String(r.barcode || r['NEW SKU Barcode'] || '').trim(),
-            carton_barcode: String(r.carton_barcode || r['NEW Carton Barcode'] || '').trim(),
-            cooking_time_hr: Number(r.cooking_time_hr || r['Cooking Time (hr)'] || 2),
-            batch_output_kg: Number(r.batch_output_kg || r['Batch Output (kg)'] || 200),
-            status: 'Active' as const,
-            active: true,
-            deleted: false,
-          }));
-        const res = await productService.bulkUpsertProducts(mapped);
-        setResultMsg(`Imported / updated ${res.count} products into Supabase.`);
-      } else if (target === 'forecasts') {
-        const { data: prods } = await supabase.from('products').select('id, product_code, product_name');
+      if (target === 'forecasts') {
+        const [{ data: prods }, { data: existingForecasts }] = await Promise.all([
+          supabase.from('products').select('id, product_code, product_name'),
+          supabase.from('sales_planning').select('id, product_id, product_code').eq('deleted', false),
+        ]);
         const byCode = new Map((prods || []).map((p: any) => [String(p.product_code || '').toUpperCase(), p]));
-        const mapped = rows.map((r) => {
+        const existingByProdId = new Map(
+          (existingForecasts || []).filter((f: any) => f.product_id).map((f: any) => [f.product_id, f.id])
+        );
+        const existingByCode = new Map(
+          (existingForecasts || []).filter((f: any) => f.product_code).map((f: any) => [String(f.product_code).toUpperCase(), f.id])
+        );
+        let created = 0;
+        let updated = 0;
+        for (const r of rows) {
           const code = String(r.ItemCode || r.product_code || '').trim();
+          if (!code) continue;
           const prod: any = byCode.get(code.toUpperCase());
           const forecast = Number(r.Forecast || r.forecast_quantity || 0);
           const buffer = Number(r.Buffer || r.buffer_percentage || 1.1) || 1.1;
-          return {
+          const payload = {
             product_id: prod?.id || null,
             product_code: code,
             forecast_quantity: forecast,
@@ -73,11 +63,20 @@ export default function SheetMigration({ embedded = false }: { embedded?: boolea
             target_stock: Math.round(forecast * buffer),
             monthly_sales: forecast,
             average_daily_sales: Number((forecast / 30).toFixed(2)),
+            updated_at: new Date().toISOString(),
           };
-        });
-        const { error } = await supabase.from('sales_planning').insert(mapped);
-        if (error) throw error;
-        setResultMsg(`Imported ${mapped.length} forecast/reorder rows into sales_planning.`);
+          const existingId = (prod?.id && existingByProdId.get(prod.id)) || existingByCode.get(code.toUpperCase());
+          if (existingId) {
+            const { error } = await supabase.from('sales_planning').update(payload).eq('id', existingId);
+            if (error) throw error;
+            updated++;
+          } else {
+            const { error } = await supabase.from('sales_planning').insert(payload);
+            if (error) throw error;
+            created++;
+          }
+        }
+        setResultMsg(`Synced forecasts into sales_planning: ${created} created, ${updated} updated.`);
       } else if (target === 'warehouse_stock') {
         const { data: prods } = await supabase.from('products').select('id, product_code, carton_size');
         const byCode = new Map((prods || []).map((p: any) => [String(p.product_code || '').toUpperCase(), p]));
@@ -102,23 +101,44 @@ export default function SheetMigration({ embedded = false }: { embedded?: boolea
         }
         setResultMsg(`Synced ${count} product inventory rows into finished_goods_inventory.`);
       } else if (target === 'packaging') {
-        const mapped = rows
-          .filter((r) => r.description || r.name || r.item_code)
-          .map((r) => ({
-            item_code: String(r.item_code || ''),
-            description: String(r.description || r.name || r.item_code),
-            category: String(r.category || 'Packaging Raw Material'),
-            unit: String(r.unit || 'pcs'),
+        const { data: existingItems } = await supabase
+          .from('packaging_items')
+          .select('id, item_code')
+          .eq('deleted', false);
+        const existingByCode = new Map(
+          (existingItems || []).filter((i: any) => i.item_code).map((i: any) => [String(i.item_code).trim().toUpperCase(), i.id])
+        );
+        const filtered = rows.filter((r) => r.description || r.name || r.item_code);
+        let created = 0;
+        let updated = 0;
+        for (const r of filtered) {
+          const itemCode = String(r.item_code || '').trim();
+          const payload = {
+            item_code: itemCode,
+            description: String(r.description || r.name || itemCode).trim(),
+            category: String(r.category || 'Packaging Raw Material').trim(),
+            unit: String(r.unit || 'pcs').trim(),
             quantity: Number(r.quantity ?? r.current_stock ?? 0),
             min_level: Number(r.min_level ?? r.safety_stock ?? 50),
             active: true,
             deleted: false,
-          }));
-        const { error } = await supabase.from('packaging_items').insert(mapped);
-        if (error) throw error;
-        setResultMsg(`Imported ${mapped.length} packaging/raw material items.`);
+            updated_at: new Date().toISOString(),
+          };
+          const existingId = itemCode ? existingByCode.get(itemCode.toUpperCase()) : undefined;
+          if (existingId) {
+            const { error } = await supabase.from('packaging_items').update(payload).eq('id', existingId);
+            if (error) throw error;
+            updated++;
+          } else {
+            const { data: ins, error } = await supabase.from('packaging_items').insert(payload).select('id').single();
+            if (error) throw error;
+            if (itemCode && ins?.id) existingByCode.set(itemCode.toUpperCase(), ins.id);
+            created++;
+          }
+        }
+        setResultMsg(`Synced packaging/raw material items: ${created} created, ${updated} updated.`);
       }
-      toast.success('Spreadsheet data transferred to Supabase!');
+      toast.success('Spreadsheet data synced to Supabase!');
     } catch (err: any) {
       toast.error(err.message || 'Import failed');
     } finally {
@@ -135,17 +155,16 @@ export default function SheetMigration({ embedded = false }: { embedded?: boolea
             Excel / Google Sheet Migration Center
           </h1>
           <p className="text-sm text-slate-500">
-            Export your previous Google Sheets as .xlsx or .csv and upload them here to seed your Supabase database cleanly.
+            Upload .xlsx or .csv sheets to upsert forecasts or opening stock balances safely without duplicates.
           </p>
         </div>
       )}
 
       <Card>
-        <CardHeader><CardTitle className="text-base">1. Select Target Table & Download Template</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base">1. Select Target Table &amp; Download Template</CardTitle></CardHeader>
         <CardContent className="flex flex-wrap gap-2">
           {(
             [
-              ['products', 'Products / SKUs'],
               ['forecasts', 'Sales Forecasts & Reorder'],
               ['warehouse_stock', 'Finished Goods Stock'],
               ['packaging', 'Packaging & Raw Materials'],

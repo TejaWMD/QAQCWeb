@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { loadProductOptions, loadSupplierOptions } from "@/lib/masterOptions";
+import { todayStr } from "@/lib/warehouse";
 
 const FIELD = "bg-white border-[#E2E8F0] text-[#0F294A]";
 
@@ -83,12 +84,34 @@ export default function ItemDialog({ open, item, categories, units, racks, onClo
         linked_product: form.linked_product.trim(),
         qty_per_unit: Number(form.qty_per_unit) || 0,
       };
+      const initialQty = Math.max(0, Number(form.quantity) || 0);
       const saved = item
         ? await base44.entities.PackagingItem.update(item.id, payload)
         : await base44.entities.PackagingItem.create({
             ...payload,
-            quantity: Math.max(0, Number(form.quantity) || 0),
+            quantity: initialQty,
           });
+      if (!item && saved?.id && initialQty > 0) {
+        try {
+          await base44.entities.PackagingMovement.create({
+            item_id: saved.id,
+            item_code: saved.item_code,
+            item_name: saved.description || saved.item_code,
+            category: saved.category || "",
+            unit: saved.unit || "",
+            type: "In",
+            quantity: initialQty,
+            movement_date: todayStr(),
+            batch_number: "OPENING",
+            rack_location: saved.default_rack || "",
+            supplier: saved.supplier || "",
+            remarks: "Opening balance",
+            source: "Opening Balance",
+          });
+        } catch {
+          // Non-blocking
+        }
+      }
       onSaved?.(saved);
       onClose?.();
     } catch (err) {

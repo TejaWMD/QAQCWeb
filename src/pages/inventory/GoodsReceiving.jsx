@@ -17,6 +17,8 @@ import { actingUserName } from "@/lib/permissions";
 import { findProduct } from "@/lib/findProduct";
 import { loadRecipes } from "@/lib/planning";
 import { productLink, recipeOf } from "@/lib/productLinks";
+import { receiveStock } from "@/lib/packaging";
+import { supabase } from "@/api/supabaseClient";
 import {
   loadBatchOptions,
   loadProductOptions,
@@ -273,6 +275,53 @@ export default function GoodsReceiving() {
         }))
       );
 
+      // Cross-module sync 1: if any received line matches a PackagingItem by item_code,
+      // automatically credit Packaging Stock & log a PackagingMovement so stock stays in sync.
+      let syncedPkgCount = 0;
+      try {
+        const pkgItems = await base44.entities.PackagingItem.list("item_code", 2000);
+        const pkgByCode = new Map(
+          (Array.isArray(pkgItems) ? pkgItems : [])
+            .filter((p) => p.item_code && p.active !== false)
+            .map((p) => [String(p.item_code).trim().toLowerCase(), p])
+        );
+        for (const l of lines) {
+          const pkg = pkgByCode.get(l.item_code.trim().toLowerCase());
+          if (!pkg) continue;
+          await receiveStock({
+            item: pkg,
+            quantity: Number(l.quantity),
+            date: header.date_received,
+            batch_number: l.batch_number.trim(),
+            rack_location: l.rack_location,
+            expiry_date: l.expiry_date || "",
+            supplier: header.supplier.trim(),
+            delivery_note: header.delivery_note.trim(),
+            remarks: l.remarks.trim() || "Synced from Goods Receiving",
+            source: "Goods Receiving",
+            group_id: group,
+            user,
+          });
+          syncedPkgCount++;
+        }
+      } catch {
+        // Non-blocking: receipt itself is already saved
+      }
+
+      // Cross-module sync 2: if Delivery Note matches an open Purchase Order, mark it received
+      const poRef = header.delivery_note.trim();
+      if (poRef) {
+        try {
+          await supabase
+            .from("purchase_orders")
+            .update({ status: "received", updated_at: new Date().toISOString() })
+            .eq("po_number", poRef)
+            .in("status", ["pending", "in_progress"]);
+        } catch {
+          // Non-blocking
+        }
+      }
+
       try {
         await base44.entities.AuditLog.create({
           event_time: new Date().toISOString(),
@@ -282,14 +331,19 @@ export default function GoodsReceiving() {
           action: "Created",
           record_id: group,
           details: `Received ${lines.length} item line${lines.length === 1 ? "" : "s"}${
-            header.delivery_note.trim() ? ` on delivery note ${header.delivery_note.trim()}` : ""
-          }`,
+            poRef ? ` on delivery note ${poRef}` : ""
+          }${syncedPkgCount ? ` (${syncedPkgCount} synced to Packaging Stock)` : ""}`,
         });
       } catch {
         // An audit write must never block the receipt itself.
       }
 
-      toast({ title: "Goods received", description: `${lines.length} line${lines.length === 1 ? "" : "s"} saved.` });
+      toast({
+        title: "Goods received",
+        description: `${lines.length} line${lines.length === 1 ? "" : "s"} saved${
+          syncedPkgCount ? ` · ${syncedPkgCount} synced to Packaging Stock` : ""
+        }.`,
+      });
       setDuplicates(null);
       setHeader((h) => ({ ...h, supplier: "", delivery_note: "" }));
       setLines([blankLine(units[0])]);

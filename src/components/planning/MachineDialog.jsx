@@ -14,7 +14,7 @@ import { loadMachineLocationOptions } from "@/lib/masterOptions";
 import { productionLines } from "@/lib/shiftLogConstants";
 import { dialogClass, inputClass, selectClass, primaryButton, subtleButton } from "@/components/planning/styles";
 
-export default function MachineDialog({ open, onClose, machine, availableNames = [], onSaved }) {
+export default function MachineDialog({ open, onClose, machine, availableNames = [], existingNames = [], onSaved }) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [form, setForm] = useState({ name: "", location: "", capacity_cph: "", status: "Active", notes: "" });
@@ -36,11 +36,18 @@ export default function MachineDialog({ open, onClose, machine, availableNames =
   const set = (key, value) => setForm((f) => ({ ...f, [key]: value }));
 
   const save = async () => {
-    if (!form.name || !form.name.trim()) return setError("Select or enter the machine / production line name.");
+    const trimmedName = (form.name || "").trim();
+    if (!trimmedName) return setError("Select or enter the machine / production line name.");
+    const currentLower = (machine?.name || "").trim().toLowerCase();
+    const isDuplicate = existingNames.some((n) => {
+      const lower = (n || "").trim().toLowerCase();
+      return lower === trimmedName.toLowerCase() && lower !== currentLower;
+    });
+    if (isDuplicate) return setError(`Machine "${trimmedName}" already exists.`);
     setSaving(true);
     setError("");
     const payload = {
-      name: form.name.trim(),
+      name: trimmedName,
       location: form.location || "",
       capacity_cph: num(form.capacity_cph),
       status: form.status || "Active",

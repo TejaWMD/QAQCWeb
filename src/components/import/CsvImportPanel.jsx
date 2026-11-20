@@ -11,14 +11,62 @@ import { Upload, FileText, Loader2, CheckCircle2, AlertTriangle } from "lucide-r
 const CHUNK_SIZE = 100;
 const norm = (s) => (s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 
+const WASTE_COLS = [
+  "bottle_waste", "jar_waste", "plastic_waste", "pouch_waste", "foil_waste",
+  "cup_waste", "tub_waste", "cap_waste", "lid_waste", "packet_waste",
+  "shrink_label_waste", "label_waste", "extra_sticker_waste", "carton_box_waste",
+];
+
+function combineDateTime(dateStr, timeVal, startTimeVal) {
+  if (!timeVal) return undefined;
+  const raw = String(timeVal).trim();
+  if (!raw) return undefined;
+  // Already ISO datetime
+  if (/^\d{4}-\d{2}-\d{2}T/.test(raw)) return raw;
+  const m = raw.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  if (!m || !dateStr) return raw;
+  const [y, mo, da] = String(dateStr).slice(0, 10).split("-").map(Number);
+  const h = Number(m[1]);
+  const min = Number(m[2]);
+  const sec = Number(m[3] || 0);
+  const d = new Date(y, mo - 1, da, h, min, sec, 0);
+  if (Number.isNaN(d.getTime())) return undefined;
+  if (startTimeVal) {
+    const sm = String(startTimeVal).trim().match(/^(\d{1,2}):(\d{2})/);
+    if (sm) {
+      const sMin = Number(sm[1]) * 60 + Number(sm[2]);
+      const eMin = h * 60 + min;
+      if (eMin <= sMin) d.setDate(d.getDate() + 1);
+    }
+  }
+  return d.toISOString();
+}
+
+function isSummaryOrTestRow(row, rec) {
+  const firstCell = String(row[0] || "").trim().toUpperCase();
+  if (firstCell === "TOTAL" || firstCell === "GRAND TOTAL" || firstCell === "SUMMARY") return true;
+  const prod = String(rec.product_sku || rec.product_name || "").trim().toUpperCase();
+  const batch = String(rec.batch_number || "").trim().toUpperCase();
+  if (prod === "TEST PRODUCT" || prod === "TEST SAMPLE PRODUCT" || /^TEST\d*$/.test(batch)) return true;
+  return false;
+}
+
 // Builds the import payload: only mapped fields with a value are sent, so
-// entity defaults apply to the rest. Rows that fail coercion or miss required
-// fields are reported instead of imported.
-function buildRecords({ fields, required, headers, rows, mapping }) {
+// entity defaults apply to the rest. Automatically skips TOTAL/test rows,
+// normalizes OperationLog times & batch tags, and clamps negative wastage.
+function buildRecords({ entity, fields, required, headers, rows, mapping }) {
   const labelOf = (key) => fields.find((f) => f.key === key)?.key || key;
   const records = [];
   const errors = [];
+  let ignoredSummary = 0;
+
   rows.forEach((row, idx) => {
+    const firstCell = String(row[0] || "").trim().toUpperCase();
+    if (firstCell === "TOTAL" || firstCell === "GRAND TOTAL" || firstCell === "SUMMARY") {
+      ignoredSummary++;
+      return;
+    }
+
     const rec = {};
     let rowError = null;
     for (const f of fields) {
@@ -32,23 +80,55 @@ function buildRecords({ fields, required, headers, rows, mapping }) {
       rec[f.key] = coerced.value;
     }
     if (rowError) { errors.push({ row: idx + 2, error: rowError }); return; }
+
+    if (isSummaryOrTestRow(row, rec)) {
+      ignoredSummary++;
+      return;
+    }
+
+    if (entity === "OperationLog") {
+      const rb = String(rec.record_batch || "").trim().toLowerCase();
+      rec.record_batch = rb === "legacy" ? "legacy" : "current";
+      if (!rec.product_name && rec.product_sku) rec.product_name = rec.product_sku;
+      const rawStart = rec.ot_start;
+      const rawEnd = rec.ot_end;
+      if (rawStart) rec.ot_start = combineDateTime(rec.ot_date, rawStart);
+      if (rawEnd) rec.ot_end = combineDateTime(rec.ot_date, rawEnd, rawStart);
+      if (rec.hourly_ot_rate === undefined) rec.hourly_ot_rate = 12;
+    }
+
+    if (entity === "WastageLog") {
+      let componentSum = 0;
+      for (const col of WASTE_COLS) {
+        if (rec[col] !== undefined) {
+          rec[col] = Math.max(0, Number(rec[col]) || 0);
+          componentSum += rec[col];
+        }
+      }
+      if (rec.total_waste === undefined || Number(rec.total_waste) < componentSum) {
+        rec.total_waste = componentSum;
+      }
+    }
+
     const missing = required.filter((k) => rec[k] === undefined || rec[k] === "");
     if (missing.length) { errors.push({ row: idx + 2, error: `Missing required field(s): ${missing.map(labelOf).join(", ")}` }); return; }
     records.push(rec);
   });
-  return { records, errors };
+  return { records, errors, ignoredSummary };
 }
 
 function ResultBanner({ result, label }) {
   const ok = result.created > 0 && result.rowErrors.length === 0;
   const shown = result.rowErrors.slice(0, 15);
   return (
-    <div className={`rounded-lg border px-4 py-3 space-y-2 ${ok ? "border-emerald-300 bg-emerald-50" : "border-rose-300 bg-rose-600/10"}`}>
-      <div className="flex items-center gap-2 text-sm">
+    <div className={`rounded-lg border px-4 py-3 space-y-2 ${ok ? "border-emerald-300 bg-emerald-50" : "border-amber-300 bg-amber-50"}`}>
+      <div className="flex items-center gap-2 text-sm flex-wrap">
         {ok ? <CheckCircle2 className="w-4 h-4 text-emerald-700" /> : <AlertTriangle className="w-4 h-4 text-amber-700" />}
         <span className="text-[#0F294A] font-medium">
-          {result.created} record{result.created === 1 ? "" : "s"} added to {label}
-          {result.rowErrors.length > 0 && `, ${result.rowErrors.length} row${result.rowErrors.length === 1 ? "" : "s"} skipped`}
+          {result.created} new record{result.created === 1 ? "" : "s"} added to {label}
+          {result.duplicatesSkipped > 0 && `, ${result.duplicatesSkipped} duplicate${result.duplicatesSkipped === 1 ? "" : "s"} skipped`}
+          {result.ignoredSummary > 0 && `, ${result.ignoredSummary} TOTAL/test row${result.ignoredSummary === 1 ? "" : "s"} ignored`}
+          {result.rowErrors.length > 0 && `, ${result.rowErrors.length} error${result.rowErrors.length === 1 ? "" : "s"}`}
           .
         </span>
       </div>
@@ -64,10 +144,10 @@ function ResultBanner({ result, label }) {
   );
 }
 
-// CSV import for one entity: pick a file, confirm the column mapping, then the
-// rows are appended as new records. Existing data is never modified or deleted.
+// One-time historical CSV import with automatic deduplication against existing
+// Supabase records so re-uploading the same file never creates duplicate rows.
 export default function CsvImportPanel({ config }) {
-  const { entity, label, fields, required } = config;
+  const { entity, label, fields, required, dedupKey } = config;
   const { user } = useAuth();
   const { toast } = useToast();
   const fileRef = useRef(null);
@@ -91,8 +171,11 @@ export default function CsvImportPanel({ config }) {
         return;
       }
       const auto = {};
+      const usedHeaders = new Set();
       fields.forEach((f) => {
-        const hit = parsed.headers.find((h) => norm(h) === norm(f.key)) || parsed.headers.find((h) => norm(h) === norm(f.key.replace(/_/g, " ")));
+        const candidates = [f.key, f.key.replace(/_/g, " "), ...(f.aliases || [])].map(norm);
+        const hit = parsed.headers.find((h) => !usedHeaders.has(h) && candidates.includes(norm(h)));
+        if (hit) usedHeaders.add(hit);
         auto[f.key] = hit || "";
       });
       setHeaders(parsed.headers);
@@ -105,18 +188,48 @@ export default function CsvImportPanel({ config }) {
   };
 
   const runImport = async () => {
-    const { records, errors } = buildRecords({ fields, required, headers, rows, mapping });
+    const { records, errors, ignoredSummary } = buildRecords({ entity, fields, required, headers, rows, mapping });
     if (!records.length) {
-      setResult({ created: 0, rowErrors: errors });
+      setResult({ created: 0, duplicatesSkipped: 0, ignoredSummary, rowErrors: errors });
       return;
     }
     setImporting(true);
     setResult(null);
-    setProgress({ done: 0, total: records.length });
+
+    // Fetch existing rows to prevent duplicate records in Supabase on re-import
+    let toInsert = records;
+    let duplicatesSkipped = 0;
+    if (typeof dedupKey === "function") {
+      try {
+        const existing = await base44.entities[entity].list("-created_date", 2000);
+        const existingKeys = new Set((Array.isArray(existing) ? existing : []).map(dedupKey));
+        const seenInFile = new Set();
+        toInsert = [];
+        for (const rec of records) {
+          const k = dedupKey(rec);
+          if (existingKeys.has(k) || seenInFile.has(k)) {
+            duplicatesSkipped++;
+            continue;
+          }
+          seenInFile.add(k);
+          toInsert.push(rec);
+        }
+      } catch {
+        // Fallback if list fails: proceed with in-file dedup only
+      }
+    }
+
+    if (!toInsert.length) {
+      setImporting(false);
+      setResult({ created: 0, duplicatesSkipped, ignoredSummary, rowErrors: errors });
+      return;
+    }
+
+    setProgress({ done: 0, total: toInsert.length });
     let created = 0;
     const rowErrors = [...errors];
-    for (let i = 0; i < records.length; i += CHUNK_SIZE) {
-      const chunk = records.slice(i, i + CHUNK_SIZE);
+    for (let i = 0; i < toInsert.length; i += CHUNK_SIZE) {
+      const chunk = toInsert.slice(i, i + CHUNK_SIZE);
       try {
         await base44.entities[entity].bulkCreate(chunk);
         created += chunk.length;
@@ -132,10 +245,10 @@ export default function CsvImportPanel({ config }) {
           }
         }
       }
-      setProgress({ done: Math.min(i + CHUNK_SIZE, records.length), total: records.length });
+      setProgress({ done: Math.min(i + CHUNK_SIZE, toInsert.length), total: toInsert.length });
     }
     setImporting(false);
-    setResult({ created, rowErrors });
+    setResult({ created, duplicatesSkipped, ignoredSummary, rowErrors });
     try {
       const now = new Date();
       await base44.entities.AuditLog.create({

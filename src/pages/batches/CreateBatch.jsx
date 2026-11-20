@@ -88,6 +88,19 @@ export default function CreateBatch() {
     if (!ord) return;
     const matchedProd = products.find((p) => p.product_code === ord.product_code || p.product_name === ord.product_name);
     if (matchedProd) selectProduct(matchedProd);
+    // Auto-fill production date & next unused alphabet suffix from the order's pre-generated batch_codes
+    if (ord.planned_start) {
+      setProductionDate(String(ord.planned_start).slice(0, 10));
+    }
+    if (ord.batch_cartons && !quantity) {
+      setQuantity(String(ord.batch_cartons));
+    }
+    const existingSet = new Set(records.map((r) => normalizeBatch(r.batch_number)));
+    const nextCode = (ord.batch_codes || []).find((c) => !existingSet.has(normalizeBatch(c)));
+    if (nextCode) {
+      const m = String(nextCode).trim().match(/([A-Za-z]+)$/);
+      if (m) setAlphabetSuffix(m[1].toUpperCase());
+    }
   };
 
   // Auto-generate Batch Number: PREFIX + DDMMYY + Alphabet Suffix (e.g. MCL200626T)
@@ -109,7 +122,9 @@ export default function CreateBatch() {
 
   const computedExpiry = expiryFor(productionDate, product?.shelf_life_days);
   const expiryDate = overrideOpen && overrideDate ? overrideDate : computedExpiry;
-  const duplicate = duplicateOf(records, productId, batchNumber);
+  const duplicate =
+    duplicateOf(records, productId, batchNumber) ||
+    (batchNumber ? records.find((r) => normalizeBatch(r.batch_number) === normalizeBatch(batchNumber)) : null);
 
   const baseLayout = resolveLayout(settings, layoutId);
   const layout = layoutId === "custom"

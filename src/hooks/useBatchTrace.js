@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { loadOrders } from "@/lib/production";
 import { loadRecipes } from "@/lib/planning";
 import { loadBatchRecords } from "@/lib/labels";
@@ -16,6 +18,10 @@ const EMPTY = {
   downtimes: [],
   lots: [],
   packaging: [],
+  holds: [],
+  defects: [],
+  wmsStock: [],
+  plDispatches: [],
   lotMatches: [],
   lotInfo: { receipts: [], movements: [] },
 };
@@ -28,8 +34,17 @@ export default function useBatchTrace(batch, lot) {
     let active = true;
     const load = async () => {
       setData((prev) => ({ ...prev, loading: true }));
-      const [records, orders, recipes, receipts, movements, downtimes] = await Promise.all([
-        loadBatchRecords(), loadOrders(), loadRecipes(), loadLotReceipts(), loadMovements(), loadDowntimes(),
+      const [records, orders, recipes, receipts, movements, downtimes, holdsRes, defectsRes, wmsRes, plRes] = await Promise.all([
+        loadBatchRecords(),
+        loadOrders(),
+        loadRecipes(),
+        loadLotReceipts(),
+        loadMovements(),
+        loadDowntimes(),
+        batch ? base44.entities.ProductHold.filter({ batch_number: batch }, { limit: 50 }).catch(() => []) : Promise.resolve([]),
+        batch ? base44.entities.QualityDefect.filter({ batch_number: batch }, { limit: 50 }).catch(() => []) : Promise.resolve([]),
+        batch ? supabase.from("wms_stock_items").select("*").ilike("batch_number", batch).eq("deleted", false).then((r) => r.data || []).catch(() => []) : Promise.resolve([]),
+        batch ? supabase.from("pl_out_items").select("*").ilike("batch_number", batch).eq("deleted", false).then((r) => r.data || []).catch(() => []) : Promise.resolve([]),
       ]);
       if (!active) return;
 
@@ -47,6 +62,10 @@ export default function useBatchTrace(batch, lot) {
         downtimes: record ? downtimeInBatchWindow({ record, order, downtimes }) : [],
         lots: record ? ingredientLotsForBatch({ recipe: productRecipe(recipes, record.product_id), receipts }) : [],
         packaging: record ? packagingIssuedForBatch({ record, movements }) : [],
+        holds: Array.isArray(holdsRes) ? holdsRes : holdsRes?.items || [],
+        defects: Array.isArray(defectsRes) ? defectsRes : defectsRes?.items || [],
+        wmsStock: Array.isArray(wmsRes) ? wmsRes : [],
+        plDispatches: Array.isArray(plRes) ? plRes : [],
         lotMatches: lot ? batchesUsingLot({ lot, records, recipes, receipts, movements }) : [],
         lotInfo: lot ? lotDetails({ lot, receipts, movements }) : { receipts: [], movements: [] },
       });

@@ -1,15 +1,13 @@
-import React, { useEffect, useRef, useState } from "react";
-import * as XLSX from "xlsx";
+import React, { useEffect, useState } from "react";
 import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { Plus, Pencil, Trash2, Upload } from "lucide-react";
+import { Plus, Pencil, Trash2 } from "lucide-react";
 import MachineDialog from "@/components/planning/MachineDialog";
 import { canEditMachines, loadMachines, num } from "@/lib/planning";
-import { productService } from "@/services/productService";
 import { archiveMachineSafely } from "@/lib/deleteIntegrity";
 import { productionLines } from "@/lib/shiftLogConstants";
-import { primaryButton, subtleButton, panelClass } from "@/components/planning/styles";
+import { primaryButton, panelClass } from "@/components/planning/styles";
 
 const STATUS_STYLES = {
   Active: "bg-emerald-50 text-emerald-700 border-emerald-300",
@@ -20,7 +18,6 @@ export default function Machines() {
   const { user } = useAuth();
   const { toast } = useToast();
   const canEdit = canEditMachines(user);
-  const fileRef = useRef(null);
   const [machines, setMachines] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dialog, setDialog] = useState({ open: false, machine: null });
@@ -46,34 +43,6 @@ export default function Machines() {
     }
   };
 
-  const handleImportFile = async (e) => {
-    const file = e.target.files?.[0];
-    e.target.value = null;
-    if (!file) return;
-    try {
-      const buffer = await file.arrayBuffer();
-      const wb = XLSX.read(buffer, { type: "array" });
-      const sheet = wb.Sheets[wb.SheetNames[0]];
-      const rawRows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
-      let count = 0;
-      for (const r of rawRows) {
-        const name = String(r["Machine"] || r["Name"] || r["name"] || r["Machine Name"] || "").trim();
-        if (!name) continue;
-        await productService.createMachine({
-          name,
-          location: String(r["Location"] || r["location"] || "Plant 1").trim(),
-          capacity_cph: Number(r["Capacity (ctn/hr)"] || r["capacity_cph"] || r["Capacity"] || 100) || 100,
-          status: String(r["Status"] || r["status"] || "Active").trim(),
-        });
-        count++;
-      }
-      toast({ title: `Imported ${count} machine(s)`, description: file.name });
-      await load();
-    } catch (err) {
-      toast({ title: "Import failed", description: err?.message || "Use a CSV or Excel file.", variant: "destructive" });
-    }
-  };
-
   return (
     <div className="min-h-screen bg-[#F6F8FC] p-4 md:p-6 space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -83,10 +52,6 @@ export default function Machines() {
         </div>
         {canEdit && (
           <div className="flex flex-wrap gap-2">
-            <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={handleImportFile} />
-            <Button variant="outline" onClick={() => fileRef.current?.click()} className={subtleButton}>
-              <Upload className="w-4 h-4 mr-1.5" /> Import File
-            </Button>
             <Button onClick={() => setDialog({ open: true, machine: null })} className={primaryButton}>
               <Plus className="w-4 h-4 mr-1.5" /> Add Machine
             </Button>
@@ -156,6 +121,7 @@ export default function Machines() {
         onClose={closeDialog}
         machine={dialog.machine}
         availableNames={availableNames}
+        existingNames={machines.map((m) => m.name)}
         onSaved={async () => { closeDialog(); await load(); }}
       />
     </div>

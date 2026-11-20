@@ -77,7 +77,16 @@ export async function recordShiftLog(args: {
   const s = args.shiftLog;
   if (!s) return null;
 
-  const sessionId = s.session_id || args.shiftLogId || `sess_${crypto.randomUUID()}`;
+  let existingSessionId = s.session_id;
+  if (!existingSessionId && args.shiftLogId) {
+    const { data: prevShift } = await supabase
+      .from('shift_logs')
+      .select('session_id')
+      .eq('id', args.shiftLogId)
+      .maybeSingle();
+    existingSessionId = prevShift?.session_id;
+  }
+  const sessionId = existingSessionId || args.shiftLogId || `sess_${crypto.randomUUID()}`;
   const otHours =
     s.ot_duration_hours !== undefined && s.ot_duration_hours !== null
       ? Number(s.ot_duration_hours)
@@ -251,18 +260,33 @@ export async function recordShiftLog(args: {
     await supabase.from('wastage_logs').delete().eq('id', existingWaste.id);
   }
 
-  // 4. ActivityLog
-  await supabase.from('activity_logs').insert({
-    event_time: new Date().toISOString(),
-    user_name: args.actor?.full_name || args.actor?.email || 'System',
-    user_email: args.actor?.email || null,
-    user_id: args.actor?.id || null,
-    module: 'Shift Log',
-    action_type: args.shiftLogId ? 'Data Modified' : 'New Entry Created',
-    record_id: shiftLog.id,
-    session_id: sessionId,
-    details: `${s.production_line || 'Line'} — ${s.product_name || 'Product'} (${s.shift_date})`,
-  });
+  // 4. ActivityLog & AuditLog (so /audit-trail sees shift log actions too)
+  const nowIso = new Date().toISOString();
+  const actorName = args.actor?.full_name || args.actor?.email || 'System';
+  const summaryDetails = `${s.production_line || 'Line'} — ${s.product_name || 'Product'} (${s.shift_date})`;
+  await Promise.all([
+    supabase.from('activity_logs').insert({
+      event_time: nowIso,
+      user_name: actorName,
+      user_email: args.actor?.email || null,
+      user_id: args.actor?.id || null,
+      module: 'Shift Log',
+      action_type: args.shiftLogId ? 'Data Modified' : 'New Entry Created',
+      record_id: shiftLog.id,
+      session_id: sessionId,
+      details: summaryDetails,
+    }),
+    supabase.from('audit_logs').insert({
+      event_time: nowIso,
+      event_stamp: nowIso.slice(0, 19).replace('T', ' '),
+      user_name: actorName,
+      module: 'Daily Line Entry',
+      action: args.shiftLogId ? 'Updated' : 'Created',
+      entity: 'ShiftLog',
+      record_id: shiftLog.id,
+      details: summaryDetails,
+    }),
+  ]);
 
   return {
     shiftLog,
@@ -401,6 +425,26 @@ export async function recordOperationLog(args: {
     }
   } else if (existingOt?.id) {
     await supabase.from('otlogs').delete().eq('id', existingOt.id);
+  }
+
+  // Sync linked WastageLog total_waste if one exists for this session_id
+  const { data: existingWaste } = await supabase
+    .from('wastage_logs')
+    .select('id')
+    .eq('session_id', sessionId)
+    .maybeSingle();
+  if (existingWaste?.id) {
+    await supabase
+      .from('wastage_logs')
+      .update({
+        date: opLog.ot_date,
+        production_line: opLog.production_line,
+        product_name: opLog.product_name || opLog.product_sku || '',
+        batch_number: opLog.batch_number || '',
+        total_waste: Number(opLog.rejected_wasted_qty) || 0,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', existingWaste.id);
   }
 
   return { operationLog: opLog };

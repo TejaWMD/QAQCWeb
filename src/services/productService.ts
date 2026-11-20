@@ -442,18 +442,6 @@ export const productService = {
       this.ensureCustomers(uniqueCustomers).catch(() => {});
     }
 
-    dedupedInputs.forEach((p) => {
-      if (p.recipe_name) {
-        this.ensureRecipe({
-          recipe_name: p.recipe_name,
-          cooking_time_hr: p.cooking_time_hr,
-          batch_output_kg: p.batch_output_kg,
-          product_code: p.product_code,
-          product_name: p.product_name,
-        }).catch(() => {});
-      }
-    });
-
     return { count: totalSaved };
   },
 

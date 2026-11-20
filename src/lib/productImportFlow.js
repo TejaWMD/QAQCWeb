@@ -378,9 +378,17 @@ export const runImport = async ({ user, fileName, entries, settings = {}, recipe
     });
   }
 
-  // Resolve real database product IDs for newly created products before linking recipes
+  // Resolve real database product IDs for newly created products before linking recipes & storing undo history
   const allProductsAfter = await productService.getAllProducts().catch(() => []);
   const idByCode = new Map(allProductsAfter.filter((p) => p.product_code).map((p) => [upper(p.product_code), p.id]));
+
+  // Patch created change entries with actual UUIDs so undoImport deletes by real primary key `id`
+  changes.forEach((change) => {
+    if (change.action === "create") {
+      const resolvedId = idByCode.get(upper(change.product_id));
+      if (resolvedId) change.product_id = resolvedId;
+    }
+  });
 
   // One Recipe Master record per unique recipe name; products link to it.
   const { created: recipesCreated } = await ensureRecipeLinks({
