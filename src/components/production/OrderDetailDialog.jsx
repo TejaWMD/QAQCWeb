@@ -3,14 +3,16 @@ import { base44 } from "@/api/base44Client";
 import { useToast } from "@/components/ui/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, Loader2, Play, CheckCircle2, Trash2, Ban } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AlertTriangle, Loader2, Play, CheckCircle2, Trash2, Ban, Pencil, Save } from "lucide-react";
 import { actingUserName } from "@/lib/permissions";
 import {
-  buildRisks, canDeleteOrders, canPlanOrders, canRunOrders, fmtDateTime, fmtDuration, fmtQty, fmtRange, fmtTime,
-  logProductionAudit,
+  PRIORITIES, ORDER_STATUSES, batchCount, buildRisks, canDeleteOrders, canPlanOrders, canRunOrders,
+  fmtDateTime, fmtDuration, fmtQty, fmtRange, fmtTime, logProductionAudit,
 } from "@/lib/production";
 import { activeRecipeFor } from "@/lib/recipeMaster";
-import { primaryButton, subtleButton, labelClass } from "@/components/planning/styles";
+import { inputClass, selectClass, primaryButton, subtleButton, labelClass } from "@/components/planning/styles";
 
 const STATUS_STYLES = {
   Planned: "bg-[#EBF3FF] text-[#1D4ED8] border-[#BFD7FF]",
@@ -45,6 +47,44 @@ export default function OrderDetailDialog({ order, products = [], recipes = [], 
   const { toast } = useToast();
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    quantity_cartons: String(order?.quantity_cartons ?? ""),
+    priority: order?.priority || "Normal",
+    due_date: (order?.due_date || "").slice(0, 10),
+    status: order?.status || "Planned",
+  });
+
+  const startEdit = () => {
+    setEditForm({
+      quantity_cartons: String(order?.quantity_cartons ?? ""),
+      priority: order?.priority || "Normal",
+      due_date: (order?.due_date || "").slice(0, 10),
+      status: order?.status || "Planned",
+    });
+    setEditing(true);
+  };
+
+  const saveEdit = async () => {
+    const qty = Number(editForm.quantity_cartons);
+    if (!(qty > 0)) {
+      toast({ title: "Invalid cartons", description: "Cartons must be greater than zero.", variant: "destructive" });
+      return;
+    }
+    const nextBatches = product ? (batchCount(product, qty) || 1) : (order.batches || 1);
+    await run(
+      {
+        quantity_cartons: qty,
+        batches: nextBatches,
+        priority: editForm.priority,
+        due_date: editForm.due_date || null,
+        status: editForm.status,
+      },
+      "Updated",
+      `${order.order_number} updated (${fmtQty(qty)} cartons · ${editForm.priority})`
+    );
+    setEditing(false);
+  };
 
   const product = products.find((p) => p.id === order?.product_id) || null;
   const recipe = activeRecipeFor(recipes, product || order?.product_id);
@@ -111,16 +151,69 @@ export default function OrderDetailDialog({ order, products = [], recipes = [], 
           <p className="text-sm text-[#64748B]">{order.product_code} · {order.product_name}</p>
         </DialogHeader>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
-          <div><p className={labelClass}>Cartons</p><p className="text-[#0F294A]">{fmtQty(order.quantity_cartons)}</p></div>
-          <div><p className={labelClass}>Batches</p><p className="text-[#0F294A]">{order.batches || 1}</p></div>
-          <div><p className={labelClass}>Machine (Tank)</p><p className="text-[#0F294A] text-xs leading-5">{order.machine || "—"}</p></div>
-          <div><p className={labelClass}>Customer</p><p className="text-[#64748B] text-xs leading-5">{order.customer || "—"}</p></div>
-          <div><p className={labelClass}>Planned</p><p className="text-[#0F294A] text-xs leading-5">{fmtDateTime(order.planned_start)}</p><p className="text-[11px] text-[#64748B]">to {fmtDateTime(order.planned_end)}</p></div>
-          <div><p className={labelClass}>Actual</p><p className="text-[#0F294A] text-xs leading-5">{order.actual_start ? fmtDateTime(order.actual_start) : "not started"}</p><p className="text-[11px] text-[#64748B]">{order.actual_end ? `to ${fmtTime(order.actual_end)}` : ""}</p></div>
-          <div><p className={labelClass}>Run time</p><p className="text-[#0F294A] text-xs leading-5">{plannedMins ? fmtDuration(plannedMins) : "—"}</p></div>
-          <div><p className={labelClass}>Due</p><p className="text-[#0F294A] text-xs leading-5">{order.due_date || "—"}</p></div>
-        </div>
+        {editing ? (
+          <div className="rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-3 space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className={labelClass}>Cartons Needed</label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={editForm.quantity_cartons}
+                  onChange={(e) => setEditForm((f) => ({ ...f, quantity_cartons: e.target.value }))}
+                  className={inputClass}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className={labelClass}>Delivery Date</label>
+                <Input
+                  type="date"
+                  value={editForm.due_date}
+                  onChange={(e) => setEditForm((f) => ({ ...f, due_date: e.target.value }))}
+                  className={inputClass}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className={labelClass}>Priority</label>
+                <Select value={editForm.priority} onValueChange={(v) => setEditForm((f) => ({ ...f, priority: v }))}>
+                  <SelectTrigger className={selectClass}><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {PRIORITIES.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <label className={labelClass}>Status</label>
+                <Select value={editForm.status} onValueChange={(v) => setEditForm((f) => ({ ...f, status: v }))}>
+                  <SelectTrigger className={selectClass}><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {ORDER_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={() => setEditing(false)} className={subtleButton} disabled={busy}>
+                Cancel
+              </Button>
+              <Button size="sm" onClick={saveEdit} disabled={busy} className={primaryButton}>
+                {busy ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Save className="w-3.5 h-3.5 mr-1" />}
+                Save Changes
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+            <div><p className={labelClass}>Cartons</p><p className="text-[#0F294A]">{fmtQty(order.quantity_cartons)}</p></div>
+            <div><p className={labelClass}>Batches</p><p className="text-[#0F294A]">{order.batches || 1}</p></div>
+            <div><p className={labelClass}>Machine (Tank)</p><p className="text-[#0F294A] text-xs leading-5">{order.machine || "—"}</p></div>
+            <div><p className={labelClass}>Priority</p><p className="text-[#0F294A] text-xs leading-5">{order.priority || "Normal"}</p></div>
+            <div><p className={labelClass}>Planned</p><p className="text-[#0F294A] text-xs leading-5">{fmtDateTime(order.planned_start)}</p><p className="text-[11px] text-[#64748B]">to {fmtDateTime(order.planned_end)}</p></div>
+            <div><p className={labelClass}>Actual</p><p className="text-[#0F294A] text-xs leading-5">{order.actual_start ? fmtDateTime(order.actual_start) : "not started"}</p><p className="text-[11px] text-[#64748B]">{order.actual_end ? `to ${fmtTime(order.actual_end)}` : ""}</p></div>
+            <div><p className={labelClass}>Run time</p><p className="text-[#0F294A] text-xs leading-5">{plannedMins ? fmtDuration(plannedMins) : "—"}</p></div>
+            <div><p className={labelClass}>Delivery Date</p><p className="text-[#0F294A] text-xs leading-5">{order.due_date ? String(order.due_date).slice(0, 10) : "—"}</p></div>
+          </div>
+        )}
 
         {variance != null && (
           <p className={`text-xs ${variance > 0 ? "text-amber-700" : "text-emerald-700"}`}>
@@ -190,6 +283,11 @@ export default function OrderDetailDialog({ order, products = [], recipes = [], 
               {canDeleteOrders(user) && order.status !== "Completed" && (
                 <Button variant="ghost" onClick={() => setConfirmDelete(true)} className="text-[#ff8a8a] hover:bg-rose-600/10 mr-auto">
                   <Trash2 className="w-4 h-4 mr-1.5" /> Delete
+                </Button>
+              )}
+              {canPlanOrders(user) && !editing && (
+                <Button variant="outline" onClick={startEdit} disabled={busy} className={subtleButton}>
+                  <Pencil className="w-4 h-4 mr-1.5" /> Edit
                 </Button>
               )}
               {canPlanOrders(user) && ["Planned", "In Progress"].includes(order.status) && (

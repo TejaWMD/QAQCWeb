@@ -5,7 +5,7 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import StatusBadge from "@/components/factoryops/StatusBadge";
-import { Paperclip, Trash2 } from "lucide-react";
+import { Paperclip, Pencil, Trash2 } from "lucide-react";
 import { DOWNTIME_TYPE, ITEM_TYPE, TYPE_STYLES, statusesForType } from "@/lib/requestConstants";
 
 const DemoBadge = () => (
@@ -46,7 +46,7 @@ const Details = ({ row }) => {
 };
 
 // One merged table for all three request types, each row tagged with its type.
-export default function RequestsList({ rows, loading, user, onStatusChange, onRemove }) {
+export default function RequestsList({ rows, loading, user, onStatusChange, onEdit, onRemove }) {
   return (
     <div className="bg-white rounded-xl border border-[#E2E8F0]">
       <div className="overflow-x-auto">
@@ -58,7 +58,7 @@ export default function RequestsList({ rows, loading, user, onStatusChange, onRe
               <TableHead className="text-[#64748B]">Details</TableHead>
               <TableHead className="text-[#64748B]">Owner / Requester</TableHead>
               <TableHead className="text-[#64748B]">Status</TableHead>
-              <TableHead className="text-[#64748B] w-[60px]"></TableHead>
+              <TableHead className="text-[#64748B] w-[90px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -103,7 +103,9 @@ export default function RequestsList({ rows, loading, user, onStatusChange, onRe
                     )}
                   </div>
                 </TableCell>
-                <TableCell className="text-sm text-[#334155]">{row.shift_date || "—"}</TableCell>
+                <TableCell className="text-sm text-[#334155]">
+                  {row.shift_date || (row.created_date ? String(row.created_date).slice(0, 10) : "—")}
+                </TableCell>
                 <TableCell><Details row={row} /></TableCell>
                 <TableCell>
                   {row._type === DOWNTIME_TYPE ? (
@@ -135,9 +137,28 @@ export default function RequestsList({ rows, loading, user, onStatusChange, onRe
                 </TableCell>
                 <TableCell>
                   {canChangeRecord(user, row) && (
-                    <Button size="sm" variant="ghost" onClick={() => onRemove(row)} className="text-rose-600 hover:text-rose-600 hover:bg-rose-600/10 h-8 w-8 p-0">
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </Button>
+                    <div className="flex items-center justify-end gap-1">
+                      {onEdit && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => onEdit(row)}
+                          title="Edit record"
+                          className="text-[#1D4ED8] hover:text-[#1D4ED8] hover:bg-[#EBF3FF] h-8 w-8 p-0"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => onRemove(row)}
+                        title="Delete record"
+                        className="text-rose-600 hover:text-rose-600 hover:bg-rose-600/10 h-8 w-8 p-0"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
                   )}
                 </TableCell>
               </TableRow>

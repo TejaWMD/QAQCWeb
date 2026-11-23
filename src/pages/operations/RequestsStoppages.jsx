@@ -44,6 +44,7 @@ export default function RequestsStoppages() {
   const [typeFilter, setTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState(null);
   const [deciding, setDeciding] = useState(null);
   const [purgingDemo, setPurgingDemo] = useState(false);
   const [config, setConfig] = useState(DEFAULT_FORM_CONFIG);
@@ -57,8 +58,10 @@ export default function RequestsStoppages() {
         base44.entities.Downtime.list("-created_date", 200),
         base44.entities.Request.list("-created_date", 200),
       ]);
-      setDowntime(down);
-      setRequests(req);
+      setDowntime(Array.isArray(down) ? down : down?.items || []);
+      setRequests(Array.isArray(req) ? req : req?.items || []);
+    } catch (err) {
+      if (!silent) toast.error(err?.message || "Failed to load requests.");
     } finally {
       if (!silent) setLoading(false);
     }
@@ -189,7 +192,7 @@ export default function RequestsStoppages() {
               <Settings2 className="w-4 h-4 mr-1.5" /> Form Settings
             </Button>
           )}
-          <Button onClick={() => setFormOpen(true)} className="bg-[#0F294A] hover:bg-[#193B68] text-white">
+          <Button onClick={() => { setEditing(null); setFormOpen(true); }} className="bg-[#0F294A] hover:bg-[#193B68] text-white">
             <Plus className="w-4 h-4 mr-1.5" /> New Request
           </Button>
         </div>
@@ -241,7 +244,17 @@ export default function RequestsStoppages() {
               </SelectContent>
             </Select>
           </div>
-          <RequestsList rows={visible} loading={loading} user={user} onStatusChange={changeStatus} onRemove={remove} />
+          <RequestsList
+            rows={visible}
+            loading={loading}
+            user={user}
+            onStatusChange={changeStatus}
+            onEdit={(row) => {
+              setEditing(row);
+              setFormOpen(true);
+            }}
+            onRemove={remove}
+          />
         </TabsContent>
         {reviewer && (
           <TabsContent value="incoming" className="mt-3">
@@ -250,7 +263,29 @@ export default function RequestsStoppages() {
         )}
       </Tabs>
 
-      <RequestFormDialog open={formOpen} onOpenChange={setFormOpen} user={user} config={config} onSaved={() => load(true)} />
+      <RequestFormDialog
+        open={formOpen}
+        onOpenChange={(open) => {
+          setFormOpen(open);
+          if (!open) setEditing(null);
+        }}
+        user={user}
+        config={config}
+        initialRecord={editing}
+        onSaved={(result) => {
+          const rec = result?.record || result;
+          const isEdit = !!result?.isEdit;
+          if (rec?.id) {
+            if (result?.entityType === DOWNTIME_TYPE) {
+              setDowntime((prev) => [rec, ...prev.filter((d) => d.id !== rec.id)]);
+            } else if (result?.entityType) {
+              setRequests((prev) => [rec, ...prev.filter((r) => r.id !== rec.id)]);
+            }
+          }
+          toast.success(isEdit ? "Request updated successfully." : "Request submitted and saved.");
+          load(true);
+        }}
+      />
       <FormSettingsDialog
         open={settingsOpen}
         onOpenChange={setSettingsOpen}

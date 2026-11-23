@@ -39,13 +39,16 @@ const eventStamp = () => {
 };
 
 const keysOf = (type) => TYPE_FIELDS[type].map((f) => f.key);
+const ALL_CONDITIONAL_KEYS = new Set(Object.values(APPROVAL_CONDITIONAL_FIELDS).flat());
+const todayDateStr = () => new Date().toISOString().slice(0, 10);
 
 // The fields shown for the selected type; hidden fields are neither required
 // nor saved.
 const visibleKeysFor = (type, values) => {
   if (type === DOWNTIME_TYPE) return [...keysOf(DOWNTIME_TYPE), "notes", "is_demo"];
   if (type === ITEM_TYPE) return keysOf(ITEM_TYPE);
-  return [...keysOf(APPROVAL_TYPE), ...(APPROVAL_CONDITIONAL_FIELDS[values.approval_type] || [])];
+  const baseApproval = keysOf(APPROVAL_TYPE).filter((k) => !ALL_CONDITIONAL_KEYS.has(k));
+  return [...baseApproval, ...(APPROVAL_CONDITIONAL_FIELDS[values.approval_type] || [])];
 };
 
 // How each field renders; select options come from the admin-editable config and backend masters.
@@ -99,13 +102,15 @@ const fieldDefs = (config) => ({
   sop_duration: { type: "text" },
 });
 
-// New Request form: common fields for all three types, per-type fields that
+// New / Edit Request form: common fields for all three types, per-type fields that
 // change with the Request Type, required-field validation with asterisks,
 // and evidence upload. Hidden fields are never required and never saved.
-export default function RequestFormDialog({ open, onOpenChange, user, config = DEFAULT_FORM_CONFIG, onSaved }) {
+export default function RequestFormDialog({ open, onOpenChange, user, config = DEFAULT_FORM_CONFIG, initialRecord = null, onSaved }) {
+  const isEdit = !!initialRecord?.id;
   const [type, setType] = useState(DOWNTIME_TYPE);
   const [values, setValues] = useState({});
   const [evidenceFiles, setEvidenceFiles] = useState([]);
+  const [existingEvidence, setExistingEvidence] = useState([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [opts, setOpts] = useState({
@@ -144,15 +149,36 @@ export default function RequestFormDialog({ open, onOpenChange, user, config = D
   }, [defs]);
 
   useEffect(() => {
-    if (open) {
-      setType(DOWNTIME_TYPE);
+    if (!open) return;
+    if (initialRecord?.id) {
+      const recType = initialRecord._type || initialRecord.request_type || DOWNTIME_TYPE;
+      setType(recType);
       const init = { ...defaults };
+      Object.keys(defaults).forEach((k) => {
+        if (initialRecord[k] !== undefined && initialRecord[k] !== null) {
+          init[k] = initialRecord[k];
+        }
+      });
+      const recOwners = Array.isArray(initialRecord.owners) && initialRecord.owners.length
+        ? initialRecord.owners
+        : initialRecord.owner
+          ? String(initialRecord.owner).split(",").map((s) => s.trim()).filter(Boolean)
+          : [];
+      init.owners = recOwners;
+      setValues(init);
+      setExistingEvidence(Array.isArray(initialRecord.evidence_files) ? initialRecord.evidence_files : []);
+      setEvidenceFiles([]);
+      setError("");
+    } else {
+      setType(DOWNTIME_TYPE);
+      const init = { ...defaults, shift_date: todayDateStr() };
       if (user?.line) init.production_line = user.line;
       setValues(init);
+      setExistingEvidence([]);
       setEvidenceFiles([]);
       setError("");
     }
-  }, [open, defaults]);
+  }, [open, defaults, initialRecord, user?.line]);
 
   const visibleKeys = visibleKeysFor(type, values);
   const requiredKeys = config.required?.[type] || DEFAULT_REQUIRED[type];
@@ -239,15 +265,15 @@ export default function RequestFormDialog({ open, onOpenChange, user, config = D
       setError(`Please fill the required fields: ${missing.join(", ")}.`);
       return;
     }
-    if (evidenceRequired && evidenceFiles.length === 0) {
+    if (evidenceRequired && evidenceFiles.length === 0 && existingEvidence.length === 0) {
       setError("A photo is required for this request type. Add evidence before submitting.");
       return;
     }
     setSaving(true);
     setError("");
     try {
-      // Upload evidence privately; the uploader and time are recorded per file.
-      const evidence_files = [];
+      // Upload newly attached evidence privately; preserve existing files when editing.
+      const evidence_files = [...existingEvidence];
       for (const f of evidenceFiles) {
         const { file_uri } = await base44.integrations.Core.UploadPrivateFile({ file: f.file });
         evidence_files.push({
@@ -286,58 +312,89 @@ export default function RequestFormDialog({ open, onOpenChange, user, config = D
         }
       });
 
-      let created;
+      let saved;
       if (type === DOWNTIME_TYPE) {
+        const downtimePayload = {
+          ...payload,
+          owner: owners.join(", "),
+          shift_date: payload.shift_date || todayDateStr(),
+          ...(isEdit ? {} : { status: "Open" }),
+        };
+        const writeDowntime = (data) =>
+          isEdit
+            ? base44.entities.Downtime.update(initialRecord.id, data)
+            : base44.entities.Downtime.create(data);
         try {
-          created = await base44.entities.Downtime.create({ ...payload, status: "Open" });
+          saved = await writeDowntime(downtimePayload);
         } catch (firstErr) {
           // Fallback if downtimes.start_time/end_time is still TIMESTAMPTZ in Supabase
           const msg = String(firstErr?.message || "").toLowerCase();
           if (msg.includes("timestamp") || msg.includes("time")) {
-            const baseDate = payload.shift_date || new Date().toISOString().slice(0, 10);
+            const baseDate = downtimePayload.shift_date || todayDateStr();
             const fallbackPayload = {
-              ...payload,
-              start_time: /^\d{1,2}:\d{2}$/.test(String(payload.start_time || ""))
-                ? new Date(`${baseDate}T${String(payload.start_time).padStart(5, "0")}:00`).toISOString()
-                : payload.start_time || null,
-              end_time: /^\d{1,2}:\d{2}$/.test(String(payload.end_time || ""))
-                ? new Date(`${baseDate}T${String(payload.end_time).padStart(5, "0")}:00`).toISOString()
-                : payload.end_time || null,
+              ...downtimePayload,
+              start_time: /^\d{1,2}:\d{2}$/.test(String(downtimePayload.start_time || ""))
+                ? new Date(`${baseDate}T${String(downtimePayload.start_time).padStart(5, "0")}:00`).toISOString()
+                : downtimePayload.start_time || null,
+              end_time: /^\d{1,2}:\d{2}$/.test(String(downtimePayload.end_time || ""))
+                ? new Date(`${baseDate}T${String(downtimePayload.end_time).padStart(5, "0")}:00`).toISOString()
+                : downtimePayload.end_time || null,
             };
-            created = await base44.entities.Downtime.create({ ...fallbackPayload, status: "Open" });
+            saved = await writeDowntime(fallbackPayload);
           } else {
             throw firstErr;
           }
         }
       } else {
-        created = await base44.entities.Request.create({
+        const requestPayload = {
           ...payload,
           request_type: type,
-          requester_name: requesterName,
-          requester_id: user?.id || "",
-          status: "Submitted",
-        });
+          shift_date: initialRecord?.shift_date || todayDateStr(),
+          ...(isEdit
+            ? {}
+            : {
+                requester_name: requesterName,
+                requester_id: user?.id || "",
+                status: "Submitted",
+              }),
+        };
+        saved = isEdit
+          ? await base44.entities.Request.update(initialRecord.id, requestPayload)
+          : await base44.entities.Request.create(requestPayload);
       }
-      await audit("Created", created?.id, `New ${type} submitted${evidence_files.length ? ` with ${evidence_files.length} evidence file(s)` : ""}`);
+
+      if (!saved?.id) {
+        throw new Error("Record was not saved to the database. Please try again.");
+      }
+
+      await audit(
+        isEdit ? "Updated" : "Created",
+        saved?.id,
+        `${isEdit ? "Updated" : "New"} ${type} submitted${evidence_files.length ? ` with ${evidence_files.length} evidence file(s)` : ""}`
+      );
 
       // Labelling / Packaging Error: hold the affected product until QA/QC decides.
-      if (type === APPROVAL_TYPE && values.approval_type === LABELLING_TYPE) {
-        const hold = await base44.entities.ProductHold.create({
-          production_line: values.production_line || "",
-          shift_date: new Date().toISOString().slice(0, 10),
-          product_name: values.product_sku || "",
-          batch_number: values.batch_number || "",
-          hold_qty: values.qty_produced || 0,
-          hold_reason: `Labelling / Packaging Error — ${values.description || "under review"}`.slice(0, 200),
-          held_by: requesterName,
-          owner: "QA/QC Team",
-          status: "Open",
-          notes: "Automatically held from the approval request until QA/QC decides.",
-        });
-        await audit("Created", hold?.id, "Affected product automatically placed on Hold (Labelling / Packaging Error)");
+      if (!isEdit && type === APPROVAL_TYPE && values.approval_type === LABELLING_TYPE) {
+        try {
+          const hold = await base44.entities.ProductHold.create({
+            production_line: values.production_line || "",
+            shift_date: todayDateStr(),
+            product_name: values.product_sku || "",
+            batch_number: values.batch_number || "",
+            hold_qty: values.qty_produced || 0,
+            hold_reason: `Labelling / Packaging Error — ${values.description || "under review"}`.slice(0, 200),
+            held_by: requesterName,
+            owner: "QA/QC Team",
+            status: "Open",
+            notes: "Automatically held from the approval request until QA/QC decides.",
+          });
+          await audit("Created", hold?.id, "Affected product automatically placed on Hold (Labelling / Packaging Error)");
+        } catch {
+          // Non-blocking: the request itself is already saved.
+        }
       }
 
-      onSaved?.(created);
+      onSaved?.({ record: saved, isEdit, entityType: type });
       onOpenChange(false);
     } catch (err) {
       setError(err?.message || "Could not submit the request. Please try again.");
@@ -473,14 +530,14 @@ export default function RequestFormDialog({ open, onOpenChange, user, config = D
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-white border-[#E2E8F0] text-[#0F294A] max-h-[85vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle className="text-[#0F294A]">New Request</DialogTitle>
+          <DialogTitle className="text-[#0F294A]">{isEdit ? "Edit Request" : "New Request"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-3">
           <div className="space-y-1.5">
             <Label className="text-xs text-[#64748B]">
               Request Type <span className="text-rose-600">*</span>
             </Label>
-            <Select value={type} onValueChange={switchType}>
+            <Select value={type} onValueChange={switchType} disabled={isEdit}>
               <SelectTrigger className="bg-white border-[#E2E8F0] text-[#0F294A]">
                 <SelectValue />
               </SelectTrigger>
@@ -524,6 +581,26 @@ export default function RequestFormDialog({ open, onOpenChange, user, config = D
             <Label className="text-xs text-[#64748B]">
               Evidence / Proof {evidenceRequired && <span className="text-rose-600">*</span>}
             </Label>
+            {existingEvidence.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {existingEvidence.map((ef, i) => (
+                  <span
+                    key={i}
+                    className="inline-flex items-center gap-1.5 text-[11px] bg-[#F8FAFC] border border-[#E2E8F0] rounded px-2 py-1 text-[#334155]"
+                  >
+                    {ef?.file_name || `Attachment ${i + 1}`}
+                    <button
+                      type="button"
+                      onClick={() => setExistingEvidence((prev) => prev.filter((_, idx) => idx !== i))}
+                      className="text-rose-500 hover:text-rose-700 font-bold"
+                      title="Remove attachment"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
             <EvidenceUploader files={evidenceFiles} onChange={setEvidenceFiles} />
             {evidenceRequired && <p className="text-[10px] text-[#64748B]">A photo is required for this request type.</p>}
           </div>
@@ -536,7 +613,7 @@ export default function RequestFormDialog({ open, onOpenChange, user, config = D
               Cancel
             </Button>
             <Button type="submit" disabled={saving} className="bg-[#0F294A] hover:bg-[#193B68] text-white">
-              {saving ? "Submitting..." : "Submit Request"}
+              {saving ? (isEdit ? "Saving..." : "Submitting...") : (isEdit ? "Save Changes" : "Submit Request")}
             </Button>
           </DialogFooter>
         </form>

@@ -171,7 +171,22 @@ export default function ProductionOrders() {
                   const packagingShort = riskById[o.id]?.packaging || 0;
                   return (
                     <tr key={o.id} className="border-b border-[#E2E8F0] hover:bg-[#F1F5F9] cursor-pointer" onClick={() => setDetailId(o.id)}>
-                      <td className="px-3 py-2 text-[#0F294A] font-semibold whitespace-nowrap">{o.order_number}</td>
+                      <td className="px-3 py-2 text-[#0F294A] font-semibold whitespace-nowrap">
+                        <span className="block">{o.order_number}</span>
+                        {o.priority && (
+                          <span className={`inline-block mt-0.5 text-[10px] font-semibold px-1.5 py-0.2 rounded-full ${
+                            o.priority === "Critical" || o.priority === "Urgent"
+                              ? "bg-rose-50 text-rose-700"
+                              : o.priority === "High"
+                                ? "bg-amber-50 text-amber-700"
+                                : o.priority === "Medium"
+                                  ? "bg-blue-50 text-blue-700"
+                                  : "bg-slate-100 text-slate-600"
+                          }`}>
+                            {o.priority}
+                          </span>
+                        )}
+                      </td>
                       <td className="px-3 py-2 max-w-[220px]">
                         <span className="block text-[#0F294A] font-semibold text-xs truncate">{o.product_code || "—"}</span>
                         <span className="block text-[#64748B] text-[11px] truncate">{o.product_name}</span>
@@ -186,6 +201,9 @@ export default function ProductionOrders() {
                       <td className="px-3 py-2 text-[#64748B] max-w-[200px] truncate">{o.machine || "—"}</td>
                       <td className="px-3 py-2 text-[#64748B] whitespace-nowrap text-xs">
                         {fmtDateTime(o.planned_start)}<br />to {fmtDateTime(o.planned_end)}
+                        {o.due_date && (
+                          <span className="block text-[10px] text-[#1D4ED8]">Delivery: {String(o.due_date).slice(0, 10)}</span>
+                        )}
                       </td>
                       <td className="px-3 py-2">
                         <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${STATUS_STYLES[o.status] || STATUS_STYLES.Planned}`}>{o.status}</span>

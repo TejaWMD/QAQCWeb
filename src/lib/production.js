@@ -11,7 +11,7 @@ export const BATCH_PATTERN_DEFAULT = "{CODE}{DDMMYYYY}{LETTER}";
 export const BATCH_PATTERN_TOKENS = ["{CODE}", "{DDMMYYYY}", "{YYMMDD}", "{LETTER}", "{SEQ}"];
 export const DEFAULT_CPH = 300;
 export const ORDER_STATUSES = ["Planned", "In Progress", "Completed", "Cancelled"];
-export const PRIORITIES = ["Low", "Normal", "High", "Urgent"];
+export const PRIORITIES = ["Critical", "High", "Medium", "Normal", "Low", "Urgent"];
 export const SLOT_MINUTES = 15;
 
 const role = (user) => appRoleOf(user);

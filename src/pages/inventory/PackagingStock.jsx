@@ -63,23 +63,24 @@ export default function PackagingStock() {
   const [deleting, setDeleting] = useState(null);
   const [busy, setBusy] = useState(false);
 
-  const load = async () => {
+  const load = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const [itemRows, rackPage, approvalPage, loadedSettings] = await Promise.all([
         base44.entities.PackagingItem.list("-created_date", 2000),
-        base44.entities.WarehouseRack.filter({ status: "Active" }, { sort: "rack_code", limit: 500 }),
-        base44.entities.PackagingApproval.filter({ status: "Pending" }, { limit: 500 }),
-        loadPackagingSettings(),
+        base44.entities.WarehouseRack.filter({ status: "Active" }, { sort: "rack_code", limit: 500 }).catch(() => ({ items: [] })),
+        base44.entities.PackagingApproval.filter({ status: "Pending" }, { limit: 500 }).catch(() => ({ items: [] })),
+        loadPackagingSettings().catch(() => ({ id: "", categories: [], threshold: 0 })),
       ]);
       const allItems = Array.isArray(itemRows) ? itemRows : itemRows?.items || [];
       setItems(allItems.filter((i) => i.active !== false && !i.deleted));
-      setRacks(rackPage.items || []);
-      setPendingIds(new Set((approvalPage.items || []).map((a) => a.item_id)));
+      setRacks(rackPage?.items || []);
+      setPendingIds(new Set((approvalPage?.items || []).map((a) => a.item_id)));
       setSettings(loadedSettings);
     } catch (e) {
       toast({ title: "Could not load packaging stock", description: e?.message || "Please try again.", variant: "destructive" });
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -87,6 +88,10 @@ export default function PackagingStock() {
     load();
     loadProductionOrders().then(setOrders).catch(() => setOrders([]));
     loadUnitOptions().then((opts) => setUnits(opts.map((o) => o.value))).catch(() => {});
+    const unsub = base44.entities.PackagingItem.subscribe?.(() => load(true));
+    return () => {
+      if (typeof unsub === "function") unsub();
+    };
   }, []);
 
   const audit = async (action, recordId, details) => {
@@ -314,10 +319,15 @@ export default function PackagingStock() {
         racks={racks}
         onClose={() => setItemDialog({ open: false, item: null })}
         onSaved={(saved) => {
-          load();
-          if (saved?.item_code) {
-            toast({ title: itemDialog.item ? "Item updated" : "Item added", description: `${saved.description || saved.item_code} saved to packaging stock.` });
+          const wasEdit = !!itemDialog.item;
+          if (saved?.id) {
+            setItems((prev) => {
+              const filtered = prev.filter((row) => row.id !== saved.id);
+              return saved.active !== false && !saved.deleted ? [saved, ...filtered] : filtered;
+            });
+            toast({ title: wasEdit ? "Item updated" : "Item added", description: `${saved.description || saved.item_code} saved to packaging stock.` });
           }
+          load(true);
         }}
       />
       <StockInDialog open={!!inItem} item={inItem} items={items} racks={racks} user={user} onClose={() => setInItem(null)} onSaved={load} />

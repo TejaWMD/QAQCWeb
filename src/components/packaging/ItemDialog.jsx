@@ -53,17 +53,28 @@ export default function ItemDialog({ open, item, categories = [], units = [], on
     setSaving(true);
     setError("");
     try {
+      let reactivateTarget = null;
       if (!item) {
-        const page = await base44.entities.PackagingItem.filter({ item_code: cleanCode }, { limit: 1 });
-        if ((page.items || []).length) throw new Error(`${cleanCode} is already in the packaging stock list.`);
+        const page = await base44.entities.PackagingItem.filter({ item_code: cleanCode }, { limit: 10 });
+        const matches = page.items || [];
+        const activeMatch = matches.find((r) => r.active !== false && !r.deleted);
+        if (activeMatch) {
+          throw new Error(`${cleanCode} is already in the packaging stock list.`);
+        }
+        reactivateTarget = matches[0] || null;
       }
+      const nextDescription =
+        item && item.description && item.description !== item.item_code
+          ? item.description
+          : cleanCode;
       const payload = {
         item_code: cleanCode,
-        description: item?.description || cleanCode,
-        category: form.category,
-        unit: form.unit,
+        description: nextDescription,
+        category: form.category || "Packaging",
+        unit: form.unit || "PCS",
         min_level: Number(form.min_level) || 0,
-        active: form.active,
+        active: form.active !== false,
+        deleted: false,
         qty_per_unit: Number(form.qty_per_unit) || 0,
       };
       const initialQty = Math.max(0, Number(form.quantity) || 0);
@@ -72,10 +83,20 @@ export default function ItemDialog({ open, item, categories = [], units = [], on
             ...payload,
             ...(form.quantity !== "" ? { quantity: initialQty } : {}),
           })
-        : await base44.entities.PackagingItem.create({
-            ...payload,
-            quantity: initialQty,
-          });
+        : reactivateTarget
+          ? await base44.entities.PackagingItem.update(reactivateTarget.id, {
+              ...payload,
+              active: true,
+              deleted: false,
+              quantity: initialQty,
+            })
+          : await base44.entities.PackagingItem.create({
+              ...payload,
+              quantity: initialQty,
+            });
+      if (!saved?.id) {
+        throw new Error("Item could not be saved to the database. Please try again.");
+      }
       if (!item && saved?.id && initialQty > 0) {
         try {
           await base44.entities.PackagingMovement.create({

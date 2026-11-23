@@ -144,7 +144,16 @@ function normalizeRow(row: Record<string, any> | null): any {
 }
 
 // Date / timestamp columns reject "" in Postgres, so blank form values become NULL.
-const DATE_KEY = /(_date|_at|_datetime|_time|^date$)$/;
+const DATE_KEY = /(_date|_at|_datetime|_time|_start|_end|^date$)$/;
+
+function extractMissingColumn(message?: string): string | null {
+  if (!message) return null;
+  const pgrst = message.match(/Could not find the '([^']+)' column/);
+  if (pgrst?.[1]) return pgrst[1];
+  const pg = message.match(/column "([^"]+)" of relation "[^"]+" does not exist/i);
+  if (pg?.[1]) return pg[1];
+  return null;
+}
 
 function stripVirtualFields(data: Record<string, any>): Record<string, any> {
   const clean: Record<string, any> = { ...data };
@@ -296,11 +305,19 @@ export function createSupabaseEntity(entityName: string) {
   const run = async (query: Record<string, any>, opts: QueryOptions & { sort: string; limit: number }, label: string) => {
     const { column, ascending } = mapSortField(opts.sort);
     const offset = Number(opts.cursor) > 0 ? Number(opts.cursor) : 0;
-    let q = supabase.from(table).select('*');
-    q = applyQueryFilters(q, query);
-    q = q.order(column, { ascending });
-    if (opts.limit) q = q.range(offset, offset + opts.limit); // limit + 1 rows, to detect more
-    const { data, error } = await q;
+    const exec = async (withOrder: boolean) => {
+      let q = supabase.from(table).select('*');
+      q = applyQueryFilters(q, query);
+      if (withOrder) q = q.order(column, { ascending });
+      if (opts.limit) q = q.range(offset, offset + opts.limit); // limit + 1 rows, to detect more
+      return await q;
+    };
+    let { data, error } = await exec(true);
+    if (error && (extractMissingColumn(error.message) || /order|column/i.test(error.message || ''))) {
+      const retry = await exec(false);
+      data = retry.data;
+      error = retry.error;
+    }
     if (error) {
       console.error(`[Supabase:${table}] ${label} error:`, error.message);
       return withPage([] as any[]);
@@ -353,17 +370,19 @@ export function createSupabaseEntity(entityName: string) {
 
     async create(payload: Record<string, any>) {
       let clean = stripVirtualFields(payload);
-      for (let attempt = 0; attempt < 4; attempt++) {
+      let coercedTime = false;
+      for (let attempt = 0; attempt < 25; attempt++) {
         const { data, error } = await supabase.from(table).insert(clean).select().single();
         if (!error) return normalizeRow(data);
-        const missingMatch = error.message?.match(/Could not find the '([^']+)' column/);
-        if (missingMatch && missingMatch[1] in clean) {
+        const missingCol = extractMissingColumn(error.message);
+        if (missingCol && missingCol in clean) {
           const next = { ...clean };
-          delete next[missingMatch[1]];
+          delete next[missingCol];
           clean = next;
           continue;
         }
-        if (/invalid input syntax for type timestamp/i.test(error.message || '')) {
+        if (!coercedTime && /invalid input syntax for type timestamp/i.test(error.message || '')) {
+          coercedTime = true;
           clean = coerceTimeColumnsToIso(clean);
           continue;
         }
@@ -377,17 +396,19 @@ export function createSupabaseEntity(entityName: string) {
     async update(id: string, payload: Record<string, any>) {
       let clean = stripVirtualFields({ ...payload, updated_at: new Date().toISOString() });
       delete clean.id;
-      for (let attempt = 0; attempt < 4; attempt++) {
+      let coercedTime = false;
+      for (let attempt = 0; attempt < 25; attempt++) {
         const { data, error } = await supabase.from(table).update(clean).eq('id', id).select().single();
         if (!error) return normalizeRow(data);
-        const missingMatch = error.message?.match(/Could not find the '([^']+)' column/);
-        if (missingMatch && missingMatch[1] in clean) {
+        const missingCol = extractMissingColumn(error.message);
+        if (missingCol && missingCol in clean) {
           const next = { ...clean };
-          delete next[missingMatch[1]];
+          delete next[missingCol];
           clean = next;
           continue;
         }
-        if (/invalid input syntax for type timestamp/i.test(error.message || '')) {
+        if (!coercedTime && /invalid input syntax for type timestamp/i.test(error.message || '')) {
+          coercedTime = true;
           clean = coerceTimeColumnsToIso(clean);
           continue;
         }
@@ -423,7 +444,27 @@ export function createSupabaseEntity(entityName: string) {
 
     async bulkCreate(records: Record<string, any>[] = []) {
       if (!records.length) return [];
-      const clean = records.map(stripVirtualFields);
+      let clean = records.map(stripVirtualFields);
+      let coercedTime = false;
+      for (let attempt = 0; attempt < 25; attempt++) {
+        const { data, error } = await supabase.from(table).insert(clean).select();
+        if (!error) return (data || []).map(normalizeRow);
+        const missingCol = extractMissingColumn(error.message);
+        if (missingCol && clean.some((r) => missingCol in r)) {
+          clean = clean.map((r) => {
+            const next = { ...r };
+            delete next[missingCol];
+            return next;
+          });
+          continue;
+        }
+        if (!coercedTime && /invalid input syntax for type timestamp/i.test(error.message || '')) {
+          coercedTime = true;
+          clean = clean.map(coerceTimeColumnsToIso);
+          continue;
+        }
+        throw new Error(`[Supabase:${table}] bulkCreate failed: ${error.message}`);
+      }
       const { data, error } = await supabase.from(table).insert(clean).select();
       if (error) throw new Error(`[Supabase:${table}] bulkCreate failed: ${error.message}`);
       return (data || []).map(normalizeRow);
