@@ -199,12 +199,12 @@ export default function FactorySidebar({
             variant="outline"
             size="sm"
             onClick={() => logout(true)}
-            aria-label="Logout"
-            title={isCollapsed ? "Logout" : undefined}
-            className={`${isCollapsed ? "w-9 h-8 p-0" : "w-full h-8"} rounded-full bg-[#131926] border-[#1e2740] text-[#e2e8f0] hover:bg-[#ff4d4d]/15 hover:text-[#ff4d4d] hover:border-[#ff4d4d]/40 text-xs justify-center`}
+            aria-label="Back to WMD Hub"
+            title={isCollapsed ? "Back to WMD Hub" : undefined}
+            className={`${isCollapsed ? "w-9 h-8 p-0" : "w-full h-8"} rounded-full bg-[#131926] border-[#1e2740] text-[#e2e8f0] hover:bg-[#2563eb]/20 hover:text-[#60a5fa] hover:border-[#3b82f6]/40 text-xs justify-center`}
           >
             <LogOut className={`w-3.5 h-3.5 ${isCollapsed ? "" : "mr-1.5"}`} />
-            {!isCollapsed && "Logout"}
+            {!isCollapsed && "Back to Hub"}
           </Button>
         </div>
       )}

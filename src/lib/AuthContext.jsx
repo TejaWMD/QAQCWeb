@@ -1,8 +1,9 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import {
-  getCurrentUserProfile,
+  authenticateFromPortalSso,
   loginWithEmailPassword,
   logoutUser,
+  returnToPortalHub,
 } from '@/services/authService';
 
 const AuthContext = createContext(null);
@@ -37,18 +38,29 @@ export const AuthProvider = ({ children }) => {
     try {
       setIsLoadingAuth(true);
       setAuthError(null);
-      const profile = await getCurrentUserProfile();
-      if (profile) {
-        setUser(profile);
+      const result = await authenticateFromPortalSso();
+      if (result.status === 'authenticated' && result.profile) {
+        setUser(result.profile);
         setIsAuthenticated(true);
+        setAuthError(null);
+      } else if (result.status === 'suspended' && result.profile) {
+        setUser(result.profile);
+        setIsAuthenticated(false);
+        setAuthError({ type: 'suspended' });
+      } else if (result.status === 'not_registered') {
+        setUser(null);
+        setIsAuthenticated(false);
+        setAuthError({ type: 'not_registered' });
       } else {
         setUser(null);
         setIsAuthenticated(false);
+        setAuthError({ type: 'portal_required' });
       }
     } catch (error) {
       console.warn('Auth check failed:', error);
       setUser(null);
       setIsAuthenticated(false);
+      setAuthError({ type: 'portal_required' });
     } finally {
       setIsLoadingAuth(false);
       setAuthChecked(true);
@@ -73,12 +85,12 @@ export const AuthProvider = ({ children }) => {
     setIsAuthenticated(false);
     setViewAsRole('');
     if (shouldRedirect) {
-      window.location.hash = '#/login';
+      returnToPortalHub(false);
     }
   };
 
   const navigateToLogin = () => {
-    window.location.hash = '#/login';
+    returnToPortalHub(false);
   };
 
   const viewUser = user

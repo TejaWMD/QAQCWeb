@@ -1,13 +1,13 @@
 import React, { useState } from "react";
 import { Outlet } from "react-router-dom";
-import { Eye, Menu } from "lucide-react";
+import { Eye, Menu, ArrowLeft } from "lucide-react";
 import FactorySidebar from "@/components/factoryops/FactorySidebar";
 import { useAuth } from "@/lib/AuthContext";
 import { VIEW_AS_ROLES } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 
 export default function Layout() {
-  const { user, viewAsRole, setViewAsRole } = useAuth();
+  const { user, viewAsRole, setViewAsRole, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     try {
@@ -58,11 +58,24 @@ export default function Layout() {
               <span className="font-bold text-sm tracking-tight text-white truncate">WMG QAQC</span>
             </div>
           </div>
-          {user && (
-            <div className="w-8 h-8 rounded-full bg-[#00e5ff]/15 text-[#00e5ff] ring-1 ring-[#00e5ff]/30 text-xs font-bold flex items-center justify-center shrink-0">
-              {user.avatar_initials || "U"}
-            </div>
-          )}
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => logout(true)}
+              aria-label="Back to WMD Hub"
+              className="h-8 px-2.5 rounded-full bg-[#131926] border border-[#1e2740] text-[#cbd5e1] hover:text-white hover:bg-[#1e2740] text-xs gap-1"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Hub</span>
+            </Button>
+            {user && (
+              <div className="w-8 h-8 rounded-full bg-[#00e5ff]/15 text-[#00e5ff] ring-1 ring-[#00e5ff]/30 text-xs font-bold flex items-center justify-center shrink-0">
+                {user.avatar_initials || "U"}
+              </div>
+            )}
+          </div>
         </div>
 
         {activeRole && (

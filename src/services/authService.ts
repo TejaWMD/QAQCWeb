@@ -1,6 +1,27 @@
 import { supabase } from '@/api/supabaseClient';
 
-const AUTH_STORAGE_KEY = 'qaqc_auth_user_id';
+const LEGACY_AUTH_STORAGE_KEY = 'qaqc_auth_user_id';
+const SSO_SESSION_USER_KEY = 'qaqc_sso_user_id';
+const SSO_PORTAL_URL_KEY = 'qaqc_sso_portal_url';
+export const DEFAULT_PORTAL_URL = 'https://tejawmd.github.io/MainApp/';
+
+export interface SsoPayload {
+  id?: string;
+  email: string;
+  name?: string;
+  role?: string;
+  role_label?: string;
+  department?: string;
+  avatar_initials?: string;
+  phone?: string;
+  portal_url?: string;
+  issued_at?: number;
+}
+
+export interface PortalAuthResult {
+  status: 'authenticated' | 'portal_required' | 'not_registered' | 'suspended';
+  profile: UserProfile | null;
+}
 
 export interface UserProfile {
   id: string;
@@ -45,56 +66,165 @@ function normalizeUser(row: any): UserProfile {
   };
 }
 
-export async function loginWithEmailPassword(email: string, password: string): Promise<UserProfile> {
-  const cleanEmail = email.trim().toLowerCase();
-  if (!cleanEmail || !password) {
-    throw new Error('Please enter both email and password.');
-  }
-
-  const { data: row, error } = await supabase
-    .from('users')
-    .select('*')
-    .ilike('email', cleanEmail)
-    .eq('deleted', false)
-    .maybeSingle();
-
-  if (error) {
-    throw new Error(error.message || 'Unable to verify credentials.');
-  }
-
-  if (!row || row.password !== password) {
-    throw new Error('Invalid email or password.');
-  }
-
-  if (row.status === 'suspended') {
-    throw new Error('Your account has been suspended. Please contact an administrator.');
-  }
-
+function clearStoredSessions(): void {
   try {
-    localStorage.setItem(AUTH_STORAGE_KEY, row.id);
+    sessionStorage.removeItem(SSO_SESSION_USER_KEY);
   } catch {
     // ignore storage errors
   }
-
-  return normalizeUser(row);
-}
-
-export function logoutUser(): void {
   try {
-    localStorage.removeItem(AUTH_STORAGE_KEY);
+    localStorage.removeItem(LEGACY_AUTH_STORAGE_KEY);
   } catch {
     // ignore storage errors
   }
 }
 
-export async function getCurrentUserProfile(): Promise<UserProfile | null> {
+export function getPortalUrl(): string {
+  try {
+    return sessionStorage.getItem(SSO_PORTAL_URL_KEY) || DEFAULT_PORTAL_URL;
+  } catch {
+    return DEFAULT_PORTAL_URL;
+  }
+}
+
+export function returnToPortalHub(restricted = false): void {
+  const portalUrl = getPortalUrl();
+  clearStoredSessions();
+
+  const targetUrl = restricted
+    ? `${portalUrl}${portalUrl.includes('?') ? '&' : '?'}restricted=true`
+    : portalUrl;
+
+  if (typeof window !== 'undefined' && window.self !== window.top) {
+    try {
+      window.parent.postMessage(
+        { type: 'WMD_RETURN_TO_HUB', restricted },
+        '*'
+      );
+    } catch {
+      // ignore postMessage errors
+    }
+    // Fallback if parent is on another origin (e.g. local dev ports)
+    window.setTimeout(() => {
+      try {
+        window.location.href = targetUrl;
+      } catch {
+        // ignore navigation errors
+      }
+    }, 150);
+    return;
+  }
+
+  if (typeof window !== 'undefined') {
+    window.location.href = targetUrl;
+  }
+}
+
+function consumeSsoTokenFromUrl(): SsoPayload | null {
+  if (typeof window === 'undefined') return null;
+
+  let rawToken: string | null = null;
+  let fromSearch = false;
+
+  const searchParams = new URLSearchParams(window.location.search);
+  if (searchParams.has('sso_token')) {
+    rawToken = searchParams.get('sso_token');
+    fromSearch = true;
+  } else if (window.location.hash.includes('sso_token=')) {
+    const hashQuery = window.location.hash.split('?')[1] || '';
+    const hashParams = new URLSearchParams(hashQuery);
+    rawToken = hashParams.get('sso_token');
+  }
+
+  if (!rawToken) return null;
+
+  // Strip sso_token and _v from URL bar cleanly
+  if (fromSearch) {
+    try {
+      searchParams.delete('sso_token');
+      searchParams.delete('_v');
+      const remaining = searchParams.toString();
+      const cleanUrl = `${window.location.pathname}${remaining ? `?${remaining}` : ''}${window.location.hash}`;
+      window.history.replaceState({}, '', cleanUrl);
+    } catch {
+      // ignore history errors
+    }
+  }
+
+  try {
+    const decoded = atob(rawToken);
+    let parsed: SsoPayload;
+    try {
+      parsed = JSON.parse(decodeURIComponent(decoded));
+    } catch {
+      parsed = JSON.parse(decoded);
+    }
+    if (!parsed || typeof parsed.email !== 'string' || !parsed.email.trim()) {
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+export async function authenticateFromPortalSso(): Promise<PortalAuthResult> {
+  // Always clear legacy standalone localStorage session so direct access cannot bypass MainApp
+  try {
+    localStorage.removeItem(LEGACY_AUTH_STORAGE_KEY);
+  } catch {
+    // ignore storage errors
+  }
+
+  const ssoPayload = consumeSsoTokenFromUrl();
+
+  if (ssoPayload) {
+    if (ssoPayload.portal_url) {
+      try {
+        sessionStorage.setItem(SSO_PORTAL_URL_KEY, ssoPayload.portal_url);
+      } catch {
+        // ignore storage errors
+      }
+    }
+
+    const cleanEmail = ssoPayload.email.trim().toLowerCase();
+    const { data: row, error } = await supabase
+      .from('users')
+      .select('*')
+      .ilike('email', cleanEmail)
+      .eq('deleted', false)
+      .maybeSingle();
+
+    if (error || !row) {
+      clearStoredSessions();
+      return { status: 'not_registered', profile: null };
+    }
+
+    if (row.status === 'suspended') {
+      clearStoredSessions();
+      return { status: 'suspended', profile: normalizeUser(row) };
+    }
+
+    try {
+      sessionStorage.setItem(SSO_SESSION_USER_KEY, row.id);
+    } catch {
+      // ignore storage errors
+    }
+
+    return { status: 'authenticated', profile: normalizeUser(row) };
+  }
+
+  // No token in URL: check active per-tab SSO session (only persists inside the launched tab/iframe)
   let storedId: string | null = null;
   try {
-    storedId = localStorage.getItem(AUTH_STORAGE_KEY);
+    storedId = sessionStorage.getItem(SSO_SESSION_USER_KEY);
   } catch {
     storedId = null;
   }
-  if (!storedId) return null;
+
+  if (!storedId) {
+    return { status: 'portal_required', profile: null };
+  }
 
   const { data: row, error } = await supabase
     .from('users')
@@ -103,12 +233,30 @@ export async function getCurrentUserProfile(): Promise<UserProfile | null> {
     .eq('deleted', false)
     .maybeSingle();
 
-  if (error || !row || row.status === 'suspended') {
-    logoutUser();
-    return null;
+  if (error || !row) {
+    clearStoredSessions();
+    return { status: 'not_registered', profile: null };
   }
 
-  return normalizeUser(row);
+  if (row.status === 'suspended') {
+    clearStoredSessions();
+    return { status: 'suspended', profile: normalizeUser(row) };
+  }
+
+  return { status: 'authenticated', profile: normalizeUser(row) };
+}
+
+export async function loginWithEmailPassword(_email: string, _password: string): Promise<UserProfile> {
+  throw new Error('Direct login is disabled. Please sign in through WMD Hub.');
+}
+
+export function logoutUser(): void {
+  clearStoredSessions();
+}
+
+export async function getCurrentUserProfile(): Promise<UserProfile | null> {
+  const result = await authenticateFromPortalSso();
+  return result.status === 'authenticated' ? result.profile : null;
 }
 
 export async function listAllUsers(): Promise<UserProfile[]> {
