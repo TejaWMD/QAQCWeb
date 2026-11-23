@@ -107,15 +107,19 @@ export function parseQRPayload(rawInput: string): { ok: true; data: ParsedQR } |
     const expiry_date = dates.length >= 1 ? dates[dates.length - 1] : '';
 
     if (batchNumber || barcode || expiry_date || textTokens.length > 0) {
+      const firstIsCode = textTokens.length >= 2 && !/\s/.test(textTokens[0]) && /\s/.test(textTokens[1]);
+      const item_name = firstIsCode ? textTokens[1] : (textTokens[0] || '');
+      const item_code = firstIsCode ? textTokens[0] : (textTokens[1] || barcode || '');
+      const description = firstIsCode ? (textTokens[2] || textTokens[1] || '') : (textTokens[2] || textTokens[0] || '');
       return {
         ok: true,
         data: {
           gtin: barcode || undefined,
           batch_number: batchNumber || (parts[1] || ''),
-          item_name: textTokens[0] || '',
-          item_code: textTokens[1] || barcode || '',
-          sku: textTokens[1] || '',
-          description: textTokens[2] || textTokens[0] || '',
+          item_name,
+          item_code,
+          sku: item_code,
+          description,
           manufacturing_date,
           expiry_date,
           textTokens,

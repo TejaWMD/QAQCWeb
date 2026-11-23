@@ -103,6 +103,14 @@ export const fmtDay = (dateStr) => {
 export const traceUrlFor = (batchNumber) =>
   `${window.location.origin}/traceability?batch=${encodeURIComponent(batchNumber || "")}`;
 
+export const batchQrPayload = ({ productCode, productName, batchNumber, expiryDate } = {}) => {
+  const code = String(productCode || "").trim();
+  const desc = String(productName || "").trim();
+  const batch = String(batchNumber || "").trim().toUpperCase();
+  const exp = expiryDate ? fmtDay(expiryDate) : "";
+  return [code, desc, batch, exp === "—" ? "" : exp].filter(Boolean).join("|");
+};
+
 export const qrImageUrl = (payload, ecc = "M", sizePx = 420) =>
   `https://api.qrserver.com/v1/create-qr-code/?size=${sizePx}x${sizePx}&ecc=${ECC_LEVELS.includes(ecc) ? ecc : "M"}&margin=0&data=${encodeURIComponent(payload || "")}`;
 

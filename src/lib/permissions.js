@@ -27,10 +27,7 @@ export const MODULES = [
   { key: "capa_tracker", label: "Unified CAPA Tracker", path: "/capa-tracker", description: "Corrective and preventive actions" },
   { key: "kpi_scorecards", label: "Role KPI Scorecards", path: "/kpi-scorecards", description: "Per-role performance scorecards" },
   { key: "audit_trail", label: "Audit Trail Log", path: "/audit-trail", description: "Chronological record of actions across modules" },
-  { key: "warehouse_receiving", label: "Goods Receiving", path: "/goods-receiving", description: "Record goods received against a delivery note" },
-  { key: "wms_warehouse", label: "Finished Goods WMS", path: "/wms", description: "QR scan-in, visual G/M/T rack floor, PL outbound picking & stock take" },
-  { key: "goods_tracker", label: "Goods Tracker", path: "/goods-tracker", description: "Searchable log of everything received into the warehouse" },
-  { key: "goods_issued", label: "Goods Issued", path: "/goods-issued", description: "Record packaging stock going out to production" },
+  { key: "wms_warehouse", label: "Finished Goods WMS", path: "/wms", description: "QR scan-in and physical stock takes" },
   { key: "packaging_stock", label: "Packaging Stock", path: "/packaging-stock", description: "Packaging material stock with in, use and count movements" },
   { key: "packaging_movements", label: "Stock Movements", path: "/packaging-movements", description: "Full log of stock in, use and adjustments" },
   { key: "packaging_approvals", label: "Stock Approvals", path: "/packaging-approvals", description: "Stock count and high-value issue approvals" },
@@ -57,8 +54,8 @@ export const APP_ROLES = [
   { key: "operator", label: "Operator / Line Leader", preset: ["shift_log", "downtime", "qa_haccp", "production_orders", "production_schedule", "create_batch", "batch_records", "yield_loss"] },
   { key: "supervisor", label: "Supervisor", preset: ["task_matrix", "shift_log", "downtime", "product_master", "production_orders", "production_schedule", "create_batch", "batch_records", "yield_loss"] },
   { key: "qa_officer", label: "QA Officer", preset: ["qa_haccp", "capa_tracker", "product_master", "recipe_master", "yield_loss"] },
-  { key: "warehouse_staff", label: "Warehouse Staff", preset: ["warehouse_receiving", "goods_tracker", "goods_issued", "packaging_stock"] },
-  { key: "warehouse_supervisor", label: "Warehouse Supervisor", preset: ["warehouse_receiving", "goods_tracker", "goods_issued", "packaging_stock", "packaging_movements", "packaging_approvals"] },
+  { key: "warehouse_staff", label: "Warehouse Staff", preset: ["wms_warehouse", "packaging_stock"] },
+  { key: "warehouse_supervisor", label: "Warehouse Supervisor", preset: ["wms_warehouse", "packaging_stock", "packaging_movements", "packaging_approvals"] },
   { key: "manager", label: "Production Manager / MD", preset: ASSIGNABLE_MODULE_KEYS },
 ];
 

@@ -1,5 +1,5 @@
 import React from "react";
-import { barcodeImageUrl, fmtDay, qrImageUrl, traceUrlFor } from "@/lib/labels";
+import { barcodeImageUrl, batchQrPayload, fmtDay, qrImageUrl } from "@/lib/labels";
 
 // The label drawn at its exact physical size. Everything is sized in millimetres
 // so the browser print output matches the selected layout.
@@ -56,7 +56,7 @@ export default function LabelPreview({ layout, data }) {
         }}
       >
         <img
-          src={qrImageUrl(traceUrlFor(batch), layout.qr_ecc)}
+          src={qrImageUrl(batchQrPayload({ ...data, batchNumber: batch }), layout.qr_ecc)}
           alt={`QR ${batch}`}
           style={{ display: "block", width: `${qrSize}mm`, height: `${qrSize}mm` }}
         />

@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { MODULES, canAccess, isAdminUser } from "@/lib/permissions";
 import {
   Radar, Clock, ShieldCheck, ClipboardList, AlertTriangle, ScrollText,
-  LayoutDashboard, Users, Upload, PackagePlus, Boxes, PackageMinus, Layers,
+  LayoutDashboard, Users, Upload, Layers,
   ArrowLeftRight, ClipboardCheck, Package, FlaskConical, ListChecks,
   CalendarDays, Trash2, Tag, History, Scale, X, LogOut, PanelLeftClose, PanelLeftOpen,
   Cpu, TrendingUp, ShoppingCart, LayoutGrid, QrCode, FilePlus2
@@ -42,9 +42,6 @@ const productionItems = [
 
 const warehouseItems = [
   { key: "wms_warehouse", label: "Finished Goods WMS", icon: LayoutGrid },
-  { key: "warehouse_receiving", label: "Goods Receiving", icon: PackagePlus },
-  { key: "goods_issued", label: "Goods Issued", icon: PackageMinus },
-  { key: "goods_tracker", label: "Goods Tracker", icon: Boxes },
   { key: "packaging_stock", label: "Packaging Stock", icon: Layers },
   { key: "packaging_movements", label: "Stock Movements", icon: ArrowLeftRight },
   { key: "packaging_approvals", label: "Stock Approvals", icon: ClipboardCheck },

@@ -22,7 +22,7 @@ import { fmtQty } from "@/lib/production";
 import { todayStr } from "@/lib/warehouse";
 import { actingUserName, isAdminUser } from "@/lib/permissions";
 import {
-  barcodeImageUrl, canEditLabelSettings, duplicateOf, expiryFor, fmtDay, loadBatchRecords, loadLabelSettings, logLabelAudit, normalizeBatch,
+  barcodeImageUrl, batchQrPayload, canEditLabelSettings, duplicateOf, expiryFor, fmtDay, loadBatchRecords, loadLabelSettings, logLabelAudit, normalizeBatch,
   qrImageUrl, resolveLayout, saveDefaultLayoutForProduct, traceUrlFor,
 } from "@/lib/labels";
 import { recordBatchOnOrder } from "@/lib/batchTrace";
@@ -292,7 +292,7 @@ export default function CreateBatch() {
                   <p style={{ color: "#475569" }}>Exp: {fmtDay(d.expiryDate)}</p>
                   <p style={{ color: "#475569" }}>{d.pcsPerCarton} pcs/carton</p>
                 </div>
-                <img src={qrImageUrl(traceUrlFor(d.batchNumber), savedPrintView.layout.qr_ecc)} alt="QR" className="w-20 h-20 shrink-0" />
+                <img src={qrImageUrl(batchQrPayload(d), savedPrintView.layout.qr_ecc)} alt="QR" className="w-20 h-20 shrink-0" />
               </div>
               <div className="pt-1 text-center">
                 <img src={barcodeImageUrl(d.cartonBarcode || d.batchNumber)} alt="Barcode" className="w-full h-12 object-contain" />

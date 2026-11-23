@@ -26,7 +26,6 @@ export const fmtQty = (v) => num(v).toLocaleString("en-US", { maximumFractionDig
 export const isPackagingStaff = (user) =>
   isAdminUser(user) ||
   canAccess(user, "packaging_stock") ||
-  canAccess(user, "goods_issued") ||
   ["warehouse_staff", "warehouse_supervisor", "supervisor", "manager"].includes(user?.app_role);
 export const canApproveStock = (user) =>
   isAdminUser(user) ||

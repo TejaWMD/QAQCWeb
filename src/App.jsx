@@ -40,9 +40,6 @@ import CapaTracker from './pages/qaqc/CapaTracker';
 import YieldLoss from './pages/qaqc/YieldLoss';
 
 // Raw & Packaging Inventory
-import GoodsReceiving from './pages/inventory/GoodsReceiving';
-import GoodsTracker from './pages/inventory/GoodsTracker';
-import GoodsIssued from './pages/inventory/GoodsIssued';
 import PackagingStock from './pages/inventory/PackagingStock';
 import PackagingMovements from './pages/inventory/PackagingMovements';
 import PackagingApprovals from './pages/inventory/PackagingApprovals';
@@ -109,9 +106,6 @@ const AuthenticatedApp = () => {
           <Route path="/shift-log-draft" element={<ShiftLogDraft />} />
           <Route path="/production-line-logs" element={<ProductionLineLogs />} />
           <Route path="/yield-loss" element={<YieldLoss />} />
-          <Route path="/goods-receiving" element={<GoodsReceiving />} />
-          <Route path="/goods-tracker" element={<GoodsTracker />} />
-          <Route path="/goods-issued" element={<GoodsIssued />} />
           <Route path="/packaging-stock" element={<PackagingStock />} />
           <Route path="/packaging-movements" element={<PackagingMovements />} />
           <Route path="/packaging-approvals" element={<PackagingApprovals />} />
