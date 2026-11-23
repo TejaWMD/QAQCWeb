@@ -84,14 +84,36 @@ export const base44 = {
       UploadPrivateFile: async ({ file }: { file: File }) => {
         const safeName = file.name.replace(/[^A-Za-z0-9._-]+/g, '_');
         const path = `${new Date().toISOString().slice(0, 10)}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${safeName}`;
-        const { error } = await supabase.storage.from(EVIDENCE_BUCKET).upload(path, file, {
-          contentType: file.type || undefined,
-          upsert: false,
-        });
-        if (error) throw new Error(`Evidence upload failed: ${error.message}`);
+        const tryUpload = () =>
+          supabase.storage.from(EVIDENCE_BUCKET).upload(path, file, {
+            contentType: file.type || undefined,
+            upsert: false,
+          });
+        let { error } = await tryUpload();
+        if (error && /bucket not found/i.test(error.message || '')) {
+          await supabase.storage.createBucket(EVIDENCE_BUCKET, { public: false }).catch(() => {});
+          const retry = await tryUpload();
+          error = retry.error;
+        }
+        if (error) {
+          // Fallback: embed smaller attachments (<= 5 MB) as a data URL so missing storage buckets never block evidence uploads
+          if (file.size <= 5 * 1024 * 1024) {
+            const dataUrl = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(String(reader.result || ''));
+              reader.onerror = () => reject(new Error('Could not read file.'));
+              reader.readAsDataURL(file);
+            });
+            return { file_uri: dataUrl };
+          }
+          throw new Error(`Evidence upload failed: ${error.message}`);
+        }
         return { file_uri: path };
       },
       CreateFileSignedUrl: async ({ file_uri, expires_in = 3600 }: { file_uri: string; expires_in?: number }) => {
+        if (file_uri.startsWith('data:') || file_uri.startsWith('http://') || file_uri.startsWith('https://')) {
+          return { signed_url: file_uri };
+        }
         const { data, error } = await supabase.storage.from(EVIDENCE_BUCKET).createSignedUrl(file_uri, expires_in);
         if (error) throw new Error(`Could not open evidence: ${error.message}`);
         return { signed_url: data.signedUrl };

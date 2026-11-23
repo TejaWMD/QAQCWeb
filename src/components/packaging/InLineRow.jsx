@@ -41,23 +41,6 @@ export default function InLineRow({ line, items, racks, defaultRack, onChange, o
           <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Qty {item?.unit ? `(${item.unit})` : ""} *</label>
           <Input type="number" min="0" step="0.001" value={line.quantity} onChange={(e) => onChange({ quantity: e.target.value })} placeholder="0" className={FIELD} />
         </div>
-        <div className="space-y-1">
-          <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Batch No. *</label>
-          <Input value={line.batch_number} onChange={(e) => onChange({ batch_number: e.target.value })} placeholder="Batch" className={FIELD} />
-        </div>
-        <div className="space-y-1">
-          <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Rack *</label>
-          <Select value={line.rack_location || undefined} onValueChange={(v) => onChange({ rack_location: v })}>
-            <SelectTrigger className={FIELD}><SelectValue placeholder="Select rack" /></SelectTrigger>
-            <SelectContent>
-              {racks.map((r) => <SelectItem key={r.id} value={r.rack_code}>{r.rack_code}{r.zone ? ` · ${r.zone}` : ""}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-1">
-          <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Expiry</label>
-          <Input type="date" value={line.expiry_date} onChange={(e) => onChange({ expiry_date: e.target.value })} className={FIELD} />
-        </div>
         <div className="col-span-2 space-y-1">
           <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Remarks</label>
           <Input value={line.remarks} onChange={(e) => onChange({ remarks: e.target.value })} placeholder="Optional" className={FIELD} />

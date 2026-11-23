@@ -6,7 +6,6 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { SearchableSelect } from "@/components/ui/searchable-select";
 import { loadProductOptions, loadSupplierOptions } from "@/lib/masterOptions";
 import { todayStr } from "@/lib/warehouse";
 
@@ -134,10 +133,6 @@ export default function ItemDialog({ open, item, categories, units, racks, onClo
               <Input value={form.item_code} onChange={(e) => set("item_code", e.target.value)} placeholder="e.g. LBL-250" className={FIELD} />
             </div>
             <div className="space-y-1">
-              <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Description</label>
-              <Input value={form.description} onChange={(e) => set("description", e.target.value)} placeholder="Item name" className={FIELD} />
-            </div>
-            <div className="space-y-1">
               <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Category</label>
               <Select value={form.category || undefined} onValueChange={(v) => set("category", v)}>
                 <SelectTrigger className={FIELD}><SelectValue placeholder="Select category" /></SelectTrigger>
@@ -165,43 +160,6 @@ export default function ItemDialog({ open, item, categories, units, racks, onClo
                 <Input type="number" min="0" step="0.001" value={form.quantity} onChange={(e) => set("quantity", e.target.value)} placeholder="0" className={FIELD} />
               </div>
             )}
-            <div className="space-y-1">
-              <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Default Rack</label>
-              <Select value={form.default_rack || "none"} onValueChange={(v) => set("default_rack", v === "none" ? "" : v)}>
-                <SelectTrigger className={FIELD}><SelectValue placeholder="Select rack" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">No default rack</SelectItem>
-                  {racks.map((r) => <SelectItem key={r.id} value={r.rack_code}>{r.rack_code}{r.zone ? ` · ${r.zone}` : ""}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Supplier</label>
-              <SearchableSelect
-                value={form.supplier}
-                onValueChange={(v) => set("supplier", v)}
-                options={opts.suppliers}
-                placeholder="Select supplier..."
-                searchPlaceholder="Search supplier..."
-                allowCustom
-                clearable
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Linked Product</label>
-              <SearchableSelect
-                value={form.linked_product}
-                onValueChange={(v) => set("linked_product", v)}
-                options={opts.products.map((p) => ({
-                  value: p.product_name,
-                  label: p.product_code ? `${p.product_code} — ${p.product_name}` : p.product_name,
-                }))}
-                placeholder="Select linked product..."
-                searchPlaceholder="Search product..."
-                allowCustom
-                clearable
-              />
-            </div>
             <div className="space-y-1">
               <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Qty per Finished Unit</label>
               <Input type="number" min="0" step="0.001" value={form.qty_per_unit} onChange={(e) => set("qty_per_unit", e.target.value)} placeholder="e.g. 1" className={FIELD} />

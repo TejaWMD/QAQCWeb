@@ -89,8 +89,31 @@ export const addDays = (dateStr, days) => {
   return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
 };
 
-export const expiryFor = (productionDate, shelfLifeDays) =>
-  num(shelfLifeDays) > 0 ? addDays(productionDate, num(shelfLifeDays)) : "";
+export const addMonths = (dateStr, months) => {
+  const [y, m, d] = (dateStr || "").split("-").map(Number);
+  if (!y || !m || !d) return "";
+  const targetMonth = m - 1 + Math.round(num(months));
+  const targetYear = y + Math.floor(targetMonth / 12);
+  const normalizedMonth = ((targetMonth % 12) + 12) % 12;
+  const maxDay = new Date(targetYear, normalizedMonth + 1, 0).getDate();
+  return `${targetYear}-${pad2(normalizedMonth + 1)}-${pad2(Math.min(d, maxDay))}`;
+};
+
+export const shelfLifeMonthsFromDays = (shelfLifeDays) => {
+  const days = Math.round(num(shelfLifeDays));
+  if (days <= 0) return 0;
+  if (days === 365) return 12;
+  if (days === 730) return 24;
+  if (days % 30 === 0) return days / 30;
+  return 0;
+};
+
+export const expiryFor = (productionDate, shelfLifeDays) => {
+  const days = num(shelfLifeDays);
+  if (days <= 0) return "";
+  const months = shelfLifeMonthsFromDays(days);
+  return months > 0 ? addMonths(productionDate, months) : addDays(productionDate, days);
+};
 
 // Labels show plant dates as DD/MM/YYYY.
 export const fmtDay = (dateStr) => {

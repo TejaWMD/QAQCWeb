@@ -2,46 +2,23 @@ import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { SearchableSelect } from "@/components/ui/searchable-select";
-import { fefoBatch, fmtQty, loadItemBatches, submitStockUse } from "@/lib/packaging";
-import { loadMachineOptions, loadProductionOrderOptions } from "@/lib/masterOptions";
+import { fmtQty, submitStockUse } from "@/lib/packaging";
+import { todayStr } from "@/lib/warehouse";
 
 const FIELD = "bg-white border-[#E2E8F0] text-[#0F294A]";
 
-export default function StockUseDialog({ open, item, user, orders = [], threshold = 0, onClose, onSaved }) {
-  const [rows, setRows] = useState([]);
-  const [batchKey, setBatchKey] = useState("none");
-  const [form, setForm] = useState({ quantity: "", production_order: "", production_line: "", remarks: "" });
-  const [loading, setLoading] = useState(false);
+export default function StockUseDialog({ open, item, user, threshold = 0, onClose, onSaved }) {
+  const [form, setForm] = useState({ date: todayStr(), quantity: "", remarks: "" });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [machineLines, setMachineLines] = useState([]);
-  const [prodOrders, setProdOrders] = useState([]);
-
-  useEffect(() => {
-    if (!open || machineLines.length) return;
-    Promise.all([loadMachineOptions(), loadProductionOrderOptions()])
-      .then(([lines, po]) => { setMachineLines(lines); setProdOrders(po); })
-      .catch(() => {});
-  }, [open, machineLines.length]);
 
   useEffect(() => {
     if (!open || !item) return;
-    setForm({ quantity: "", production_order: "", production_line: "", remarks: "" });
+    setForm({ date: todayStr(), quantity: "", remarks: "" });
     setError("");
-    setLoading(true);
-    loadItemBatches(item.id)
-      .then((result) => {
-        setRows(result);
-        const suggested = fefoBatch(result);
-        setBatchKey(suggested ? suggested.key : "none");
-      })
-      .finally(() => setLoading(false));
   }, [open, item?.id]);
 
   const set = (key, value) => setForm((f) => ({ ...f, [key]: value }));
-  const chosen = rows.find((r) => r.key === batchKey) || null;
   const qty = Number(form.quantity) || 0;
   const needsApproval = threshold > 0 && qty > threshold;
   const available = Number(item?.quantity) || 0;
@@ -58,10 +35,7 @@ export default function StockUseDialog({ open, item, user, orders = [], threshol
         user,
         threshold,
         extras: {
-          batch_number: chosen?.batch_number || "",
-          rack_location: chosen?.rack_location || "",
-          production_order: form.production_order,
-          production_line: form.production_line,
+          movement_date: form.date || todayStr(),
           remarks: form.remarks,
           source: "Stock use",
         },
@@ -87,46 +61,12 @@ export default function StockUseDialog({ open, item, user, orders = [], threshol
 
         <div className="grid grid-cols-2 gap-2">
           <div className="space-y-1">
+            <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Date *</label>
+            <Input type="date" value={form.date} onChange={(e) => set("date", e.target.value)} className={FIELD} />
+          </div>
+          <div className="space-y-1">
             <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Quantity *</label>
             <Input type="number" min="0" step="0.001" value={form.quantity} onChange={(e) => set("quantity", e.target.value)} placeholder="0" className={FIELD} />
-          </div>
-          <div className="space-y-1">
-            <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Batch</label>
-            <Select value={batchKey} onValueChange={setBatchKey} disabled={loading}>
-              <SelectTrigger className={FIELD}>
-                <SelectValue placeholder={loading ? "Loading..." : "No batch"} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">No batch</SelectItem>
-                {rows.filter((r) => r.quantity > 0 && r.batch_number).map((r) => (
-                  <SelectItem key={r.key} value={r.key}>
-                    {r.batch_number} · {fmtQty(r.quantity)} left{r.expiry_date ? ` · exp ${r.expiry_date}` : ""}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1">
-            <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Production Order</label>
-            <SearchableSelect
-              value={form.production_order || ""}
-              onValueChange={(v) => set("production_order", v)}
-              options={[...prodOrders, ...orders]}
-              placeholder="None"
-              searchPlaceholder="Search order..."
-              clearable
-            />
-          </div>
-          <div className="space-y-1">
-            <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Line</label>
-            <SearchableSelect
-              value={form.production_line || ""}
-              onValueChange={(v) => set("production_line", v)}
-              options={machineLines}
-              placeholder="None"
-              searchPlaceholder="Search line..."
-              clearable
-            />
           </div>
           <div className="col-span-2 space-y-1">
             <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Remarks</label>

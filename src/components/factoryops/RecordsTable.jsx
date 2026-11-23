@@ -32,6 +32,7 @@ export default function RecordsTable({
   onAfterCreate,
   onAfterChange,
   addLabel,
+  filterRows,
   canAdd = true,
   canEdit = true,
   canDelete = true,
@@ -121,8 +122,14 @@ export default function RecordsTable({
     }
     try {
       const prev = record.status || "";
-      await base44.entities[entity].update(record.id, { status });
-      await audit("Updated", record.id, `Status changed to "${status}"`, prev, status);
+      const nowIso = new Date().toISOString();
+      const patch = {
+        status,
+        status_updated_at: nowIso,
+        ...(status === "Verified" ? { verified_by: actingUserName(user), verified_at: nowIso } : {}),
+      };
+      await base44.entities[entity].update(record.id, patch);
+      await audit("Updated", record.id, `Status changed to "${status}" at ${nowIso}`, prev, status);
       await onAfterChange?.(record, prev);
       await load(true);
       toast.success(`Status updated to "${status}".`);
@@ -143,7 +150,8 @@ export default function RecordsTable({
     }
   };
 
-  const visible = statusFilter === "all" ? records : records.filter((r) => r.status === statusFilter);
+  const roleFiltered = filterRows ? records.filter(filterRows) : records;
+  const visible = statusFilter === "all" ? roleFiltered : roleFiltered.filter((r) => r.status === statusFilter);
 
   return (
     <div className="bg-white rounded-xl border border-[#E2E8F0]">

@@ -3,7 +3,6 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Plus } from "lucide-react";
 import InLineRow from "@/components/packaging/InLineRow";
 import { newGroupId, receiveStock } from "@/lib/packaging";
@@ -49,8 +48,6 @@ export default function StockInDialog({ open, item, items, racks, user, onClose,
       const l = lines[i];
       if (!l.item_id) return setError(`Line ${i + 1}: select an item.`);
       if (!(Number(l.quantity) > 0)) return setError(`Line ${i + 1}: quantity must be greater than zero.`);
-      if (!(l.batch_number || "").trim()) return setError(`Line ${i + 1}: batch number is required.`);
-      if (!l.rack_location) return setError(`Line ${i + 1}: select a rack location.`);
     }
     setError("");
     setSaving(true);
@@ -64,11 +61,6 @@ export default function StockInDialog({ open, item, items, racks, user, onClose,
           user,
           extras: {
             movement_date: header.date,
-            supplier: header.supplier,
-            delivery_note: header.delivery_note,
-            batch_number: l.batch_number.trim(),
-            rack_location: l.rack_location,
-            expiry_date: l.expiry_date,
             remarks: l.remarks,
             source: "Stock in",
             group_id: group,
@@ -100,34 +92,10 @@ export default function StockInDialog({ open, item, items, racks, user, onClose,
           <DialogTitle className="text-[#0F294A]">Stock in</DialogTitle>
         </DialogHeader>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <div className="space-y-1">
             <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Date</label>
             <Input type="date" value={header.date} onChange={(e) => setHeader((h) => ({ ...h, date: e.target.value }))} className="bg-white border-[#E2E8F0] text-[#0F294A]" />
-          </div>
-          <div className="space-y-1">
-            <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Supplier</label>
-            <SearchableSelect
-              value={header.supplier}
-              onValueChange={(v) => setHeader((h) => ({ ...h, supplier: v }))}
-              options={opts.suppliers}
-              placeholder="Select supplier..."
-              searchPlaceholder="Search supplier..."
-              allowCustom
-              clearable
-            />
-          </div>
-          <div className="space-y-1">
-            <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Delivery Note / PO</label>
-            <SearchableSelect
-              value={header.delivery_note}
-              onValueChange={(v) => setHeader((h) => ({ ...h, delivery_note: v }))}
-              options={opts.pos}
-              placeholder="Select PO or enter DO..."
-              searchPlaceholder="Search PO..."
-              allowCustom
-              clearable
-            />
           </div>
         </div>
 

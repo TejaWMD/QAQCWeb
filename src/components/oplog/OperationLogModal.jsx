@@ -110,13 +110,10 @@ export default function OperationLogModal({ open, onClose, onSave, editData }) {
               <Input type="date" value={formData.ot_date} onChange={(e) => update("ot_date", e.target.value)} />
             </Field>
             <Field label="Line">
-              <SearchableSelect
-                value={formData.production_line}
-                onValueChange={(v) => update("production_line", v)}
-                options={opts.lines}
-                placeholder="Select line..."
-                searchPlaceholder="Search line..."
-                allowCustom={opts.lines.length === 0}
+              <Input
+                value={formData.production_line || ""}
+                onChange={(e) => update("production_line", e.target.value)}
+                placeholder="Enter line..."
               />
             </Field>
             <Field label="Product / SKU">
@@ -150,13 +147,10 @@ export default function OperationLogModal({ open, onClose, onSave, editData }) {
               <Input type="number" value={formData.staff_count} onChange={(e) => update("staff_count", e.target.value)} />
             </Field>
             <Field label="Name">
-              <SearchableSelect
-                value={formData.staff_name}
-                onValueChange={(v) => update("staff_name", v)}
-                options={opts.users}
-                placeholder="Select staff..."
-                searchPlaceholder="Search person..."
-                allowCustom={opts.users.length === 0}
+              <Input
+                value={formData.staff_name || ""}
+                onChange={(e) => update("staff_name", e.target.value)}
+                placeholder="Enter staff name..."
               />
             </Field>
             <Field label="Objective">

@@ -21,11 +21,9 @@ export const MODULES = [
   { key: "wastage_records", label: "Wastage Record", path: "/wastage-logs", description: "Packaging material wastage records" },
   { key: "baseline_capacity", label: "Baseline Capacity", path: "/baseline-capacity", description: "Line capacity, setup and staffing baselines" },
   { key: "downtime", label: "Requests & Stoppages", path: "/downtime", description: "Downtime stoppages, item/material and approval requests" },
-  { key: "staffing", label: "Staffing", path: "/staffing", description: "Shift headcount and staffing gaps" },
   { key: "qa_haccp", label: "QA & HACCP Safety", path: "/qa-haccp", description: "Food safety checks, defects and product holds" },
   { key: "task_matrix", label: "Supervisor Task Matrix", path: "/task-matrix", description: "Supervisor attention tasks and verification" },
   { key: "capa_tracker", label: "Unified CAPA Tracker", path: "/capa-tracker", description: "Corrective and preventive actions" },
-  { key: "kpi_scorecards", label: "Role KPI Scorecards", path: "/kpi-scorecards", description: "Per-role performance scorecards" },
   { key: "audit_trail", label: "Audit Trail Log", path: "/audit-trail", description: "Chronological record of actions across modules" },
   { key: "wms_warehouse", label: "Finished Goods WMS", path: "/wms", description: "QR scan-in and physical stock takes" },
   { key: "packaging_stock", label: "Packaging Stock", path: "/packaging-stock", description: "Packaging material stock with in, use and count movements" },
@@ -33,7 +31,6 @@ export const MODULES = [
   { key: "packaging_approvals", label: "Stock Approvals", path: "/packaging-approvals", description: "Stock count and high-value issue approvals" },
   { key: "product_master", label: "Product Master", path: "/product-master", description: "Product codes, carton sizes and packaging used per carton" },
   { key: "recipe_master", label: "Recipe Master", path: "/recipe-master", description: "Versioned recipes per product with ingredient lists" },
-  { key: "machines", label: "Machines", path: "/machines", description: "Machine list with capacity and maintenance status" },
   { key: "user_management", label: "User Management", path: "/users", description: "Members, roles and invitations", adminOnly: true },
   { key: "data_import", label: "Data Import", path: "/data-import", description: "One-time historical CSV import for Operation & Wastage logs", adminOnly: true },
 ];
@@ -56,6 +53,7 @@ export const APP_ROLES = [
   { key: "qa_officer", label: "QA Officer", preset: ["qa_haccp", "capa_tracker", "product_master", "recipe_master", "yield_loss"] },
   { key: "warehouse_staff", label: "Warehouse Staff", preset: ["wms_warehouse", "packaging_stock"] },
   { key: "warehouse_supervisor", label: "Warehouse Supervisor", preset: ["wms_warehouse", "packaging_stock", "packaging_movements", "packaging_approvals"] },
+  { key: "sales", label: "Sales Team", preset: ["capa_tracker"] },
   { key: "manager", label: "Production Manager / MD", preset: ASSIGNABLE_MODULE_KEYS },
 ];
 

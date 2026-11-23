@@ -7,8 +7,7 @@ import {
   Radar, Clock, ShieldCheck, ClipboardList, AlertTriangle, ScrollText,
   LayoutDashboard, Users, Upload, Layers,
   ArrowLeftRight, ClipboardCheck, Package, FlaskConical, ListChecks,
-  CalendarDays, Trash2, Tag, History, Scale, X, LogOut, PanelLeftClose, PanelLeftOpen,
-  Cpu, TrendingUp, ShoppingCart, LayoutGrid, QrCode, FilePlus2
+  CalendarDays, Trash2, Tag, History, Scale, X, LogOut, PanelLeftClose, PanelLeftOpen, TrendingUp, ShoppingCart, LayoutGrid, QrCode, FilePlus2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -24,7 +23,6 @@ const factoryItems = [
 const planningItems = [
   { key: "product_master", label: "Product Master", icon: Package },
   { key: "recipe_master", label: "Recipe Master", icon: FlaskConical },
-  { key: "machines", label: "Machines", icon: Cpu },
   { key: "demand_planner", label: "Demand Planner", icon: TrendingUp },
   { key: "procurement", label: "Procurement (PR/PO)", icon: ShoppingCart },
   { key: "production_orders", label: "Production Orders", icon: ListChecks },

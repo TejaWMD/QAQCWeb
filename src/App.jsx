@@ -12,9 +12,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import Home from './pages/operations/Home';
 import AttentionDashboard from './pages/operations/AttentionDashboard';
 import RequestsStoppages from './pages/operations/RequestsStoppages';
-import Staffing from './pages/operations/Staffing';
 import TaskMatrix from './pages/operations/TaskMatrix';
-import KpiScorecards from './pages/operations/KpiScorecards';
 import OvertimeRecord from './pages/operations/OvertimeRecord';
 import OperationLogs from './pages/operations/OperationLogs';
 import WastageLogs from './pages/operations/WastageLogs';
@@ -50,7 +48,6 @@ import WmsWarehouse from './pages/wms/WmsWarehouse';
 // Master Data & Entry
 import ProductMaster from './pages/masters/ProductMaster';
 import RecipeMaster from './pages/masters/RecipeMaster';
-import Machines from './pages/masters/Machines';
 
 // System Admin & Governance
 import UserManagement from './pages/admin/UserManagement';
@@ -89,14 +86,10 @@ const AuthenticatedApp = () => {
           <Route path="/" element={<AttentionDashboard />} />
           <Route path="/operations-overview" element={<Home />} />
           <Route path="/downtime" element={<RequestsStoppages />} />
-          <Route path="/staffing" element={<Staffing />} />
           <Route path="/qa-haccp" element={<QaHaccp />} />
           <Route path="/task-matrix" element={<TaskMatrix />} />
           <Route path="/capa-tracker" element={<CapaTracker />} />
-          <Route path="/kpi-scorecards" element={<KpiScorecards />} />
           <Route path="/audit-trail" element={<AuditTrailLog />} />
-          <Route path="/activity-history" element={<Navigate to="/audit-trail" replace />} />
-          <Route path="/activity-logs" element={<Navigate to="/audit-trail" replace />} />
           <Route path="/users" element={<UserManagement />} />
           <Route path="/data-import" element={<DataImport />} />
           <Route path="/overtime-record" element={<OvertimeRecord />} />
@@ -112,7 +105,6 @@ const AuthenticatedApp = () => {
           <Route path="/pic-product-entry" element={<Navigate to="/product-master" replace />} />
           <Route path="/product-master" element={<ProductMaster />} />
           <Route path="/recipe-master" element={<RecipeMaster />} />
-          <Route path="/machines" element={<Machines />} />
           <Route path="/production-orders" element={<ProductionOrders />} />
           <Route path="/production-schedule" element={<ProductionSchedule />} />
           <Route path="/create-batch" element={<CreateBatch />} />

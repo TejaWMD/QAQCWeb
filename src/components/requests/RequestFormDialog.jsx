@@ -274,7 +274,7 @@ export default function RequestFormDialog({ open, onOpenChange, user, config = D
 
       // Only the visible fields of the selected type are saved.
       // Empty strings for number/date fields are converted to null so Postgres never rejects them.
-      const payload = { production_line: values.production_line, owners, evidence_files };
+      const payload = { owners, evidence_files };
       visibleKeys.forEach((k) => {
         const def = defs[k];
         const val = values[k];
@@ -491,19 +491,6 @@ export default function RequestFormDialog({ open, onOpenChange, user, config = D
                 ))}
               </SelectContent>
             </Select>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label className="text-xs text-[#64748B]">
-              Production Line / Area <span className="text-rose-600">*</span>
-            </Label>
-            <SearchableSelect
-              value={values.production_line || ""}
-              onValueChange={(v) => set("production_line", v)}
-              options={opts.lines}
-              placeholder="Select Production Line"
-              searchPlaceholder="Search line..."
-            />
           </div>
 
           <div className="space-y-1.5">

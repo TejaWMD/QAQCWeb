@@ -8,6 +8,13 @@ export default function EvidenceLink({ uri, name }) {
   if (!uri) return <span className="text-sm text-[#64748B]">—</span>;
   const view = async () => {
     try {
+      if (uri.startsWith("data:")) {
+        const res = await fetch(uri);
+        const blob = await res.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        window.open(blobUrl, "_blank");
+        return;
+      }
       const res = await base44.integrations.Core.CreateFileSignedUrl({ file_uri: uri });
       window.open(res.signed_url, "_blank");
     } catch {

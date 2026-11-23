@@ -181,20 +181,19 @@ export default function ShiftLogDraft() {
     }));
   }, [form.product_name, opts.products]);
 
-  // Auto-calc Used for the selected primary container and closure from the batch output
+  // Auto-calc Used in units (pieces) for primary container, closure, shrink label, label, and extra sticker;
+  // Carton Box is excluded from unit conversion and follows the carton count.
   useEffect(() => {
-    if (!primaryContainer) return;
-    setForm((f) => ({ ...f, [`${primaryContainer}_used`]: totalActual }));
-  }, [primaryContainer, totalActual]);
-  useEffect(() => {
-    if (!closure) return;
-    setForm((f) => ({ ...f, [`${closure}_used`]: totalActual }));
-  }, [closure, totalActual]);
-
-  // Carton Box under Material Traceability & Wastage follows the batch carton count
-  useEffect(() => {
-    setForm((f) => ({ ...f, carton_box_used: totalCartons }));
-  }, [totalCartons]);
+    setForm((f) => ({
+      ...f,
+      ...(primaryContainer ? { [`${primaryContainer}_used`]: totalActual } : {}),
+      ...(closure ? { [`${closure}_used`]: totalActual } : {}),
+      shrink_label_used: totalActual,
+      label_used: totalActual,
+      extra_sticker_used: totalActual,
+      carton_box_used: totalCartons,
+    }));
+  }, [primaryContainer, closure, totalActual, totalCartons]);
 
   const changePrimary = (newKey) => {
     setForm((f) => primaryContainer ? { ...f, [`${primaryContainer}_used`]: 0, [`${primaryContainer}_waste`]: 0 } : f);
@@ -352,12 +351,10 @@ export default function ShiftLogDraft() {
                 </Select>
               </Field>
               <Field label="Line #">
-                <SearchableSelect
-                  value={form.production_line}
-                  onValueChange={(v) => set("production_line", v)}
-                  options={opts.lines.length ? opts.lines : productionLines}
-                  placeholder="Select line"
-                  searchPlaceholder="Search line..."
+                <Input
+                  value={form.production_line || ""}
+                  onChange={(e) => set("production_line", e.target.value)}
+                  placeholder="Enter line..."
                 />
               </Field>
               <Field label="Product" required>
@@ -388,13 +385,10 @@ export default function ShiftLogDraft() {
                 <Input value={totalPlanned.toLocaleString()} readOnly className="bg-slate-50 font-semibold text-slate-700" />
               </Field>
               <Field label="Lot # (Batch)" required>
-                <SearchableSelect
-                  value={form.batch_number}
-                  onValueChange={(v) => set("batch_number", v)}
-                  options={opts.batches}
-                  placeholder="Select or enter batch..."
-                  searchPlaceholder="Search batch..."
-                  allowCustom
+                <Input
+                  value={form.batch_number || ""}
+                  onChange={(e) => set("batch_number", e.target.value.toUpperCase())}
+                  placeholder="Enter batch number..."
                 />
               </Field>
               <Field label="Staff Count" required>
@@ -413,13 +407,10 @@ export default function ShiftLogDraft() {
                 {staffNames.map((name, i) =>
                 <div key={i} className="flex items-center gap-2">
                     <div className="flex-1">
-                      <SearchableSelect
+                      <Input
                         value={name}
-                        onValueChange={(v) => updateName(i, v)}
-                        options={opts.users}
-                        placeholder={`Select staff ${i + 1}`}
-                        searchPlaceholder="Search staff..."
-                        allowCustom
+                        onChange={(e) => updateName(i, e.target.value)}
+                        placeholder={`Enter staff ${i + 1} name`}
                       />
                     </div>
                     {staffNames.length > 1 &&

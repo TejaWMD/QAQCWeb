@@ -1,13 +1,20 @@
 import React from "react";
 import { useAuth } from "@/lib/AuthContext";
-import { statusChangeGuard } from "@/lib/permissions";
+import { appRoleOf, statusChangeGuard } from "@/lib/permissions";
 import RecordsTable from "@/components/factoryops/RecordsTable";
 import EvidenceLink from "@/components/factoryops/EvidenceLink";
-import { capaFormFields } from "@/lib/capaForm";
+import { capaFormFields, SALES_VISIBLE_ISSUE_TYPES } from "@/lib/capaForm";
 
 const STATUSES = ["Open", "In Progress", "Overdue", "Completed", "Verified"];
 
 const fields = capaFormFields;
+
+const fmtTimestamp = (iso) => {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return String(iso);
+  return d.toLocaleString();
+};
 
 const columns = [
   { key: "title", label: "CAPA" },
@@ -18,6 +25,7 @@ const columns = [
   { key: "due_date", label: "Due Date" },
   { key: "owner", label: "Owner" },
   { key: "verified_by", label: "Verified By" },
+  { key: "status_updated_at", label: "Status Updated", render: (r) => fmtTimestamp(r.status_updated_at || r.updated_date) },
   { key: "evidence_file_name", label: "Evidence", render: (r) => <EvidenceLink uri={r.evidence_file_uri} name={r.evidence_file_name} /> },
 ];
 
@@ -26,6 +34,7 @@ const columns = [
 // cannot be closed without evidence, or verified without a manager.
 export default function CapaTracker() {
   const { user } = useAuth();
+  const isSales = appRoleOf(user) === "sales";
 
   const guard = statusChangeGuard(user, { requireEvidenceToComplete: true, managerVerifies: true });
 
@@ -40,6 +49,10 @@ export default function CapaTracker() {
         fields={fields}
         statuses={STATUSES}
         guard={guard}
+        filterRows={isSales ? (r) => SALES_VISIBLE_ISSUE_TYPES.includes(r.issue_type) : undefined}
+        canAdd={!isSales}
+        canEdit={!isSales}
+        canDelete={!isSales}
       />
     </div>
   );

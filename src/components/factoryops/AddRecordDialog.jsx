@@ -9,8 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import EvidenceUpload from "@/components/factoryops/EvidenceUpload";
 import ProductPicker from "@/components/labels/ProductPicker";
-import { SearchableSelect } from "@/components/ui/searchable-select";
-import { batchesForProduct, loadProductLinkData } from "@/lib/productLinks";
+import { loadProductLinkData } from "@/lib/productLinks";
 import { loadMachineOptions, loadUserOptions } from "@/lib/masterOptions";
 
 const initialValues = (fields) => {
@@ -141,40 +140,31 @@ export default function AddRecordDialog({ open, onOpenChange, title, fields, onS
                   {f.type === "product" ? (
                     <ProductPicker products={link.products} value={values.product_id} onChange={pickProduct} />
                   ) : f.type === "batch" ? (
-                    <SearchableSelect
+                    <Input
                       id={f.key}
-                      value={values[f.key]}
-                      onValueChange={(v) => set(f.key, v.toUpperCase())}
-                      options={
-                        values.product_id
-                          ? batchesForProduct(link.records, values.product_id)
-                          : [...new Set(link.records.map((r) => r.batch_number).filter(Boolean))]
-                      }
-                      placeholder={values.product_id ? "Select batch..." : "Select batch or pick product first"}
-                      searchPlaceholder="Search batch number..."
-                      allowCustom
-                      clearable
+                      value={values[f.key] || ""}
+                      onChange={(e) => set(f.key, e.target.value.toUpperCase())}
+                      placeholder={`Enter ${f.label}`}
+                      required={f.required}
+                      className="bg-white border-[#E2E8F0] text-[#0F294A]"
                     />
                   ) : f.type === "user" ? (
-                    <SearchableSelect
+                    <Input
                       id={f.key}
-                      value={values[f.key]}
-                      onValueChange={(v) => set(f.key, v)}
-                      options={[...(f.extraOptions || []), ...users]}
-                      placeholder={`Select ${f.label}`}
-                      searchPlaceholder="Search person..."
-                      allowCustom={users.length === 0 || !!f.allowCustom}
-                      clearable={!f.required}
+                      value={values[f.key] || ""}
+                      onChange={(e) => set(f.key, e.target.value)}
+                      placeholder={`Enter ${f.label}`}
+                      required={f.required}
+                      className="bg-white border-[#E2E8F0] text-[#0F294A]"
                     />
                   ) : f.type === "line" ? (
-                    <SearchableSelect
+                    <Input
                       id={f.key}
-                      value={values[f.key]}
-                      onValueChange={(v) => set(f.key, v)}
-                      options={machines.length ? machines : f.options || []}
-                      placeholder={`Select ${f.label}`}
-                      searchPlaceholder="Search production line..."
-                      clearable={!f.required}
+                      value={values[f.key] || ""}
+                      onChange={(e) => set(f.key, e.target.value)}
+                      placeholder={`Enter ${f.label}`}
+                      required={f.required}
+                      className="bg-white border-[#E2E8F0] text-[#0F294A]"
                     />
                   ) : f.type === "select" ? (
                     <Select value={values[f.key] || undefined} onValueChange={(v) => set(f.key, v)}>

@@ -19,11 +19,10 @@ import { loadProductionOrderOptions } from "@/lib/masterOptions";
 import { recipeOf } from "@/lib/productLinks";
 import { labelBlock } from "@/lib/productMaster";
 import { fmtQty } from "@/lib/production";
-import { todayStr } from "@/lib/warehouse";
 import { actingUserName, isAdminUser } from "@/lib/permissions";
 import {
   barcodeImageUrl, batchQrPayload, canEditLabelSettings, duplicateOf, expiryFor, fmtDay, loadBatchRecords, loadLabelSettings, logLabelAudit, normalizeBatch,
-  qrImageUrl, resolveLayout, saveDefaultLayoutForProduct, traceUrlFor,
+  qrImageUrl, resolveLayout, saveDefaultLayoutForProduct, shelfLifeMonthsFromDays, traceUrlFor,
 } from "@/lib/labels";
 import { recordBatchOnOrder } from "@/lib/batchTrace";
 import { inputClass, primaryButton, subtleButton, panelClass, labelClass } from "@/components/planning/styles";
@@ -43,7 +42,7 @@ export default function CreateBatch() {
 
   const [productId, setProductId] = useState("");
   const [alphabetSuffix, setAlphabetSuffix] = useState("");
-  const [productionDate, setProductionDate] = useState(todayStr());
+  const [productionDate, setProductionDate] = useState("");
   const [quantity, setQuantity] = useState("");
   const [layoutId, setLayoutId] = useState("");
   const [custom, setCustom] = useState({ width_mm: 70, height_mm: 50, font_size: 7, qr_mm: 14, qr_ecc: "M" });
@@ -88,10 +87,8 @@ export default function CreateBatch() {
     if (!ord) return;
     const matchedProd = products.find((p) => p.product_code === ord.product_code || p.product_name === ord.product_name);
     if (matchedProd) selectProduct(matchedProd);
-    // Auto-fill production date & next unused alphabet suffix from the order's pre-generated batch_codes
-    if (ord.planned_start) {
-      setProductionDate(String(ord.planned_start).slice(0, 10));
-    }
+    // Auto-fill cartons & next unused alphabet suffix from the order's pre-generated batch_codes
+    // (Production Date and Batch Number are entered manually by the user)
     if (ord.batch_cartons && !quantity) {
       setQuantity(String(ord.batch_cartons));
     }
@@ -393,7 +390,13 @@ export default function CreateBatch() {
               <label className={labelClass}>Expiry date</label>
               <Input type="date" value={expiryDate} readOnly disabled className={`${inputClass} opacity-80`} />
               <p className="text-[11px] text-[#64748B]">
-                {computedExpiry ? `${num(product?.shelf_life_days)} day shelf life → ${fmtDay(computedExpiry)}` : "This product has no shelf life set."}
+                {computedExpiry
+                  ? `${shelfLifeMonthsFromDays(product?.shelf_life_days) > 0
+                      ? `${shelfLifeMonthsFromDays(product?.shelf_life_days)} month`
+                      : `${num(product?.shelf_life_days)} day`} shelf life → ${fmtDay(computedExpiry)}`
+                  : num(product?.shelf_life_days) > 0
+                    ? "Enter production date to calculate expiry."
+                    : "This product has no shelf life set."}
               </p>
               {admin && (
                 <button
