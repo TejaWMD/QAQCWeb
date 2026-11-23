@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/api/supabaseClient';
-import { parseQRPayload } from '@/lib/qrParser';
+import { matchParsedQrToProduct, parseQRPayload } from '@/lib/qrParser';
 import { formatQtyBreakdown } from '@/lib/pickStock';
 import { buildRackLayout, DEFAULT_STAGING_AREA } from '@/lib/rackLayout';
 import { useHardwareScanner } from '@/hooks/useHardwareScanner';
@@ -12,10 +12,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { toast } from 'sonner';
-import { QrCode, ClipboardCheck, Download, Plus } from 'lucide-react';
-import { loadBatchOptions, loadProductOptions } from '@/lib/masterOptions';
+import { QrCode, ClipboardCheck, Download, Plus, Pencil, Trash2, ArrowUpFromLine } from 'lucide-react';
+import { loadBatchOptions } from '@/lib/masterOptions';
 
 export default function WmsWarehouse() {
   const [tab, setTab] = useState('scan');
@@ -23,19 +24,30 @@ export default function WmsWarehouse() {
   const [rackLines, setRackLines] = useState<any[]>([]);
   const [stagingAreas, setStagingAreas] = useState<any[]>([]);
 
-  // Scan-in state
+  // Scan-in state (Goods Receiving)
   const [qrInput, setQrInput] = useState('');
+  const [decodedSummary, setDecodedSummary] = useState<any | null>(null);
   const [scanForm, setScanForm] = useState({
     item_code: '',
     item_name: '',
     batch_number: '',
+    production_date: '',
     expiry_date: '',
+    barcode: '',
     carton: '',
     pcs_per_carton: '24',
     loose_pcs: '',
     rack: DEFAULT_STAGING_AREA,
     goods_status: 'good',
   });
+
+  // Issue / Edit Stock Item Modal (Goods Issued & CRUD)
+  const [issueTarget, setIssueTarget] = useState<any | null>(null);
+  const [issueCartons, setIssueCartons] = useState('');
+  const [issueLoose, setIssueLoose] = useState('');
+
+  const [editTarget, setEditTarget] = useState<any | null>(null);
+  const [editForm, setEditForm] = useState({ carton: '', loose_pcs: '', rack: DEFAULT_STAGING_AREA });
 
   // Stock Take state
   const [stockTakeName, setStockTakeName] = useState('');
@@ -58,13 +70,13 @@ export default function WmsWarehouse() {
   });
 
   const loadWms = async () => {
-    const [sRes, lRes, stRes, prods, bats, batchRecRes, takeRes] = await Promise.all([
+    const [sRes, lRes, stRes, prodsRes, bats, batchRecRes, takeRes] = await Promise.all([
       supabase.from('wms_stock_items').select('*').eq('deleted', false).neq('status', 'shipped').order('scanned_at', { ascending: false }),
       supabase.from('rack_lines').select('*').eq('deleted', false).order('sort_order'),
       supabase.from('staging_areas').select('*').eq('deleted', false).order('sort_order'),
-      loadProductOptions(),
+      supabase.from('products').select('*').neq('deleted', true).order('product_code'),
       loadBatchOptions(),
-      supabase.from('batch_records').select('batch_number, product_code, product_name, expiry_date, pcs_per_carton, quantity_cartons').eq('deleted', false).order('created_at', { ascending: false }).limit(500),
+      supabase.from('batch_records').select('batch_number, product_code, product_name, production_date, expiry_date, pcs_per_carton, quantity_cartons, carton_barcode').eq('deleted', false).order('created_at', { ascending: false }).limit(500),
       supabase.from('stock_takes').select('*').eq('status', 'in_progress').order('created_at', { ascending: false }).limit(1).maybeSingle(),
     ]);
     setStockItems(sRes.data || []);
@@ -80,7 +92,7 @@ export default function WmsWarehouse() {
       setTakeItems(tItems || []);
     }
     setOpts({
-      products: prods,
+      products: prodsRes.data || [],
       batches: bats,
       batchRecords: batchRecRes.data || [],
     });
@@ -108,14 +120,62 @@ export default function WmsWarehouse() {
       return;
     }
     playScanBeep(true);
+
+    const matchedProd = matchParsedQrToProduct(res.data, opts.products);
+    const matchedBatch = res.data.batch_number
+      ? opts.batchRecords.find(
+          (b) => String(b.batch_number || '').trim().toUpperCase() === res.data.batch_number.toUpperCase()
+        )
+      : null;
+
+    const resolvedCode =
+      matchedProd?.product_code ||
+      matchedBatch?.product_code ||
+      res.data.item_code ||
+      '';
+    const resolvedName =
+      matchedProd?.product_name ||
+      matchedBatch?.product_name ||
+      res.data.item_name ||
+      '';
+    const resolvedPcsPerCarton =
+      Number(matchedProd?.carton_size) ||
+      Number(matchedBatch?.pcs_per_carton) ||
+      Number(scanForm.pcs_per_carton) ||
+      24;
+    const resolvedProdDate =
+      res.data.manufacturing_date ||
+      (matchedBatch?.production_date ? String(matchedBatch.production_date).slice(0, 10) : '');
+    const resolvedExpDate =
+      res.data.expiry_date ||
+      (matchedBatch?.expiry_date ? String(matchedBatch.expiry_date).slice(0, 10) : '');
+
+    setDecodedSummary({
+      batch_number: res.data.batch_number,
+      barcode: res.data.gtin || matchedProd?.carton_barcode || matchedProd?.barcode || '',
+      production_date: resolvedProdDate,
+      expiry_date: resolvedExpDate,
+      product_name: resolvedName,
+      item_code: resolvedCode,
+      matched_from_db: !!matchedProd,
+    });
+
     setScanForm((prev) => ({
       ...prev,
-      item_code: res.data.item_code,
-      item_name: res.data.item_name,
-      batch_number: res.data.batch_number,
-      expiry_date: res.data.expiry_date,
+      item_code: resolvedCode,
+      item_name: resolvedName,
+      batch_number: res.data.batch_number || prev.batch_number,
+      production_date: resolvedProdDate || prev.production_date,
+      expiry_date: resolvedExpDate || prev.expiry_date,
+      barcode: res.data.gtin || matchedProd?.carton_barcode || '',
+      pcs_per_carton: String(resolvedPcsPerCarton),
     }));
-    toast.success(`Decoded ${res.data.format} QR: ${res.data.item_name}`);
+
+    toast.success(
+      matchedProd
+        ? `Matched product from database: ${resolvedName} (${resolvedCode})`
+        : `Decoded QR: ${resolvedName || res.data.batch_number}`
+    );
   };
 
   useHardwareScanner((val) => {
@@ -137,7 +197,6 @@ export default function WmsWarehouse() {
     const targetRack = scanForm.rack || DEFAULT_STAGING_AREA;
     const nowIso = new Date().toISOString();
 
-    // Upsert / Merge: if same (item_code, batch_number, rack) is already active in stock, add to it
     const existing = stockItems.find(
       (s) =>
         String(s.item_code || '').trim().toUpperCase() === scanForm.item_code.trim().toUpperCase() &&
@@ -166,12 +225,16 @@ export default function WmsWarehouse() {
       savedId = updated.id;
     } else {
       const payload = {
-        ...scanForm,
+        item_code: scanForm.item_code,
+        item_name: scanForm.item_name,
+        batch_number: scanForm.batch_number,
+        expiry_date: scanForm.expiry_date,
         rack: targetRack,
         carton: cartonNum,
         pcs_per_carton: pcsPerCartonNum,
         loose_pcs: loosePcsNum,
         quantity: totalQty,
+        goods_status: scanForm.goods_status,
         status: targetRack !== DEFAULT_STAGING_AREA ? 'stored' : 'received',
         scanned_at: nowIso,
       };
@@ -196,10 +259,81 @@ export default function WmsWarehouse() {
     toast.success(
       existing
         ? `Added ${formatQtyBreakdown(totalQty, pcsPerCartonNum)} to existing batch in ${targetRack}`
-        : `Stocked in ${formatQtyBreakdown(totalQty, pcsPerCartonNum)} to ${targetRack}`
+        : `Received ${formatQtyBreakdown(totalQty, pcsPerCartonNum)} into ${targetRack}`
     );
     setQrInput('');
+    setDecodedSummary(null);
     setScanForm((prev) => ({ ...prev, carton: '', loose_pcs: '' }));
+    loadWms();
+  };
+
+  // Goods Issued (Issue / Ship Out from WMS Stock)
+  const handleIssueStock = async () => {
+    if (!issueTarget) return;
+    const pcsPerCtn = Number(issueTarget.pcs_per_carton) || 24;
+    const ctnOut = Number(issueCartons) || 0;
+    const looseOut = Number(issueLoose) || 0;
+    const totalOut = ctnOut * pcsPerCtn + looseOut;
+    if (totalOut <= 0) return toast.error('Enter cartons or loose pcs to issue.');
+    const currentQty = Number(issueTarget.quantity) || 0;
+    if (totalOut > currentQty) return toast.error('Issue quantity exceeds available stock.');
+
+    const remainQty = currentQty - totalOut;
+    const remainCarton = Math.floor(remainQty / pcsPerCtn);
+    const remainLoose = remainQty % pcsPerCtn;
+
+    const { error } = await supabase
+      .from('wms_stock_items')
+      .update({
+        carton: remainCarton,
+        loose_pcs: remainLoose,
+        quantity: remainQty,
+        status: remainQty <= 0 ? 'shipped' : issueTarget.status,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', issueTarget.id);
+
+    if (error) return toast.error(error.message);
+    toast.success(`Issued ${formatQtyBreakdown(totalOut, pcsPerCtn)} of ${issueTarget.batch_number}`);
+    setIssueTarget(null);
+    setIssueCartons('');
+    setIssueLoose('');
+    loadWms();
+  };
+
+  // Edit Stock Item
+  const handleSaveEditStock = async () => {
+    if (!editTarget) return;
+    const pcsPerCtn = Number(editTarget.pcs_per_carton) || 24;
+    const nextCtn = Number(editForm.carton) || 0;
+    const nextLoose = Number(editForm.loose_pcs) || 0;
+    const nextQty = nextCtn * pcsPerCtn + nextLoose;
+    const { error } = await supabase
+      .from('wms_stock_items')
+      .update({
+        carton: nextCtn,
+        loose_pcs: nextLoose,
+        quantity: nextQty,
+        rack: editForm.rack || DEFAULT_STAGING_AREA,
+        status: nextQty <= 0 ? 'shipped' : editTarget.status,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', editTarget.id);
+    if (error) return toast.error(error.message);
+    toast.success(`Updated ${editTarget.batch_number}`);
+    setEditTarget(null);
+    loadWms();
+  };
+
+  // Delete Stock Item
+  const handleDeleteStock = async (item: any) => {
+    if (!window.confirm(`Delete stock item "${item.item_name}" (${item.batch_number})?`)) return;
+    const { error } = await supabase
+      .from('wms_stock_items')
+      .update({ deleted: true, updated_at: new Date().toISOString() })
+      .eq('id', item.id);
+    if (error) return toast.error(error.message);
+    toast.success('Stock item deleted.');
     loadWms();
   };
 
@@ -285,7 +419,7 @@ export default function WmsWarehouse() {
         <div>
           <h2 className="text-[#0F294A] text-lg font-semibold">Finished Goods WMS</h2>
           <p className="text-[#64748B] text-sm mt-1">
-            QR batch scan-in and physical stock takes.
+            QR batch scan-in (Goods Receiving), Goods Issued, and physical stock takes.
           </p>
         </div>
         <Button
@@ -299,13 +433,17 @@ export default function WmsWarehouse() {
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
-          <TabsTrigger value="scan"><QrCode className="w-4 h-4 mr-1" /> QR Scan In</TabsTrigger>
+          <TabsTrigger value="scan"><QrCode className="w-4 h-4 mr-1" /> QR Scan In &amp; Stock</TabsTrigger>
           <TabsTrigger value="take"><ClipboardCheck className="w-4 h-4 mr-1" /> Stock Take</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="scan" className="mt-4">
+        <TabsContent value="scan" className="mt-4 space-y-4">
           <Card>
-            <CardHeader><CardTitle className="text-base">Scan Carton QR (Legacy 5-field or GTIN 7/8-field)</CardTitle></CardHeader>
+            <CardHeader>
+              <CardTitle className="text-base">
+                Scan Carton QR (Supports Old 5-field &amp; New 8-field GTIN QR with Database Product Matching)
+              </CardTitle>
+            </CardHeader>
             <CardContent className="space-y-4">
               <CameraQRScanner
                 onDecode={(decoded) => {
@@ -315,13 +453,39 @@ export default function WmsWarehouse() {
               />
               <div className="flex gap-2">
                 <Input
-                  placeholder="Paste or scan QR payload (e.g. Product|BATCH|2027-06-01|SKU|Desc)"
+                  placeholder="Paste or scan QR payload (e.g. 9555721709271 | RNC161026B | RASTO NACHO CHEESE SAUCE 250G | RSC250GX24 | ... | 2026-10-16 | 2027-10-16 | 3)"
                   value={qrInput}
                   onChange={(e) => setQrInput(e.target.value)}
-                  className="font-mono"
+                  className="font-mono text-xs"
                 />
                 <Button type="button" variant="secondary" onClick={() => handleQrDecode(qrInput)}>Decode QR</Button>
               </div>
+
+              {decodedSummary && (
+                <div className="rounded-lg border border-emerald-200 bg-emerald-50/70 p-3 text-xs grid grid-cols-2 sm:grid-cols-5 gap-2">
+                  <div>
+                    <span className="text-slate-500 block">Product (Database)</span>
+                    <span className="font-semibold text-[#0F294A]">{decodedSummary.product_name || '—'}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block">Item Code</span>
+                    <span className="font-mono font-semibold text-[#0F294A]">{decodedSummary.item_code || '—'}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block">Batch Number</span>
+                    <span className="font-mono font-semibold text-[#1D4ED8]">{decodedSummary.batch_number || '—'}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block">Barcode</span>
+                    <span className="font-mono">{decodedSummary.barcode || '—'}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block">Prod / Expiry</span>
+                    <span>{decodedSummary.production_date ? `${decodedSummary.production_date} → ` : ''}{decodedSummary.expiry_date || '—'}</span>
+                  </div>
+                </div>
+              )}
+
               <form onSubmit={handleSaveScanIn} className="grid grid-cols-1 md:grid-cols-4 gap-3">
                 <SearchableSelect
                   value={scanForm.item_code}
@@ -356,7 +520,7 @@ export default function WmsWarehouse() {
                     label: p.product_name,
                     sublabel: p.product_code,
                   }))}
-                  placeholder="Item Name"
+                  placeholder="Product Name"
                   searchPlaceholder="Search product name..."
                   allowCustom
                 />
@@ -397,8 +561,93 @@ export default function WmsWarehouse() {
                   placeholder="Rack (e.g. G1A)"
                   searchPlaceholder="Search rack..."
                 />
-                <Button type="submit" className="md:col-span-4">Save Stock-In</Button>
+                <Button type="submit" className="md:col-span-4 bg-[#0F294A] hover:bg-[#193B68] text-white">
+                  Receive Stock-In
+                </Button>
               </form>
+            </CardContent>
+          </Card>
+
+          {/* Active WMS Stock Table with Goods Issued / Edit / Delete */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Active Warehouse Stock ({stockItems.length})</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0 overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-50 border-b text-xs text-slate-500">
+                  <tr>
+                    <th className="text-left p-3">Product</th>
+                    <th className="text-left p-3">Item Code</th>
+                    <th className="text-left p-3">Batch #</th>
+                    <th className="text-left p-3">Expiry</th>
+                    <th className="text-left p-3">Rack</th>
+                    <th className="text-right p-3">Balance</th>
+                    <th className="text-right p-3">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {stockItems.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="p-6 text-center text-slate-500">
+                        No stock items scanned in yet.
+                      </td>
+                    </tr>
+                  ) : (
+                    stockItems.map((item) => (
+                      <tr key={item.id} className="hover:bg-slate-50">
+                        <td className="p-3 font-medium text-[#0F294A]">{item.item_name || '—'}</td>
+                        <td className="p-3 font-mono text-xs text-slate-600">{item.item_code}</td>
+                        <td className="p-3 font-mono font-semibold text-[#1D4ED8]">{item.batch_number}</td>
+                        <td className="p-3 text-slate-600">{item.expiry_date ? String(item.expiry_date).slice(0, 10) : '—'}</td>
+                        <td className="p-3"><Badge variant="outline">{item.rack || DEFAULT_STAGING_AREA}</Badge></td>
+                        <td className="p-3 text-right font-mono font-medium">
+                          {formatQtyBreakdown(Number(item.quantity) || 0, Number(item.pcs_per_carton) || 24)}
+                        </td>
+                        <td className="p-3 text-right whitespace-nowrap">
+                          <div className="inline-flex items-center gap-1">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setIssueTarget(item);
+                                setIssueCartons('');
+                                setIssueLoose('');
+                              }}
+                              className="h-7 px-2 text-xs"
+                            >
+                              <ArrowUpFromLine className="w-3.5 h-3.5 mr-1" /> Issue
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7 text-slate-500 hover:text-[#1D4ED8]"
+                              onClick={() => {
+                                setEditTarget(item);
+                                setEditForm({
+                                  carton: String(item.carton ?? 0),
+                                  loose_pcs: String(item.loose_pcs ?? 0),
+                                  rack: item.rack || DEFAULT_STAGING_AREA,
+                                });
+                              }}
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7 text-rose-500 hover:text-rose-700"
+                              onClick={() => handleDeleteStock(item)}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </CardContent>
           </Card>
         </TabsContent>
@@ -527,6 +776,69 @@ export default function WmsWarehouse() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Goods Issued Modal */}
+      <Dialog open={!!issueTarget} onOpenChange={(o) => !o && setIssueTarget(null)}>
+        <DialogContent className="bg-white border-[#E2E8F0] text-[#0F294A] sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Goods Issued · {issueTarget?.batch_number}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <p className="text-xs text-slate-500">
+              {issueTarget?.item_name} ({issueTarget?.item_code}) · Available:{' '}
+              {formatQtyBreakdown(Number(issueTarget?.quantity) || 0, Number(issueTarget?.pcs_per_carton) || 24)}
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <label className="text-xs text-slate-500">Cartons to Issue</label>
+                <Input type="number" min={0} value={issueCartons} onChange={(e) => setIssueCartons(e.target.value)} placeholder="0" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-slate-500">Loose Pcs to Issue</label>
+                <Input type="number" min={0} value={issueLoose} onChange={(e) => setIssueLoose(e.target.value)} placeholder="0" />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setIssueTarget(null)}>Cancel</Button>
+            <Button onClick={handleIssueStock} className="bg-[#0F294A] hover:bg-[#193B68] text-white">Confirm Issue</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Stock Item Modal */}
+      <Dialog open={!!editTarget} onOpenChange={(o) => !o && setEditTarget(null)}>
+        <DialogContent className="bg-white border-[#E2E8F0] text-[#0F294A] sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Stock · {editTarget?.batch_number}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <label className="text-xs text-slate-500">Cartons</label>
+                <Input type="number" min={0} value={editForm.carton} onChange={(e) => setEditForm({ ...editForm, carton: e.target.value })} />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-slate-500">Loose Pcs</label>
+                <Input type="number" min={0} value={editForm.loose_pcs} onChange={(e) => setEditForm({ ...editForm, loose_pcs: e.target.value })} />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-slate-500">Rack</label>
+              <SearchableSelect
+                value={editForm.rack}
+                onValueChange={(v) => setEditForm({ ...editForm, rack: v })}
+                options={rackOptions}
+                placeholder="Select rack..."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setEditTarget(null)}>Cancel</Button>
+            <Button onClick={handleSaveEditStock} className="bg-[#0F294A] hover:bg-[#193B68] text-white">Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

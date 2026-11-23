@@ -3,17 +3,45 @@ import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
-import { History, Pencil, ShieldAlert, Download, FlaskConical, Tag, Clock, Plus, Trash2 } from "lucide-react";
+import { ChefHat, Clock, Download, Pencil, Plus, Search, ShieldAlert, Tag, Trash2 } from "lucide-react";
 import RecipeDialog from "@/components/planning/RecipeDialog";
 import RecipeHistoryDialog from "@/components/planning/RecipeHistoryDialog";
-import { canEditRecipes, fmtQty, loadMaterials, loadProducts, loadRecipes } from "@/lib/planning";
+import { canEditRecipes, loadMaterials, loadProducts, loadRecipes } from "@/lib/planning";
 import { downloadCsv, todayStr } from "@/lib/warehouse";
-import { recipeFamilies, recipeVersionsFor } from "@/lib/recipeMaster";
+import { recipeFamilies } from "@/lib/recipeMaster";
 import { archiveRecipeSafely } from "@/lib/deleteIntegrity";
-import { inputClass, primaryButton, subtleButton, panelClass } from "@/components/planning/styles";
 
-// One row per recipe: the items that share it are listed together, so a change to
-// the recipe lands once for every item code that uses it.
+function inferBrand(name, products = []) {
+  const fromProd = products.find((p) => p?.brand)?.brand;
+  if (fromProd) return fromProd;
+  const upper = String(name || "").trim().toUpperCase();
+  if (upper.startsWith("CIK SURI")) return "Cik Suri";
+  if (upper.startsWith("RASTO")) return "Rasto";
+  if (upper.startsWith("DUTCHLAND")) return "Dutchland";
+  if (upper.startsWith("MONT")) return "Mont";
+  if (upper.startsWith("SONGKHLA")) return "Songkhla";
+  if (upper.startsWith("TREVOR")) return "Trevor's";
+  const firstWord = String(name || "").trim().split(/\s+/)[0] || "";
+  return firstWord ? firstWord.charAt(0).toUpperCase() + firstWord.slice(1).toLowerCase() : "—";
+}
+
+function inferPrefix(row) {
+  if (row?.active?.batch_prefix) return String(row.active.batch_prefix).toUpperCase();
+  if (row?.active?.prefix) return String(row.active.prefix).toUpperCase();
+  const fromProd = row?.products?.find((p) => p?.batch_prefix)?.batch_prefix;
+  if (fromProd) return String(fromProd).toUpperCase();
+  const words = String(row?.name || "")
+    .replace(/[^A-Za-z\s]/g, "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (words.length >= 3) {
+    return `${words[0][0]}${words[1][0]}${words[2][0]}`.toUpperCase();
+  }
+  const letters = words.join("").toUpperCase();
+  return letters.slice(0, 3) || "RCP";
+}
+
 export default function RecipeMaster() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -38,25 +66,34 @@ export default function RecipeMaster() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, []);
 
+  const allRows = recipeFamilies(recipes, products);
   const needle = search.trim().toLowerCase();
-  const rows = recipeFamilies(recipes, products).filter((row) =>
-    !needle ||
-    `${row.name} ${row.products.map((p) => `${p.product_code} ${p.product_name}`).join(" ")}`.toLowerCase().includes(needle)
+  const rows = allRows.filter(
+    (row) =>
+      !needle ||
+      `${row.name} ${inferBrand(row.name, row.products)} ${inferPrefix(row)} ${row.products
+        .map((p) => `${p.product_code} ${p.product_name}`)
+        .join(" ")}`
+        .toLowerCase()
+        .includes(needle)
   );
-  const missing = products.filter((p) => !recipeVersionsFor(recipes, p).length);
 
   const closeEdit = () => setEdit(null);
 
-  const openEdit = (row) => setEdit({
-    recipe: row.active || null,
-    versions: row.versions || [],
-    products: row.products,
-    product: row.products[0] || null,
-  });
+  const openEdit = (row) =>
+    setEdit({
+      recipe: row.active || null,
+      versions: row.versions || [],
+      products: row.products,
+      product: row.products[0] || null,
+    });
 
-  const openNew = (product = null) => setEdit({ recipe: null, versions: [], products: product ? [product] : [], product });
+  const openNew = (product = null) =>
+    setEdit({ recipe: null, versions: [], products: product ? [product] : [], product });
 
   const handleDeleteRecipe = async (row) => {
     if (!row.active?.id) return;
@@ -66,197 +103,211 @@ export default function RecipeMaster() {
       toast({ title: "Recipe archived", description: row.name });
       await load();
     } catch (err) {
-      toast({ title: "Could not delete recipe", description: err?.message || "Please try again.", variant: "destructive" });
+      toast({
+        title: "Could not delete recipe",
+        description: err?.message || "Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
-  const totalBrands = new Set(products.map((p) => p.brand).filter(Boolean)).size;
-  const avgCooking = (() => {
-    const times = rows.map((r) => Number(r.active?.cooking_time_hr || r.active?.cooking_time_hours || 0)).filter((n) => n > 0);
+  const totalBrands = useMemo(() => {
+    const set = new Set();
+    products.forEach((p) => {
+      if (p.brand) set.add(String(p.brand).trim().toLowerCase());
+    });
+    allRows.forEach((r) => {
+      const b = inferBrand(r.name, r.products);
+      if (b && b !== "—") set.add(b.toLowerCase());
+    });
+    return set.size;
+  }, [products, allRows]);
+
+  const avgCooking = useMemo(() => {
+    const times = allRows
+      .map((r) => Number(r.active?.cooking_time_hr || r.active?.cooking_time_hours || r.products?.[0]?.cooking_time_hr || 0))
+      .filter((n) => n > 0);
     return times.length ? (times.reduce((a, b) => a + b, 0) / times.length).toFixed(1) : "0.0";
-  })();
+  }, [allRows]);
 
   const exportRecipes = () => {
-    downloadCsv(`recipes-${todayStr()}.csv`, [
-      { label: "Recipe Name", value: (r) => r.name },
-      { label: "Items", value: (r) => r.products.map((p) => p.product_code).join(", ") },
-      { label: "Active Version", value: (r) => r.active?.version || "" },
-      { label: "Ingredients", value: (r) => (r.active?.ingredients || []).length },
-      { label: "Cartons / Batch", value: (r) => r.active?.batch_cartons || "" },
-      { label: "Std Yield %", value: (r) => r.active?.standard_yield_pct || "" },
-    ], rows);
+    downloadCsv(
+      `recipes-${todayStr()}.csv`,
+      [
+        { label: "Recipe Name", value: (r) => r.name },
+        { label: "Brand", value: (r) => r.active?.brand || inferBrand(r.name, r.products) },
+        { label: "Prefix", value: (r) => inferPrefix(r) },
+        { label: "Cooking Time (h)", value: (r) => r.active?.cooking_time_hr || r.products?.[0]?.cooking_time_hr || "" },
+        { label: "Batch Output (kg)", value: (r) => r.active?.batch_output_kg || r.products?.[0]?.batch_output_kg || "" },
+      ],
+      rows
+    );
   };
 
   return (
-    <div className="min-h-screen bg-[#F6F8FC] p-4 md:p-6 space-y-4">
+    <div className="min-h-screen bg-[#0b1120] text-slate-100 p-4 md:p-6 space-y-4">
+      {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-[#0F294A] text-lg font-semibold">Recipe Master</h2>
-          <p className="text-[#64748B] text-sm mt-1">Production recipes — the basis for all batch calculations.</p>
+          <h2 className="text-xl font-bold text-white">Recipe Master</h2>
+          <p className="text-slate-400 text-xs mt-1">
+            Production recipes — the basis for all batch calculations
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={exportRecipes} className={subtleButton}>
+          <Button
+            variant="outline"
+            onClick={exportRecipes}
+            className="bg-[#111827] border-[#293548] text-slate-200 hover:bg-[#1e293b]"
+          >
             <Download className="w-4 h-4 mr-1.5" /> Export
           </Button>
           {canEdit && (
-            <Button onClick={() => openNew(null)} className={primaryButton}>
-              <Plus className="w-4 h-4 mr-1.5" /> Add Recipe
+            <Button
+              onClick={() => openNew(null)}
+              className="bg-cyan-500/20 border border-cyan-400/60 text-cyan-300 hover:bg-cyan-500/30 font-semibold"
+            >
+              <Plus className="w-4 h-4 mr-1" /> Add Recipe
             </Button>
           )}
         </div>
       </div>
 
+      {/* 3 KPI Cards (Matches Picture 10) */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="rounded-xl border border-[#E2E8F0] bg-white px-4 py-3 flex items-center justify-between">
+        <div className="rounded-xl border border-[#1e293b] bg-[#111827] px-5 py-4 flex items-center justify-between">
           <div>
-            <p className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Total Recipes</p>
-            <p className="text-2xl text-[#0F294A] font-semibold mt-1">{rows.length}</p>
+            <p className="text-xs text-slate-400">Total Recipes</p>
+            <p className="text-3xl text-white font-bold mt-1">{allRows.length}</p>
           </div>
-          <FlaskConical className="w-6 h-6 text-[#1D4ED8]/70" />
+          <div className="w-11 h-11 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+            <ChefHat className="w-5 h-5" />
+          </div>
         </div>
-        <div className="rounded-xl border border-[#E2E8F0] bg-white px-4 py-3 flex items-center justify-between">
+        <div className="rounded-xl border border-[#1e293b] bg-[#111827] px-5 py-4 flex items-center justify-between">
           <div>
-            <p className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Brands</p>
-            <p className="text-2xl text-[#0F294A] font-semibold mt-1">{totalBrands}</p>
+            <p className="text-xs text-slate-400">Brands</p>
+            <p className="text-3xl text-white font-bold mt-1">{totalBrands}</p>
           </div>
-          <Tag className="w-6 h-6 text-violet-400/70" />
+          <div className="w-11 h-11 rounded-xl bg-violet-500/15 border border-violet-500/30 flex items-center justify-center text-violet-400">
+            <Tag className="w-5 h-5" />
+          </div>
         </div>
-        <div className="rounded-xl border border-[#E2E8F0] bg-white px-4 py-3 flex items-center justify-between">
+        <div className="rounded-xl border border-[#1e293b] bg-[#111827] px-5 py-4 flex items-center justify-between">
           <div>
-            <p className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Avg Cooking (h)</p>
-            <p className="text-2xl text-[#0F294A] font-semibold mt-1">{avgCooking}</p>
+            <p className="text-xs text-slate-400">Avg Cooking (h)</p>
+            <p className="text-3xl text-white font-bold mt-1">{avgCooking}</p>
           </div>
-          <Clock className="w-6 h-6 text-amber-700/70" />
+          <div className="w-11 h-11 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
+            <Clock className="w-5 h-5" />
+          </div>
         </div>
       </div>
 
       {!canEdit && (
-        <div className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-3 flex items-center gap-2">
-          <ShieldAlert className="w-4 h-4 text-[#1D4ED8]" />
-          <p className="text-xs text-[#64748B]">Only Admin and QA can edit recipes. You can still read every version.</p>
+        <div className="rounded-xl border border-[#1e293b] bg-[#111827] px-4 py-3 flex items-center gap-2">
+          <ShieldAlert className="w-4 h-4 text-cyan-400" />
+          <p className="text-xs text-slate-400">Read-only view.</p>
         </div>
       )}
 
-      <div className={`${panelClass} p-3`}>
-        <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search recipe or Item Code" className={inputClass} />
+      {/* Search bar */}
+      <div className="relative max-w-md">
+        <Search className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search recipe name, brand, or prefix..."
+          className="pl-9 bg-[#111827] border-[#1e293b] text-slate-100 placeholder:text-slate-500"
+        />
       </div>
 
+      {/* Table (Matches Picture 10: Recipe Name | Brand | Prefix | Cooking Time (h) | Batch Output (kg) | Actions) */}
       {loading ? (
         <div className="flex justify-center py-12">
-          <div className="w-8 h-8 border-4 border-[#E2E8F0] border-t-[#0F294A] rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-slate-700 border-t-cyan-400 rounded-full animate-spin" />
         </div>
       ) : (
-        <div className={`${panelClass} overflow-x-auto`}>
-          <table className="w-full text-sm">
+        <div className="rounded-xl border border-[#1e293b] bg-[#111827] overflow-x-auto">
+          <table className="w-full text-xs">
             <thead>
-              <tr className="text-[10px] uppercase tracking-widest text-[#64748B] border-b border-[#E2E8F0]">
-                <th className="text-left font-semibold px-3 py-2">Recipe</th>
-                <th className="text-left font-semibold px-3 py-2">Items</th>
-                <th className="text-left font-semibold px-3 py-2">Active</th>
-                <th className="text-right font-semibold px-3 py-2">Ingredients</th>
-                <th className="text-right font-semibold px-3 py-2">Cartons / Batch</th>
-                <th className="text-right font-semibold px-3 py-2">Std Yield %</th>
-                <th className="text-left font-semibold px-3 py-2">Last Saved</th>
-                <th className="px-3 py-2" />
+              <tr className="text-slate-400 border-b border-[#1e293b] bg-[#0b1120]/50">
+                <th className="text-left font-semibold px-4 py-3">Recipe Name</th>
+                <th className="text-left font-semibold px-4 py-3">Brand</th>
+                <th className="text-left font-semibold px-4 py-3">Prefix</th>
+                <th className="text-right font-semibold px-4 py-3">Cooking Time (h)</th>
+                <th className="text-right font-semibold px-4 py-3">Batch Output (kg)</th>
+                <th className="text-right font-semibold px-4 py-3">Actions</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-[#1e293b]">
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-3 py-8 text-center text-[#64748B]">
-                    {recipes.length === 0 ? "No recipes yet. Add items in Product Master first." : "No recipes match this search."}
+                  <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
+                    {recipes.length === 0 ? "No recipes yet. Click '+ Add Recipe' to create one." : "No recipes match this search."}
                   </td>
                 </tr>
               ) : (
-                rows.map((row) => (
-                  <tr key={row.key} className="border-b border-[#E2E8F0] hover:bg-[#F1F5F9]">
-                    <td className="px-3 py-2 text-[#0F294A] font-semibold max-w-[240px] truncate" title={row.name}>{row.name || "—"}</td>
-                    <td className="px-3 py-2">
-                      <div className="flex flex-wrap gap-1 max-w-[240px]">
-                        {row.products.map((p) => (
-                          <span key={p.id} className="text-[10px] px-1.5 py-0.5 rounded bg-[#EBF3FF] text-[#1D4ED8] border border-[#BFD7FF] whitespace-nowrap">
-                            {p.product_code}
-                          </span>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="px-3 py-2 whitespace-nowrap">
-                      {row.active ? (
-                        <span className="text-emerald-700 font-medium">v{row.active.version}</span>
-                      ) : (
-                        <span className="text-[#64748B]">No recipe</span>
-                      )}
-                    </td>
-                    <td className="px-3 py-2 text-right text-[#64748B]">{row.active ? (row.active.ingredients || []).length : "—"}</td>
-                    <td className="px-3 py-2 text-right text-[#64748B]">{row.active ? fmtQty(row.active.batch_cartons) : "—"}</td>
-                    <td className="px-3 py-2 text-right text-[#64748B]">{row.active?.standard_yield_pct ? fmtQty(row.active.standard_yield_pct) : "—"}</td>
-                    <td className="px-3 py-2 text-[#64748B] whitespace-nowrap">
-                      {row.active ? `${row.active.created_by || "—"} · ${(row.active.created_date || "").slice(0, 10)}` : "—"}
-                    </td>
-                    <td className="px-3 py-2">
-                      <div className="flex items-center justify-end gap-1">
-                        {row.versions.length > 0 && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setHistory({ name: row.name, products: row.products, versions: row.versions })}
-                            className="text-[#64748B] hover:text-[#1D4ED8] hover:bg-[#EBF3FF]"
-                            title="Version history"
-                          >
-                            <History className="w-4 h-4" />
-                          </Button>
-                        )}
+                rows.map((row) => {
+                  const brand = row.active?.brand || inferBrand(row.name, row.products);
+                  const prefix = inferPrefix(row);
+                  const cookTime = Number(row.active?.cooking_time_hr || row.active?.cooking_time_hours || row.products?.[0]?.cooking_time_hr || 0);
+                  const batchOutput = Number(row.active?.batch_output_kg || row.products?.[0]?.batch_output_kg || 0);
+                  return (
+                    <tr key={row.key} className="hover:bg-[#1e293b]/40">
+                      <td className="px-4 py-3 text-white font-bold uppercase tracking-wide">
+                        {row.name || "—"}
+                      </td>
+                      <td className="px-4 py-3 text-slate-300">
+                        {brand}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="inline-block px-2.5 py-0.5 rounded-md bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 font-mono text-[11px] font-semibold">
+                          {prefix}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right text-slate-200 font-medium">
+                        {cookTime > 0 ? cookTime : "—"}
+                      </td>
+                      <td className="px-4 py-3 text-right text-cyan-400 font-bold">
+                        {batchOutput > 0 ? batchOutput : "—"}
+                      </td>
+                      <td className="px-4 py-3 text-right whitespace-nowrap">
                         {canEdit && (
-                          <>
-                            <Button
-                              variant={row.active ? "ghost" : "outline"}
-                              size={row.active ? "icon" : "sm"}
+                          <div className="inline-flex items-center justify-end gap-2">
+                            <button
+                              type="button"
                               onClick={() => openEdit(row)}
-                              className={row.active ? "text-[#64748B] hover:text-[#1D4ED8] hover:bg-[#EBF3FF]" : subtleButton}
-                              title={row.active ? "New version / Edit" : "Create recipe"}
+                              className="p-1.5 rounded text-slate-400 hover:text-cyan-300 hover:bg-[#1e293b]"
+                              title="Edit recipe"
                             >
-                              {row.active ? <Pencil className="w-4 h-4" /> : "Create recipe"}
-                            </Button>
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
                             {row.active && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
+                              <button
+                                type="button"
                                 onClick={() => handleDeleteRecipe(row)}
-                                className="text-[#64748B] hover:text-rose-600 hover:bg-rose-600/10"
+                                className="p-1.5 rounded text-slate-400 hover:text-rose-400 hover:bg-[#1e293b]"
                                 title="Delete recipe"
                               >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
                             )}
-                          </>
+                          </div>
                         )}
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
       )}
 
-      {canEdit && missing.length > 0 && (
-        <div className={`${panelClass} p-3 space-y-2`}>
-          <p className="text-[10px] uppercase tracking-widest text-[#64748B]">Items with no recipe ({missing.length})</p>
-          <div className="flex flex-wrap gap-2">
-            {missing.map((p) => (
-              <button
-                key={p.id}
-                onClick={() => openNew(p)}
-                className="text-xs px-2 py-1 rounded border border-[#E2E8F0] text-[#64748B] hover:border-[#BFD7FF] hover:text-[#1D4ED8]"
-                title={p.product_name}
-              >
-                {p.product_code} · add recipe
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+      <p className="text-xs text-slate-400">
+        Showing {rows.length} of {allRows.length} recipes
+      </p>
 
       {edit && (
         <RecipeDialog
@@ -268,7 +319,10 @@ export default function RecipeMaster() {
           versions={edit.versions}
           allRecipes={recipes}
           materials={materials}
-          onSaved={async () => { closeEdit(); await load(); }}
+          onSaved={async () => {
+            closeEdit();
+            await load();
+          }}
         />
       )}
 

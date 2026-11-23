@@ -136,7 +136,14 @@ export default function AddRecordDialog({ open, onOpenChange, title, fields, onS
                 </div>
               ) : (
                 <>
-                  <Label htmlFor={f.key} className="text-xs text-[#64748B]">{f.label}</Label>
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor={f.key} className="text-xs text-[#64748B]">{f.label}</Label>
+                    {f.badge && (
+                      <span className="px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-700 border border-cyan-500/30 text-[10px] font-semibold">
+                        {f.badge}
+                      </span>
+                    )}
+                  </div>
                   {f.type === "product" ? (
                     <ProductPicker products={link.products} value={values.product_id} onChange={pickProduct} />
                   ) : f.type === "batch" ? (
@@ -144,7 +151,7 @@ export default function AddRecordDialog({ open, onOpenChange, title, fields, onS
                       id={f.key}
                       value={values[f.key] || ""}
                       onChange={(e) => set(f.key, e.target.value.toUpperCase())}
-                      placeholder={`Enter ${f.label}`}
+                      placeholder={f.placeholder || `Enter ${f.label}`}
                       required={f.required}
                       className="bg-white border-[#E2E8F0] text-[#0F294A]"
                     />
@@ -153,19 +160,24 @@ export default function AddRecordDialog({ open, onOpenChange, title, fields, onS
                       id={f.key}
                       value={values[f.key] || ""}
                       onChange={(e) => set(f.key, e.target.value)}
-                      placeholder={`Enter ${f.label}`}
+                      placeholder={f.placeholder || `Enter ${f.label}`}
                       required={f.required}
                       className="bg-white border-[#E2E8F0] text-[#0F294A]"
                     />
                   ) : f.type === "line" ? (
-                    <Input
-                      id={f.key}
-                      value={values[f.key] || ""}
-                      onChange={(e) => set(f.key, e.target.value)}
-                      placeholder={`Enter ${f.label}`}
-                      required={f.required}
-                      className="bg-white border-[#E2E8F0] text-[#0F294A]"
-                    />
+                    <Select value={values[f.key] || undefined} onValueChange={(v) => set(f.key, v)}>
+                      <SelectTrigger id={f.key} className="bg-white border-[#E2E8F0] text-[#0F294A]">
+                        <SelectValue placeholder={`Select ${f.label}`} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[...new Set([
+                          ...(Array.isArray(f.options) ? f.options : []),
+                          ...machines.map((m) => (typeof m === "string" ? m : m?.value || m?.name || "")).filter(Boolean),
+                        ])].map((lineOpt) => (
+                          <SelectItem key={lineOpt} value={lineOpt}>{lineOpt}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   ) : f.type === "select" ? (
                     <Select value={values[f.key] || undefined} onValueChange={(v) => set(f.key, v)}>
                       <SelectTrigger id={f.key} className="bg-white border-[#E2E8F0] text-[#0F294A]">
@@ -193,6 +205,7 @@ export default function AddRecordDialog({ open, onOpenChange, title, fields, onS
                       id={f.key}
                       value={values[f.key]}
                       onChange={(e) => set(f.key, e.target.value)}
+                      placeholder={f.placeholder || ""}
                       required={f.required}
                       className="bg-white border-[#E2E8F0] text-[#0F294A] min-h-[70px]"
                     />
@@ -203,6 +216,7 @@ export default function AddRecordDialog({ open, onOpenChange, title, fields, onS
                       step={f.type === "number" ? "any" : undefined}
                       value={values[f.key] ?? ""}
                       onChange={(e) => set(f.key, e.target.value)}
+                      placeholder={f.placeholder || ""}
                       required={f.required}
                       className="bg-white border-[#E2E8F0] text-[#0F294A]"
                     />

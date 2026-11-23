@@ -17,7 +17,7 @@ export default function useProductionData() {
   const [loading, setLoading] = useState(true);
 
   const reload = useCallback(async () => {
-    const [orders, products, machines, recipes, packagingItems, receipts, settings] = await Promise.all([
+    const [orders, products, rawMachines, recipes, packagingItems, receipts, settings] = await Promise.all([
       loadOrders(),
       loadProducts(),
       loadMachines(),
@@ -26,6 +26,36 @@ export default function useProductionData() {
       loadReceipts(),
       loadProductionSettings(),
     ]);
+    // Merge Machine (Tank) values from Master Data Sheet (products) and orders into machines list
+    const machineMap = new Map();
+    (rawMachines || []).forEach((m) => {
+      if (m?.name) machineMap.set(String(m.name).trim(), m);
+    });
+    (products || []).forEach((p) => {
+      const tankName = String(p?.default_machine || p?.machine_tank || p?.machine || "").trim();
+      if (tankName && !machineMap.has(tankName)) {
+        machineMap.set(tankName, {
+          id: `tank-${tankName}`,
+          name: tankName,
+          location: p?.line_type || "Plant 1",
+          capacity_cph: 300,
+          status: "Active",
+        });
+      }
+    });
+    (orders || []).forEach((o) => {
+      const tankName = String(o?.machine || "").trim();
+      if (tankName && !machineMap.has(tankName)) {
+        machineMap.set(tankName, {
+          id: `tank-${tankName}`,
+          name: tankName,
+          location: "Plant 1",
+          capacity_cph: Number(o?.capacity_cph) || 300,
+          status: "Active",
+        });
+      }
+    });
+    const machines = Array.from(machineMap.values()).sort((a, b) => String(a.name).localeCompare(String(b.name)));
     setData({ orders, products, machines, recipes, packagingItems, receipts, settings });
     setLoading(false);
   }, []);

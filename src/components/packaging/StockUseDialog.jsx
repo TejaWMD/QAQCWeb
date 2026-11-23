@@ -55,7 +55,7 @@ export default function StockUseDialog({ open, item, user, threshold = 0, onClos
         <DialogHeader>
           <DialogTitle className="text-[#0F294A]">Use stock</DialogTitle>
           <DialogDescription className="text-[#64748B] text-sm">
-            {item ? `${item.item_code} · available ${fmtQty(available)} ${item.unit || ""}` : ""}
+            {item ? `${item.description || item.item_code} · available ${fmtQty(available)} ${item.unit || ""}` : ""}
           </DialogDescription>
         </DialogHeader>
 
@@ -74,9 +74,6 @@ export default function StockUseDialog({ open, item, user, threshold = 0, onClos
           </div>
         </div>
 
-        {chosen?.expiry_date && (
-          <p className="text-[11px] text-emerald-700">Suggested by earliest expiry (FEFO): batch {chosen.batch_number} · {chosen.expiry_date}</p>
-        )}
         {needsApproval && (
           <p className="text-[11px] text-amber-700">
             {fmtQty(qty)} is above the {fmtQty(threshold)} approval threshold — this issue will be sent to approvals instead of being deducted.

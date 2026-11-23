@@ -4,6 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { Timer, DollarSign, Users } from "lucide-react";
 import { groupByDate, formatDateHeader } from "@/lib/logGrouping";
 import { otHoursAfterFive, timeOfDay } from "@/lib/otCalculations";
+import { otWindowStart, syncOvertimeFromOperationLogs } from "@/services/shiftLogService";
 import OTSpendTrendChart from "@/components/otlog/OTSpendTrendChart";
 import OTSpendByLineChart from "@/components/overtime/OTSpendByLineChart";
 import WorkforceQuadrantChart from "@/components/overtime/WorkforceQuadrantChart";
@@ -18,6 +19,7 @@ export default function OvertimeRecord() {
   const loadLogs = async (silent = false) => {
     if (!silent) setLoading(true);
     try {
+      await syncOvertimeFromOperationLogs();
       const query = batchFilter ? { record_batch: batchFilter } : {};
       // Read OTLog and also include any OperationLog with hours after 5 PM that wasn't mirrored yet.
       const [otRes, opRes] = await Promise.all([
@@ -35,13 +37,14 @@ export default function OvertimeRecord() {
       ];
 
       const mapped = combined.map((l) => {
-        const start = l.ot_start ? timeOfDay(l.ot_start) : timeOfDay(l.start_time) || "";
+        const rawStart = l.ot_start ? timeOfDay(l.ot_start) : timeOfDay(l.start_time) || "";
         const end = l.ot_end ? timeOfDay(l.ot_end) : timeOfDay(l.end_time) || "";
-        const calcOt = Number(otHoursAfterFive(start, end).toFixed(2));
+        const winStart = otWindowStart(rawStart) || rawStart;
+        const calcOt = Number(otHoursAfterFive(winStart, end).toFixed(2));
         return {
           ...l,
           shift_date: l.ot_date,
-          start_time: start,
+          start_time: winStart,
           end_time: end,
           break_duration: 0,
           ot_duration_hours: calcOt > 0 ? calcOt : Number(l.ot_duration_hours || 0),
@@ -58,7 +61,11 @@ export default function OvertimeRecord() {
   // Live pipeline: an overtime correction or shift log change lands here at once.
   useEffect(() => {
     const reload = () => loadLogs(true);
-    const unsubscribes = [base44.entities.OTLog.subscribe(reload)];
+    const unsubscribes = [
+      base44.entities.OTLog.subscribe(reload),
+      base44.entities.OperationLog.subscribe(reload),
+      base44.entities.ShiftLog.subscribe(reload),
+    ];
     return () => unsubscribes.forEach((unsubscribe) => { if (typeof unsubscribe === "function") unsubscribe(); });
   }, [batchFilter]);
 

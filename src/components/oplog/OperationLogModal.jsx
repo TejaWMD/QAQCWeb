@@ -48,6 +48,16 @@ const defaultForm = {
   record_batch: "current",
 };
 
+const toLocalDatetimeInput = (val) => {
+  if (!val) return "";
+  const str = String(val).trim();
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(str)) return str;
+  const d = new Date(str);
+  if (Number.isNaN(d.getTime())) return str.substring(0, 16);
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+
 export default function OperationLogModal({ open, onClose, onSave, editData }) {
   const [formData, setFormData] = useState(defaultForm);
   const [opts, setOpts] = useState({ lines: [], products: [], users: [] });
@@ -68,8 +78,8 @@ export default function OperationLogModal({ open, onClose, onSave, editData }) {
           actual_good_output: editData.actual_good_output ?? "",
           rejected_wasted_qty: editData.rejected_wasted_qty ?? "",
           downtime_min: editData.downtime_min ?? "",
-          ot_start: editData.ot_start ? editData.ot_start.substring(0, 16) : "",
-          ot_end: editData.ot_end ? editData.ot_end.substring(0, 16) : "",
+          ot_start: toLocalDatetimeInput(editData.ot_start),
+          ot_end: toLocalDatetimeInput(editData.ot_end),
         });
       } else {
         setFormData(defaultForm);

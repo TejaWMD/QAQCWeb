@@ -13,14 +13,14 @@ export const CUSTOM_LAYOUT_ID = "custom";
 // the font size in points. Admin can change any of these in Label Settings.
 export const DEFAULT_LAYOUTS = [
   { id: "default", name: "Default", width_mm: 100, height_mm: 60, font_size: 8, qr_mm: 18, qr_ecc: "M" },
+  { id: "qr13_m", name: "QR 13mm (EC-M)", width_mm: 70, height_mm: 50, font_size: 7, qr_mm: 13, qr_ecc: "M" },
   { id: "tall_default", name: "Tall Default", width_mm: 80, height_mm: 100, font_size: 8, qr_mm: 20, qr_ecc: "M" },
-  { id: "70x50", name: "70 x 50 mm", width_mm: 70, height_mm: 50, font_size: 7, qr_mm: 14, qr_ecc: "M" },
-  { id: "50x80", name: "50 x 80 mm", width_mm: 50, height_mm: 80, font_size: 6.5, qr_mm: 13, qr_ecc: "M" },
+  { id: "qr13_l", name: "QR 13mm (EC-L)", width_mm: 70, height_mm: 50, font_size: 7, qr_mm: 13, qr_ecc: "L" },
+  { id: "50x80", name: "Draft A 19/10/26 (50×80)", width_mm: 50, height_mm: 80, font_size: 6.5, qr_mm: 13, qr_ecc: "M" },
   { id: "premium_default", name: "Premium Default", width_mm: 100, height_mm: 70, font_size: 9, qr_mm: 22, qr_ecc: "Q" },
-  { id: "qr13_m", name: "QR 13 mm ECC M", width_mm: 70, height_mm: 50, font_size: 7, qr_mm: 13, qr_ecc: "M" },
-  { id: "qr13_l", name: "QR 13 mm ECC L", width_mm: 70, height_mm: 50, font_size: 7, qr_mm: 13, qr_ecc: "L" },
-  { id: "70x50_qr24", name: "70 x 50 mm 24 mm QR", width_mm: 70, height_mm: 50, font_size: 6.5, qr_mm: 24, qr_ecc: "M" },
-  { id: CUSTOM_LAYOUT_ID, name: "Custom Manual", width_mm: 70, height_mm: 50, font_size: 7, qr_mm: 14, qr_ecc: "M" },
+  { id: "70x50", name: "70 × 50 mm", width_mm: 70, height_mm: 50, font_size: 7, qr_mm: 14, qr_ecc: "M" },
+  { id: "70x50_qr24", name: "70 × 50 mm (24mm QR)", width_mm: 70, height_mm: 50, font_size: 6.5, qr_mm: 24, qr_ecc: "M" },
+  { id: CUSTOM_LAYOUT_ID, name: "Custom (Manual)", width_mm: 70, height_mm: 50, font_size: 7, qr_mm: 14, qr_ecc: "M" },
 ];
 
 // Changing the label layouts is an Admin job.
@@ -126,12 +126,21 @@ export const fmtDay = (dateStr) => {
 export const traceUrlFor = (batchNumber) =>
   `${window.location.origin}/traceability?batch=${encodeURIComponent(batchNumber || "")}`;
 
-export const batchQrPayload = ({ productCode, productName, batchNumber, expiryDate } = {}) => {
-  const code = String(productCode || "").trim();
-  const desc = String(productName || "").trim();
+export const batchQrPayload = ({ productCode, productName, batchNumber, productionDate, expiryDate, cartonBarcode } = {}) => {
+  const barcode = String(cartonBarcode || "").trim();
   const batch = String(batchNumber || "").trim().toUpperCase();
-  const exp = expiryDate ? fmtDay(expiryDate) : "";
-  return [code, desc, batch, exp === "—" ? "" : exp].filter(Boolean).join("|");
+  const desc = String(productName || "").trim();
+  const code = String(productCode || "").trim();
+  const prod = productionDate ? String(productionDate).slice(0, 10) : "";
+  const exp = expiryDate ? String(expiryDate).slice(0, 10) : "";
+  return [
+    /^\d{8,14}$/.test(barcode) ? barcode : "",
+    batch,
+    desc,
+    code,
+    prod,
+    exp,
+  ].filter(Boolean).join(" | ");
 };
 
 export const qrImageUrl = (payload, ecc = "M", sizePx = 420) =>

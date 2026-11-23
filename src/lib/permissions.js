@@ -48,9 +48,9 @@ export const isAdminUser = (user) => user?.role === "admin" || user?.role === "s
 // FactoryOps roles. A role grants a fixed preset of modules; members without a
 // role keep whatever modules were assigned to them individually.
 export const APP_ROLES = [
-  { key: "operator", label: "Operator / Line Leader", preset: ["shift_log", "downtime", "qa_haccp", "production_orders", "production_schedule", "create_batch", "batch_records", "yield_loss"] },
+  { key: "operator", label: "Operator / Line Leader", preset: ["shift_log", "downtime", "production_orders", "production_schedule", "create_batch", "batch_records", "yield_loss"] },
   { key: "supervisor", label: "Supervisor", preset: ["task_matrix", "shift_log", "downtime", "product_master", "production_orders", "production_schedule", "create_batch", "batch_records", "yield_loss"] },
-  { key: "qa_officer", label: "QA Officer", preset: ["qa_haccp", "capa_tracker", "product_master", "recipe_master", "yield_loss"] },
+  { key: "qa_officer", label: "QA Officer", preset: ["qa_haccp", "task_matrix", "capa_tracker", "product_master", "recipe_master", "yield_loss"] },
   { key: "warehouse_staff", label: "Warehouse Staff", preset: ["wms_warehouse", "packaging_stock"] },
   { key: "warehouse_supervisor", label: "Warehouse Supervisor", preset: ["wms_warehouse", "packaging_stock", "packaging_movements", "packaging_approvals"] },
   { key: "sales", label: "Sales Team", preset: ["capa_tracker"] },

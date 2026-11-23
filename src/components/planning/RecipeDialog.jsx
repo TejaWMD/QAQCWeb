@@ -21,6 +21,8 @@ export default function RecipeDialog({ open, onClose, recipe, product, products 
   const { toast } = useToast();
   const [form, setForm] = useState({
     recipe_name: "",
+    brand: "",
+    batch_prefix: "",
     cooking_time_hr: "",
     batch_output_kg: "",
     batch_cartons: "",
@@ -47,6 +49,8 @@ export default function RecipeDialog({ open, onClose, recipe, product, products 
     setError("");
     setForm({
       recipe_name: defaultName,
+      brand: recipe?.brand || product?.brand || "",
+      batch_prefix: recipe?.batch_prefix || recipe?.prefix || product?.batch_prefix || "",
       cooking_time_hr: recipe?.cooking_time_hr ?? product?.cooking_time_hr ?? "",
       batch_output_kg: recipe?.batch_output_kg ?? product?.batch_output_kg ?? "",
       batch_cartons: recipe?.batch_cartons ?? product?.standard_batch_cartons ?? "",
@@ -124,6 +128,12 @@ export default function RecipeDialog({ open, onClose, recipe, product, products 
               searchPlaceholder="Search recipe..."
               allowCustom
             />
+          </Field>
+          <Field label="Brand">
+            <Input value={form.brand} onChange={(e) => set("brand", e.target.value)} className={inputClass} placeholder="e.g. Cik Suri" />
+          </Field>
+          <Field label="Prefix (Batch Prefix)">
+            <Input value={form.batch_prefix} onChange={(e) => set("batch_prefix", e.target.value.toUpperCase().slice(0, 6))} className={inputClass} placeholder="e.g. CPA" />
           </Field>
           <Field label="Cooking Time (hr)">
             <Input type="number" min="0" step="0.25" value={form.cooking_time_hr} onChange={(e) => set("cooking_time_hr", e.target.value)} className={inputClass} placeholder="e.g. 2.0" />

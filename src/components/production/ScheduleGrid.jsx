@@ -73,7 +73,7 @@ export default function ScheduleGrid({ machines = [], orders = [], dateStr, onOp
   if (!machines.length) {
     return (
       <div className="rounded-xl border border-[#E2E8F0] bg-white px-4 py-10 text-center text-sm text-[#64748B]">
-        No machines for this location. Add them on the Machines page.
+        No Machine (Tank) entries found for this location. Machine (Tank) columns are populated from Product Master.
       </div>
     );
   }
@@ -81,8 +81,10 @@ export default function ScheduleGrid({ machines = [], orders = [], dateStr, onOp
   return (
     <div className="rounded-xl border border-[#E2E8F0] bg-white overflow-auto max-h-[72vh]">
       <div className="flex min-w-max">
-        <div className="w-14 shrink-0 sticky left-0 z-30 bg-white border-r border-[#E2E8F0]">
-          <div className="h-11 sticky top-0 z-30 bg-[#F8FAFC] border-b border-[#E2E8F0]" />
+        <div className="w-24 shrink-0 sticky left-0 z-30 bg-white border-r border-[#E2E8F0]">
+          <div className="h-11 sticky top-0 z-30 bg-[#F8FAFC] border-b border-[#E2E8F0] px-2 flex items-center">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#64748B]">Machine (Tank)</span>
+          </div>
           <div className="relative" style={{ height: TOTAL_PX }}>
             {HOURS.map((h) => (
               <div key={h} className="absolute left-0 right-0 border-t border-[#E2E8F0]" style={{ top: h * HOUR_PX }}>

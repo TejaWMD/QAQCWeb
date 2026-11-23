@@ -58,7 +58,7 @@ const calcUpm = (start, end, actual) => {
   return h > 0 ? (Number(actual) || 0) / h / 60 : 0;
 };
 
-export default function ShiftLogDraft() {
+export default function ShiftLogDraft({ onSavedTab } = {}) {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
@@ -152,14 +152,17 @@ export default function ShiftLogDraft() {
     const [eh, em] = end.split(":").map(Number);
     const sMin = sh * 60 + sm;
     const eMin = eh * 60 + em;
-    if (eMin <= sMin) return Math.max(0, 1440 - Math.max(sMin, OT_START)) / 60;
+    if (eMin <= sMin) {
+      const beforeMidnight = Math.max(0, 1440 - Math.max(sMin, OT_START));
+      return (beforeMidnight + eMin) / 60;
+    }
     if (eMin <= OT_START) return 0;
     return (eMin - Math.max(sMin, OT_START)) / 60;
   };
   const otHours = timeRows.reduce((s, r) => s + calcOtHours(r.start, r.end), 0);
   const otManHours = otHours * (Number(form.staff_count) || 0);
   const otSpend = otManHours * form.hourly_ot_rate;
-  const latestEnd = timeRows.map((r) => r.end).filter(Boolean).sort().pop() || "";
+  const latestEnd = timeRows.filter((r) => r.end).slice(-1)[0]?.end || "";
 
   const totalDowntime = downtimeRows.reduce((s, r) => s + calcMinutes(r.start, r.end), 0);
   const totalWaste = wasteComponents.reduce((s, c) => s + (Number(form[`${c.key}_waste`]) || 0), 0);
@@ -290,7 +293,14 @@ export default function ShiftLogDraft() {
           ? `${form.production_line} — ${form.shift_date} → ${synced.join(", ")} record${synced.length > 1 ? "s" : ""}`
           : `${form.production_line} — ${form.shift_date}`
       });
-      navigate("/");
+      if (typeof onSavedTab === "function") {
+        onSavedTab("operation_record");
+      } else {
+        try {
+          localStorage.setItem("production_line_logs_active_tab", "operation_record");
+        } catch { /* ignore */ }
+        navigate("/production-line-logs");
+      }
     } catch (e) {
       toast({ title: "Save failed", description: e.message, variant: "destructive" });
     } finally {

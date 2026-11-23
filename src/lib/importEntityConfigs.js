@@ -1,7 +1,4 @@
-// Field configurations for the One-Time Historical CSV Import.
-// Only Operation Output and Wastage Record need historical one-time import;
-// Master Data is imported/edited in Product Master, Overtime is auto-computed
-// from Operation/Shift records, and daily entries go through Daily Line Entry.
+// Field configurations for CSV Data Import with destination routing.
 
 const PACKAGING_MATERIALS = [
   "bottle", "jar", "plastic", "pouch", "foil", "cup", "tub", "cap", "lid",
@@ -15,7 +12,7 @@ export const IMPORT_ENTITY_CONFIGS = [
   {
     entity: "OperationLog",
     label: "Operation Record",
-    tabLabel: "Operation Record (One-Time)",
+    tabLabel: "Operation Record",
     required: ["ot_date", "production_line", "product_sku"],
     dedupKey: (r) =>
       [
@@ -51,9 +48,37 @@ export const IMPORT_ENTITY_CONFIGS = [
     ],
   },
   {
+    entity: "OTLog",
+    label: "Overtime Record",
+    tabLabel: "Overtime Record",
+    required: ["ot_date", "production_line", "product_name"],
+    dedupKey: (r) =>
+      [
+        datePart(r.ot_date),
+        cleanStr(r.production_line),
+        cleanStr(r.product_name || r.product_sku),
+        String(r.start_time || r.ot_start || "").slice(0, 16),
+        Number(r.ot_duration_hours) || 0,
+      ].join("|"),
+    fields: [
+      { key: "ot_date", type: "date", aliases: ["date", "shift date"] },
+      { key: "production_line", type: "text", aliases: ["line", "production line"] },
+      { key: "product_name", type: "text", aliases: ["product", "product name", "product / sku"] },
+      { key: "batch_number", type: "text", aliases: ["batch", "batch number"] },
+      { key: "pcs_per_carton", type: "number", aliases: ["pcs / carton", "pcs per carton"] },
+      { key: "planned_cartons", type: "number", aliases: ["planned cartons"] },
+      { key: "staff_count", type: "number", aliases: ["staff", "staff count"] },
+      { key: "staff_name", type: "text", aliases: ["names", "name", "staff name"] },
+      { key: "start_time", type: "text", aliases: ["start", "start time"] },
+      { key: "end_time", type: "text", aliases: ["end", "end time"] },
+      { key: "ot_duration_hours", type: "number", aliases: ["ot hrs", "ot hours", "ot duration"] },
+      { key: "hourly_ot_rate", type: "number", aliases: ["ot rate", "hourly ot rate"] },
+    ],
+  },
+  {
     entity: "WastageLog",
     label: "Wastage Record",
-    tabLabel: "Wastage Record (One-Time)",
+    tabLabel: "Wastage Record",
     required: ["date", "product_name"],
     dedupKey: (r) =>
       [
@@ -76,6 +101,40 @@ export const IMPORT_ENTITY_CONFIGS = [
         type: "number",
         aliases: [m.replace(/_/g, " "), `${m.replace(/_/g, " ")} waste`],
       })),
+    ],
+  },
+  {
+    entity: "BaselineCapacity",
+    label: "Baseline Capacity",
+    tabLabel: "Baseline Capacity",
+    required: ["product_name", "packing_line_code"],
+    dedupKey: (r) => [cleanStr(r.product_name), cleanStr(r.packing_line_code)].join("|"),
+    fields: [
+      { key: "product_name", type: "text", aliases: ["product", "product name"] },
+      { key: "packing_line_code", type: "text", aliases: ["line", "line code", "packing line"] },
+      { key: "thermal_state", type: "text", aliases: ["thermal state"] },
+      { key: "line_setup", type: "text", aliases: ["line setup", "setup"] },
+      { key: "manpower_req", type: "number", aliases: ["manpower", "staff"] },
+      { key: "unit_per_minute", type: "number", aliases: ["upm", "unit per minute"] },
+      { key: "theoretical_uph", type: "number", aliases: ["theoretical uph"] },
+      { key: "adjusted_uph", type: "number", aliases: ["adjusted uph"] },
+    ],
+  },
+  {
+    entity: "PackagingItem",
+    label: "Packaging Stock",
+    tabLabel: "Packaging Stock",
+    required: ["item_code"],
+    dedupKey: (r) => cleanStr(r.item_code || r.description),
+    fields: [
+      { key: "item_code", type: "text", aliases: ["item code", "code"] },
+      { key: "description", type: "text", aliases: ["description", "item name", "name"] },
+      { key: "category", type: "text", aliases: ["category"] },
+      { key: "quantity", type: "number", aliases: ["quantity", "qty", "current stock"] },
+      { key: "unit", type: "text", aliases: ["unit", "uom"] },
+      { key: "min_level", type: "number", aliases: ["minimum level", "min", "min level", "safety stock"] },
+      { key: "default_rack", type: "text", aliases: ["rack", "default rack"] },
+      { key: "supplier", type: "text", aliases: ["supplier"] },
     ],
   },
 ];

@@ -5,29 +5,36 @@ import { useAuth } from "@/lib/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { SearchableSelect } from "@/components/ui/searchable-select";
-import { AlertTriangle, ArrowLeft, Download, Printer, Settings, Star } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { AlertTriangle, ArrowLeft, Barcode, Box, Download, LayoutGrid, Printer, QrCode, Save, Settings } from "lucide-react";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
 import ProductPicker from "@/components/labels/ProductPicker";
-import LayoutPicker from "@/components/labels/LayoutPicker";
-import LabelPreview from "@/components/labels/LabelPreview";
 import LabelPrintSheet from "@/components/labels/LabelPrintSheet";
 import LabelSettingsDialog from "@/components/labels/LabelSettingsDialog";
-import { loadProducts, loadRecipes, num } from "@/lib/planning";
-import { loadProductionOrderOptions } from "@/lib/masterOptions";
-import { recipeOf } from "@/lib/productLinks";
+import { loadProducts, num } from "@/lib/planning";
 import { labelBlock } from "@/lib/productMaster";
-import { fmtQty } from "@/lib/production";
 import { actingUserName, isAdminUser } from "@/lib/permissions";
 import {
-  barcodeImageUrl, batchQrPayload, canEditLabelSettings, duplicateOf, expiryFor, fmtDay, loadBatchRecords, loadLabelSettings, logLabelAudit, normalizeBatch,
-  qrImageUrl, resolveLayout, saveDefaultLayoutForProduct, shelfLifeMonthsFromDays, traceUrlFor,
+  DEFAULT_LAYOUTS,
+  barcodeImageUrl,
+  batchQrPayload,
+  canEditLabelSettings,
+  duplicateOf,
+  expiryFor,
+  fmtDay,
+  loadBatchRecords,
+  loadLabelSettings,
+  logLabelAudit,
+  normalizeBatch,
+  qrImageUrl,
+  resolveLayout,
+  shelfLifeMonthsFromDays,
+  traceUrlFor,
 } from "@/lib/labels";
-import { recordBatchOnOrder } from "@/lib/batchTrace";
-import { inputClass, primaryButton, subtleButton, panelClass, labelClass } from "@/components/planning/styles";
+import { inputClass, subtleButton, panelClass } from "@/components/planning/styles";
 
-const EMPTY_SETTINGS = { id: "", layouts: [], default_layout_id: "" };
+const EMPTY_SETTINGS = { id: "", layouts: [], default_layout_id: "qr13_l" };
 
 export default function CreateBatch() {
   const { user } = useAuth();
@@ -35,18 +42,17 @@ export default function CreateBatch() {
   const admin = isAdminUser(user);
 
   const [products, setProducts] = useState([]);
-  const [recipes, setRecipes] = useState([]);
   const [records, setRecords] = useState([]);
   const [settings, setSettings] = useState(EMPTY_SETTINGS);
   const [loading, setLoading] = useState(true);
 
   const [productId, setProductId] = useState("");
   const [alphabetSuffix, setAlphabetSuffix] = useState("");
-  const [productionDate, setProductionDate] = useState("");
+  const [productionDate, setProductionDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [quantity, setQuantity] = useState("");
-  const [layoutId, setLayoutId] = useState("");
+  const [layoutId, setLayoutId] = useState("qr13_l");
   const [custom, setCustom] = useState({ width_mm: 70, height_mm: 50, font_size: 7, qr_mm: 14, qr_ecc: "M" });
-  const [copies, setCopies] = useState(1);
+  const [copies] = useState(1);
   const [overrideOpen, setOverrideOpen] = useState(false);
   const [overrideDate, setOverrideDate] = useState("");
   const [overrideReason, setOverrideReason] = useState("");
@@ -54,49 +60,32 @@ export default function CreateBatch() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [job, setJob] = useState(null);
   const [savedPrintView, setSavedPrintView] = useState(null);
-  const [orders, setOrders] = useState([]);
-  const [selectedOrderNumber, setSelectedOrderNumber] = useState("");
+  const [retailTemplate, setRetailTemplate] = useState(true);
+  const [retailStickerLayout, setRetailStickerLayout] = useState(false);
 
   const reload = useCallback(async () => {
-    const [productRows, recordRows, labelSettings, recipeRows, orderRows] = await Promise.all([
-      loadProducts(), loadBatchRecords(), loadLabelSettings(), loadRecipes(), loadProductionOrderOptions(),
+    const [productRows, recordRows, labelSettings] = await Promise.all([
+      loadProducts(),
+      loadBatchRecords(),
+      loadLabelSettings(),
     ]);
     setProducts(productRows.filter((p) => p.active !== false && !p.hidden));
-    setRecipes(recipeRows);
     setRecords(recordRows);
-    setOrders(orderRows);
     setSettings(labelSettings);
-    setLayoutId((prev) => prev || labelSettings.default_layout_id);
+    setLayoutId((prev) => prev || labelSettings.default_layout_id || "qr13_l");
     setLoading(false);
   }, []);
 
-  useEffect(() => { reload(); }, [reload]);
+  useEffect(() => {
+    reload();
+  }, [reload]);
 
   const product = products.find((p) => p.id === productId) || null;
-  const recipe = product ? recipeOf(recipes, product) : null;
 
   const selectProduct = (next) => {
     setProductId(next?.id || "");
-    setLayoutId(next?.default_label_layout || settings.default_layout_id);
-  };
-
-  const selectedOrder = orders.find((o) => o.order_number === selectedOrderNumber) || null;
-  const selectOrder = (orderNumber) => {
-    setSelectedOrderNumber(orderNumber);
-    const ord = orders.find((o) => o.order_number === orderNumber);
-    if (!ord) return;
-    const matchedProd = products.find((p) => p.product_code === ord.product_code || p.product_name === ord.product_name);
-    if (matchedProd) selectProduct(matchedProd);
-    // Auto-fill cartons & next unused alphabet suffix from the order's pre-generated batch_codes
-    // (Production Date and Batch Number are entered manually by the user)
-    if (ord.batch_cartons && !quantity) {
-      setQuantity(String(ord.batch_cartons));
-    }
-    const existingSet = new Set(records.map((r) => normalizeBatch(r.batch_number)));
-    const nextCode = (ord.batch_codes || []).find((c) => !existingSet.has(normalizeBatch(c)));
-    if (nextCode) {
-      const m = String(nextCode).trim().match(/([A-Za-z]+)$/);
-      if (m) setAlphabetSuffix(m[1].toUpperCase());
+    if (next?.default_label_layout) {
+      setLayoutId(next.default_label_layout);
     }
   };
 
@@ -117,25 +106,42 @@ export default function CreateBatch() {
   const cleanSuffix = alphabetSuffix.replace(/[^A-Za-z]/g, "").toUpperCase();
   const batchNumber = product && datePart ? `${batchPrefix}${datePart}${cleanSuffix}` : "";
 
-  const computedExpiry = expiryFor(productionDate, product?.shelf_life_days);
+  const shelfMonths = useMemo(() => {
+    if (!product) return 0;
+    if (num(product.shelf_life_months) > 0) return num(product.shelf_life_months);
+    return shelfLifeMonthsFromDays(product.shelf_life_days);
+  }, [product]);
+
+  const effectiveShelfDays = useMemo(() => {
+    if (!product) return 0;
+    if (shelfMonths > 0) return shelfMonths * 30;
+    return num(product.shelf_life_days);
+  }, [product, shelfMonths]);
+
+  const computedExpiry = expiryFor(productionDate, effectiveShelfDays);
   const expiryDate = overrideOpen && overrideDate ? overrideDate : computedExpiry;
   const duplicate =
     duplicateOf(records, productId, batchNumber) ||
     (batchNumber ? records.find((r) => normalizeBatch(r.batch_number) === normalizeBatch(batchNumber)) : null);
 
+  const layoutList = settings?.layouts?.length ? settings.layouts : DEFAULT_LAYOUTS;
   const baseLayout = resolveLayout(settings, layoutId);
-  const layout = layoutId === "custom"
-    ? {
-        ...baseLayout,
-        id: "custom",
-        name: "Custom Manual",
-        width_mm: num(custom.width_mm) || 70,
-        height_mm: num(custom.height_mm) || 50,
-        font_size: num(custom.font_size) || 7,
-        qr_mm: num(custom.qr_mm) || 14,
-        qr_ecc: custom.qr_ecc || "M",
-      }
-    : baseLayout;
+  const layout =
+    layoutId === "custom"
+      ? {
+          ...baseLayout,
+          id: "custom",
+          name: "Custom (Manual)",
+          width_mm: num(custom.width_mm) || 70,
+          height_mm: num(custom.height_mm) || 50,
+          font_size: num(custom.font_size) || 7,
+          qr_mm: num(custom.qr_mm) || 14,
+          qr_ecc: custom.qr_ecc || "M",
+        }
+      : baseLayout;
+
+  const pcsPerCarton = num(product?.carton_size) || num(product?.pcs_per_carton) || 24;
+  const cartonBarcode = product?.carton_barcode || product?.barcode || "";
 
   const labelData = {
     productName: product?.product_name || "",
@@ -143,16 +149,8 @@ export default function CreateBatch() {
     batchNumber,
     productionDate,
     expiryDate,
-  };
-
-  const savedLayout = product?.default_label_layout || "";
-  const layoutIsDefault = product ? savedLayout === layoutId : false;
-
-  const saveAsDefault = async () => {
-    if (!product) return;
-    await saveDefaultLayoutForProduct(product.id, layoutId);
-    toast({ title: "Layout saved", description: `${layout.name} is now the default for ${product.product_name}.` });
-    await reload();
+    cartonBarcode,
+    pcsPerCarton,
   };
 
   const saveAndPrint = async () => {
@@ -169,22 +167,21 @@ export default function CreateBatch() {
     setSaving(true);
     try {
       const count = Math.max(1, Math.round(num(copies) || 1));
-      const pcsPerCarton = num(product.carton_size) || num(product.pcs_per_carton) || 24;
       const payload = {
         product_id: product.id,
         product_code: product.product_code || "",
         product_name: product.product_name || "",
-        ...(selectedOrder ? { order_id: selectedOrder.id, order_number: selectedOrder.order_number, machine: selectedOrder.machine || "" } : {}),
         batch_number: batch,
         production_date: productionDate,
         expiry_date: expiryDate,
-        shelf_life_days: num(product.shelf_life_days),
+        shelf_life_days: effectiveShelfDays,
         expiry_overridden: overrideOpen,
         expiry_override_reason: overrideOpen ? overrideReason.trim() : "",
         expiry_override_by: overrideOpen ? actingUserName(user) : "",
         quantity_cartons: num(quantity),
         pcs_per_carton: pcsPerCarton,
-        carton_barcode: product.carton_barcode || product.barcode || batch,
+        carton_barcode: cartonBarcode || batch,
+        status: "Active",
         label_layout: layout.id,
         label_layout_name: layout.name,
         label_width_mm: layout.width_mm,
@@ -199,15 +196,6 @@ export default function CreateBatch() {
         reprints: [],
       };
       const created = await base44.entities.BatchRecord.create(payload);
-      if (selectedOrder) {
-        await recordBatchOnOrder({
-          order: selectedOrder,
-          batchNumber: batch,
-          cartons: num(quantity),
-          recordId: created?.id || "",
-          user,
-        }).catch(() => {});
-      }
       await logLabelAudit({
         user,
         action: "Created",
@@ -219,13 +207,13 @@ export default function CreateBatch() {
       const printData = {
         ...labelData,
         batchNumber: batch,
-        cartonBarcode: product.carton_barcode || product.barcode || batch,
+        cartonBarcode: cartonBarcode || batch,
         pcsPerCarton,
       };
       setSavedPrintView({ layout, copies: count, data: printData });
       toast({
         title: "Batch saved to Batch Records",
-        description: `${batch} · ready to print ${count} label(s).`,
+        description: `${batch} · ready to print.`,
       });
       setAlphabetSuffix("");
       setQuantity("");
@@ -257,50 +245,140 @@ export default function CreateBatch() {
     );
   }
 
+  // Post-save view (Matches Picture 8)
   if (savedPrintView) {
     const d = savedPrintView.data;
+    const activeLayout = savedPrintView.layout;
+    const eccPct = activeLayout.qr_ecc === "L" ? "7%" : activeLayout.qr_ecc === "Q" ? "25%" : activeLayout.qr_ecc === "H" ? "30%" : "15%";
     return (
-      <div className="min-h-screen bg-[#F6F8FC] p-4 md:p-6 space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <Link to="/batch-records" className="inline-flex items-center gap-1.5 text-sm text-[#64748B] hover:text-[#0F294A]">
-            <ArrowLeft className="w-4 h-4" /> Back to Batches
-          </Link>
+      <div className="min-h-screen bg-[#F6F8FC] p-4 md:p-6 space-y-6">
+        <div className="max-w-4xl mx-auto flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={() => setSavedPrintView(null)} className={subtleButton}>
-              Create Another Batch
+            <Link
+              to="/batch-records"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-[#E2E8F0] bg-white text-xs font-medium text-[#0F294A] hover:bg-[#F1F5F9]"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" /> Back to Batches
+            </Link>
+            <Button variant="ghost" size="sm" onClick={() => setSavedPrintView(null)} className="text-xs text-[#64748B]">
+              Create Another
             </Button>
-            <Button variant="outline" onClick={generatePdf} className={subtleButton}>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={generatePdf} className="bg-white border-[#E2E8F0] text-[#0F294A] hover:bg-[#F1F5F9]">
               <Download className="w-4 h-4 mr-1.5" /> Generate PDF
             </Button>
-            <Button onClick={() => setJob({ ...savedPrintView })} className={primaryButton}>
+            <Button onClick={() => setJob({ ...savedPrintView })} className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold">
               <Printer className="w-4 h-4 mr-1.5" /> Print Now
             </Button>
           </div>
         </div>
 
-        <div className="max-w-lg mx-auto space-y-4">
+        <div className="max-w-3xl mx-auto space-y-6">
+          {/* Center Label Preview Card */}
           <div className="flex justify-center">
-            <div id="saved-label-card" data-logo-badge="true" style={{ backgroundColor: "#ffffff", color: "#0f172a" }} className="rounded-lg border border-slate-200 p-4 shadow-lg w-[360px] space-y-2">
+            <div
+              id="saved-label-card"
+              data-logo-badge="true"
+              style={{ backgroundColor: "#ffffff", color: "#0f172a" }}
+              className="rounded-xl border border-slate-200 p-5 shadow-md w-[380px] space-y-3"
+            >
               <div className="flex items-start justify-between gap-3">
-                <div className="space-y-0.5 text-xs" style={{ color: "#0f172a" }}>
-                  <p className="font-bold text-sm leading-tight" style={{ color: "#0f172a" }}>{d.productName}</p>
-                  <p className="font-medium" style={{ color: "#334155" }}>{d.productCode}</p>
-                  <p className="font-bold" style={{ color: "#0f172a" }}>{d.batchNumber}</p>
+                <div className="space-y-1 text-xs" style={{ color: "#0f172a" }}>
+                  <p className="font-bold text-sm leading-tight uppercase" style={{ color: "#0f172a" }}>
+                    {d.productName}
+                  </p>
+                  <p className="font-semibold" style={{ color: "#1e293b" }}>
+                    {d.productCode}
+                  </p>
+                  <p className="font-bold" style={{ color: "#0f172a" }}>
+                    {d.batchNumber}
+                  </p>
                   <p style={{ color: "#475569" }}>Exp: {fmtDay(d.expiryDate)}</p>
                   <p style={{ color: "#475569" }}>{d.pcsPerCarton} pcs/carton</p>
                 </div>
-                <img src={qrImageUrl(batchQrPayload(d), savedPrintView.layout.qr_ecc)} alt="QR" className="w-20 h-20 shrink-0" />
+                <img
+                  src={qrImageUrl(batchQrPayload(d), activeLayout.qr_ecc)}
+                  alt="QR"
+                  className="w-24 h-24 shrink-0"
+                />
               </div>
-              <div className="pt-1 text-center">
-                <img src={barcodeImageUrl(d.cartonBarcode || d.batchNumber)} alt="Barcode" className="w-full h-12 object-contain" />
-                <p className="text-[11px] font-mono tracking-wider" style={{ color: "#334155" }}>{d.cartonBarcode || d.batchNumber}</p>
+              <div className="pt-2 text-center">
+                <img
+                  src={barcodeImageUrl(d.cartonBarcode || d.batchNumber)}
+                  alt="Barcode"
+                  className="w-full h-11 object-contain"
+                />
+                <p className="text-[11px] font-mono tracking-wider mt-0.5" style={{ color: "#334155" }}>
+                  {d.cartonBarcode || d.batchNumber}
+                </p>
               </div>
             </div>
           </div>
 
-          <div className={`${panelClass} p-3 flex items-center justify-between text-xs text-[#64748B]`}>
-            <span className="font-semibold text-[#0F294A]">{savedPrintView.layout.name}</span>
-            <span>{savedPrintView.layout.width_mm} × {savedPrintView.layout.height_mm} mm · ECC {savedPrintView.layout.qr_ecc}</span>
+          {/* Print Settings Card (Matches Picture 8) */}
+          <div className="rounded-xl border border-[#E2E8F0] bg-white p-5 space-y-4 shadow-sm">
+            <div className="flex items-center gap-2 text-sm font-semibold text-[#0F294A]">
+              <Printer className="w-4 h-4 text-[#2563EB]" />
+              <span>Print Settings</span>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-[#64748B]">Label Template</p>
+              <div className="rounded-lg bg-[#2563EB] text-white px-4 py-2.5">
+                <p className="text-xs font-semibold">60 × 40 mm</p>
+                <p className="text-[11px] text-blue-100 mt-0.5">
+                  60 × 40 mm label rotated to 90° in top-left corner of 100 × 150 mm (landscape) page
+                </p>
+              </div>
+              <label className="flex items-start gap-2.5 pt-1 cursor-pointer">
+                <Checkbox
+                  checked={retailTemplate}
+                  onCheckedChange={(c) => setRetailTemplate(c === true)}
+                  className="mt-0.5 data-[state=checked]:bg-[#2563EB] data-[state=checked]:border-[#2563EB]"
+                />
+                <div>
+                  <p className="text-xs font-semibold text-[#0F294A]">Retail EAN-13 + QR Batch Template</p>
+                  <p className="text-[11px] text-[#64748B]">
+                    Barcode shows only the batch number as EAN-13; the QR carries the batch number and full batch details.
+                  </p>
+                </div>
+              </label>
+            </div>
+
+            <div className="space-y-2 pt-1">
+              <p className="text-xs font-medium text-[#64748B] flex items-center gap-1.5">
+                <LayoutGrid className="w-3.5 h-3.5" /> Label Layout
+              </p>
+              <div className="rounded-lg bg-[#2563EB] text-white px-4 py-2.5">
+                <p className="text-xs font-semibold">{activeLayout.name}</p>
+                <p className="text-[11px] text-blue-100 mt-0.5">
+                  {activeLayout.qr_mm}×{activeLayout.qr_mm}mm QR with error correction {activeLayout.qr_ecc} ({eccPct}) — larger QR modules
+                </p>
+              </div>
+              <label className="flex items-start gap-2.5 pt-1 cursor-pointer">
+                <Checkbox
+                  checked={retailStickerLayout}
+                  onCheckedChange={(c) => setRetailStickerLayout(c === true)}
+                  className="mt-0.5 data-[state=checked]:bg-[#2563EB] data-[state=checked]:border-[#2563EB]"
+                />
+                <div>
+                  <p className="text-xs font-semibold text-[#0F294A]">Retail EAN-13 + QR Batch Layout (60mm × 40mm)</p>
+                  <p className="text-[11px] text-[#64748B]">
+                    60 × 40 mm sticker: QR at the top, EAN-13 batch-number barcode below, batch number beside the barcode.
+                  </p>
+                </div>
+              </label>
+            </div>
+
+            <div className="pt-2 border-t border-[#E2E8F0] text-center space-y-1 text-[11px] text-[#64748B]">
+              <p>
+                Exported at 300 DPI. In the print dialog choose <strong className="text-[#0F294A]">Actual size</strong> / scale 100% and turn off &ldquo;Fit to Page&rdquo;.
+              </p>
+              <p>
+                Active: <strong className="text-[#0F294A]">60 × 40 mm</strong> — 60 × 40 mm label rotated to 90° in top-left corner of 100 × 150 mm (landscape) page
+              </p>
+            </div>
           </div>
         </div>
         <LabelPrintSheet job={job} />
@@ -308,6 +386,9 @@ export default function CreateBatch() {
     );
   }
 
+  const eccPct = layout.qr_ecc === "L" ? "7%" : layout.qr_ecc === "Q" ? "25%" : layout.qr_ecc === "H" ? "30%" : "15%";
+
+  // Main Create Batch Form (Matches Picture 7)
   return (
     <div className="min-h-screen bg-[#F6F8FC] p-4 md:p-6 space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -324,84 +405,111 @@ export default function CreateBatch() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[1.25fr_0.75fr] gap-4 items-start">
-        <div className={`${panelClass} p-4 space-y-4`}>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {orders.length > 0 && (
-              <div className="space-y-1 sm:col-span-2">
-                <label className={labelClass}>Production Order (optional)</label>
-                <SearchableSelect
-                  value={selectedOrderNumber}
-                  onValueChange={selectOrder}
-                  options={orders}
-                  placeholder="Link to a production order (optional)..."
-                  searchPlaceholder="Search order number or product..."
-                  clearable
-                />
-              </div>
-            )}
-            <div className="space-y-1">
-              <label className={labelClass}>Product</label>
-              <ProductPicker products={products} value={productId} onChange={selectProduct} />
-              {product && (
-                <p className="text-[11px] text-[#64748B]">Shelf life {num(product.shelf_life_days) || 0} days · {product.product_code}</p>
-              )}
-              {product && labelBlock(product) && (
-                <p className="text-[11px] text-rose-600 flex items-center gap-1">
-                  <AlertTriangle className="w-3 h-3" /> {labelBlock(product)} — labels are blocked until this is fixed in Product Master.
-                </p>
-              )}
-            </div>
-
-            <div className="space-y-1">
-              <label className={labelClass}>Batch number *</label>
-              <Input
-                value={batchNumber}
-                readOnly
-                placeholder="Select product & production date"
-                className={`${inputClass} opacity-90 font-semibold text-[#1D4ED8]`}
-              />
-              <p className="text-[11px] text-[#64748B]">
-                Auto-generated: {batchPrefix || "PREFIX"} + date (DDMMYY) + alphabet suffix
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
+        {/* LEFT CARD: Batch Details Form */}
+        <div className={`${panelClass} p-5 space-y-4`}>
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-[#0F294A]">
+              Product <span className="text-rose-500">*</span>
+            </label>
+            <ProductPicker products={products} value={productId} onChange={selectProduct} />
+            {product && labelBlock(product) && (
+              <p className="text-[11px] text-rose-600 flex items-center gap-1">
+                <AlertTriangle className="w-3 h-3" /> {labelBlock(product)} — labels are blocked until this is fixed in Product Master.
               </p>
-              {duplicate && (
-                <p className="text-[11px] text-rose-600 flex items-center gap-1">
-                  <AlertTriangle className="w-3 h-3" /> Already recorded for this product.
-                </p>
-              )}
-            </div>
+            )}
+          </div>
 
-            <div className="space-y-1">
-              <label className={labelClass}>Alphabet Suffix *</label>
+          {product && (
+            <div className="rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-3.5 space-y-1.5 text-xs">
+              <div className="flex items-center gap-2 text-[#64748B]">
+                <Barcode className="w-3.5 h-3.5 shrink-0" />
+                <span>Carton Barcode:</span>
+                <span className="font-mono font-semibold text-[#0F294A]">{cartonBarcode || "—"}</span>
+              </div>
+              <div className="flex items-center gap-2 text-[#64748B]">
+                <Box className="w-3.5 h-3.5 shrink-0" />
+                <span>Shelf Life:</span>
+                <span className="font-semibold text-[#0F294A]">
+                  {shelfMonths > 0 ? `${shelfMonths} months` : `${effectiveShelfDays} days`}
+                </span>
+              </div>
+              <div className="text-[#64748B]">
+                Item Code: <span className="font-mono font-semibold text-[#0F294A]">{product.product_code || "—"}</span>
+              </div>
+              <div className="text-[#64748B]">
+                Description:{" "}
+                <span className="block font-medium text-[#0F294A] mt-0.5">
+                  {product.product_name_original || product.product_name || "—"}
+                </span>
+              </div>
+              <div className="text-[#64748B]">
+                Batch Prefix: <span className="font-mono font-semibold text-[#0F294A]">{batchPrefix || "—"}</span>
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-[#0F294A]">
+              Batch Number <span className="text-rose-500">*</span>
+            </label>
+            <Input
+              value={batchNumber}
+              readOnly
+              placeholder="Auto-generated when Product & Production Date are chosen"
+              className={`${inputClass} bg-[#F8FAFC] font-mono font-semibold text-[#0F294A]`}
+            />
+            <p className="text-[11px] text-[#64748B]">
+              Auto-generated: {batchPrefix || "PREFIX"} + date (DDMMYY) + alphabet
+            </p>
+            {duplicate && (
+              <p className="text-[11px] text-rose-600 flex items-center gap-1">
+                <AlertTriangle className="w-3 h-3" /> Already recorded for this product.
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-[#0F294A]">
+              Alphabet Suffix <span className="text-rose-500">*</span>
+            </label>
+            <Input
+              value={alphabetSuffix}
+              onChange={(e) => setAlphabetSuffix(e.target.value.replace(/[^A-Za-z]/g, "").toUpperCase().slice(0, 3))}
+              placeholder="e.g. A"
+              className={inputClass}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-[#0F294A]">
+                Production Date <span className="text-rose-500">*</span>
+              </label>
               <Input
-                value={alphabetSuffix}
-                onChange={(e) => setAlphabetSuffix(e.target.value.replace(/[^A-Za-z]/g, "").toUpperCase().slice(0, 3))}
-                placeholder="e.g. A or T"
+                type="date"
+                value={productionDate}
+                onChange={(e) => setProductionDate(e.target.value)}
                 className={inputClass}
               />
             </div>
 
-            <div className="space-y-1">
-              <label className={labelClass}>Production date *</label>
-              <Input type="date" value={productionDate} onChange={(e) => setProductionDate(e.target.value)} className={inputClass} />
-            </div>
-
-            <div className="space-y-1">
-              <label className={labelClass}>Expiry date</label>
-              <Input type="date" value={expiryDate} readOnly disabled className={`${inputClass} opacity-80`} />
-              <p className="text-[11px] text-[#64748B]">
-                {computedExpiry
-                  ? `${shelfLifeMonthsFromDays(product?.shelf_life_days) > 0
-                      ? `${shelfLifeMonthsFromDays(product?.shelf_life_days)} month`
-                      : `${num(product?.shelf_life_days)} day`} shelf life → ${fmtDay(computedExpiry)}`
-                  : num(product?.shelf_life_days) > 0
-                    ? "Enter production date to calculate expiry."
-                    : "This product has no shelf life set."}
-              </p>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-[#0F294A]">Expiry Date</label>
+              <Input
+                type="text"
+                value={expiryDate ? fmtDay(expiryDate) : ""}
+                readOnly
+                placeholder="dd/mm/yyyy"
+                className={`${inputClass} bg-[#F8FAFC]`}
+              />
               {admin && (
                 <button
                   type="button"
-                  onClick={() => { setOverrideOpen((v) => !v); setOverrideDate(overrideOpen ? "" : (computedExpiry || productionDate)); }}
+                  onClick={() => {
+                    setOverrideOpen((v) => !v);
+                    setOverrideDate(overrideOpen ? "" : computedExpiry || productionDate);
+                  }}
                   className="text-[11px] text-[#1D4ED8] hover:underline"
                 >
                   {overrideOpen ? "Cancel override" : "Admin: override expiry date"}
@@ -410,89 +518,159 @@ export default function CreateBatch() {
               {overrideOpen && (
                 <div className="space-y-1 pt-1">
                   <Input type="date" value={overrideDate} onChange={(e) => setOverrideDate(e.target.value)} className={inputClass} />
-                  <Input value={overrideReason} onChange={(e) => setOverrideReason(e.target.value)} placeholder="Reason for the override (required)" className={inputClass} />
+                  <Input
+                    value={overrideReason}
+                    onChange={(e) => setOverrideReason(e.target.value)}
+                    placeholder="Reason for the override (required)"
+                    className={inputClass}
+                  />
                 </div>
               )}
             </div>
-
-            <div className="space-y-1">
-              <label className={labelClass}>Quantity produced (cartons)</label>
-              <Input type="number" min="0" step="1" value={quantity} onChange={(e) => setQuantity(e.target.value)} className={inputClass} placeholder="e.g. 500" />
-            </div>
           </div>
 
-          {product && (
-            <div className="rounded-lg border border-[#E2E8F0] bg-white p-3 space-y-1">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Recipe</p>
-                <Link to="/recipe-master" className="text-[11px] text-[#1D4ED8] hover:underline">Recipe Master</Link>
-              </div>
-              {recipe ? (
-                <>
-                  <p className="text-sm text-[#0F294A]">
-                    {recipe.recipe_name || "Recipe"} <span className="text-[#64748B]">· v{recipe.version}</span>
-                  </p>
-                  <p className="text-[11px] text-[#64748B]">
-                    {(recipe.ingredients || []).length} ingredient(s) · {fmtQty(recipe.batch_cartons)} cartons per batch
-                    {recipe.standard_yield_pct ? ` · standard yield ${fmtQty(recipe.standard_yield_pct)}%` : ""}
-                  </p>
-                </>
-              ) : (
-                <p className="text-[11px] text-amber-700">No recipe linked to this item yet — add one in Recipe Master.</p>
-              )}
-            </div>
-          )}
-
-          <div className="space-y-2 border-t border-[#E2E8F0] pt-3">
-            <div className="flex items-center justify-between gap-2">
-              <label className={labelClass}>Label layout</label>
-              {product && (
-                <button
-                  type="button"
-                  onClick={saveAsDefault}
-                  disabled={layoutIsDefault}
-                  className={`text-[11px] inline-flex items-center gap-1 ${layoutIsDefault ? "text-[#64748B]" : "text-[#1D4ED8] hover:underline"}`}
-                >
-                  <Star className="w-3 h-3" /> {layoutIsDefault ? "Saved as this product's default" : "Save as this product's default"}
-                </button>
-              )}
-            </div>
-            <LayoutPicker
-              layouts={settings.layouts}
-              value={layoutId}
-              custom={custom}
-              onSelect={setLayoutId}
-              onCustomChange={setCustom}
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-[#0F294A]">Quantity Produced (Cartons)</label>
+            <Input
+              type="number"
+              min="0"
+              step="1"
+              value={quantity}
+              onChange={(e) => setQuantity(e.target.value)}
+              className={inputClass}
+              placeholder="e.g. 500"
             />
           </div>
 
-          <div className="flex flex-wrap items-end justify-between gap-3 border-t border-[#E2E8F0] pt-3">
-            <div className="space-y-1 w-32">
-              <label className={labelClass}>Label copies</label>
-              <Input type="number" min="1" max="200" value={copies} onChange={(e) => setCopies(e.target.value)} className={inputClass} />
-            </div>
-            <Button onClick={saveAndPrint} disabled={saving || !!duplicate} className={`${primaryButton} h-10 px-5`}>
-              <Printer className="w-4 h-4 mr-1.5" />
-              {saving ? "Saving..." : "Save & Print Labels"}
-            </Button>
-          </div>
+          <Button
+            onClick={saveAndPrint}
+            disabled={saving || !!duplicate}
+            className="w-full h-11 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold"
+          >
+            <Save className="w-4 h-4 mr-2" />
+            {saving ? "Saving..." : "Save & Print Labels"}
+          </Button>
         </div>
 
-        <div className={`${panelClass} p-4 space-y-3 xl:sticky xl:top-4`}>
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Label preview</p>
-            <span className="text-[10px] text-[#64748B]">{layout.name} · {layout.width_mm} × {layout.height_mm} mm</span>
-          </div>
-
-          <div className="overflow-x-auto pb-1">
-            <div className="inline-block shadow-lg">
-              <LabelPreview layout={layout} data={labelData} />
+        {/* RIGHT CARD: Label Preview & Label Layout */}
+        <div className={`${panelClass} p-5 space-y-5`}>
+          <div className="space-y-2.5">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-[#0F294A]">
+              <QrCode className="w-4 h-4 text-[#64748B]" />
+              <span>Label Preview</span>
             </div>
+
+            <div className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-6 flex justify-center">
+              <div
+                data-logo-badge="true"
+                style={{ backgroundColor: "#ffffff", color: "#0f172a" }}
+                className="rounded-lg border border-slate-200 p-4 shadow-sm w-[280px]"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="space-y-0.5 text-[11px] min-w-0">
+                    <p className="font-bold text-xs leading-tight truncate" style={{ color: "#0f172a" }}>
+                      {product?.product_name || "PRODUCT NAME"}
+                    </p>
+                    <p className="font-bold" style={{ color: "#0f172a" }}>
+                      {product?.product_code || "ITEM-CODE"}
+                    </p>
+                    <p className="font-semibold" style={{ color: "#1e293b" }}>
+                      {batchNumber || "BATCH-NO"}
+                    </p>
+                    <p className="text-[10px]" style={{ color: "#475569" }}>
+                      Exp: {fmtDay(expiryDate)}
+                    </p>
+                  </div>
+                  <img
+                    src={qrImageUrl(batchQrPayload(labelData), layout.qr_ecc)}
+                    alt="QR Preview"
+                    className="w-16 h-16 shrink-0"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <p className="text-[11px] font-mono text-[#64748B] break-all">
+              {[
+                batchNumber || "BATCH-NO",
+                product?.product_name || "PRODUCT",
+                product?.product_code || "CODE",
+                expiryDate || "YYYY-MM-DD",
+              ].join(" | ")}
+            </p>
           </div>
 
-          {quantity ? (
-            <p className="text-[11px] text-[#64748B]">Quantity: {fmtQty(quantity)} cartons</p>
-          ) : null}
+          <div className="space-y-2.5 pt-2 border-t border-[#E2E8F0]">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-[#0F294A]">
+              <LayoutGrid className="w-4 h-4 text-[#64748B]" />
+              <span>Label Layout</span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              {layoutList.map((item) => {
+                const active = item.id === layoutId;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setLayoutId(item.id)}
+                    className={`rounded-lg border px-3 py-2 text-xs font-medium text-center transition-colors ${
+                      active
+                        ? "bg-[#2563EB] border-[#2563EB] text-white font-semibold shadow-sm"
+                        : "bg-white border-[#E2E8F0] text-[#0F294A] hover:bg-[#F1F5F9]"
+                    }`}
+                  >
+                    {item.name}
+                  </button>
+                );
+              })}
+            </div>
+
+            {layoutId === "custom" && (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2">
+                <div>
+                  <label className="text-[10px] text-[#64748B]">Width (mm)</label>
+                  <Input
+                    type="number"
+                    value={custom.width_mm}
+                    onChange={(e) => setCustom({ ...custom, width_mm: e.target.value })}
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-[#64748B]">Height (mm)</label>
+                  <Input
+                    type="number"
+                    value={custom.height_mm}
+                    onChange={(e) => setCustom({ ...custom, height_mm: e.target.value })}
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-[#64748B]">Font (pt)</label>
+                  <Input
+                    type="number"
+                    value={custom.font_size}
+                    onChange={(e) => setCustom({ ...custom, font_size: e.target.value })}
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-[#64748B]">QR (mm)</label>
+                  <Input
+                    type="number"
+                    value={custom.qr_mm}
+                    onChange={(e) => setCustom({ ...custom, qr_mm: e.target.value })}
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+            )}
+
+            <p className="text-[11px] text-[#64748B]">
+              {layout.qr_mm}×{layout.qr_mm}mm QR with error correction {layout.qr_ecc} ({eccPct}) — larger QR modules
+            </p>
+          </div>
         </div>
       </div>
 

@@ -87,7 +87,7 @@ export default function ProductionOrders() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-[#0F294A] text-lg font-semibold">Production Orders</h2>
-          <p className="text-[#64748B] text-sm mt-1">Orders built from Product Master, scheduled onto the Machines list.</p>
+          <p className="text-[#64748B] text-sm mt-1">Orders built from Product Master, scheduled onto Machine (Tank) from Master Data.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           {canEditProductionSettings(user) && (

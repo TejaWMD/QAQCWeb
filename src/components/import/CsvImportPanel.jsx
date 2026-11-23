@@ -6,6 +6,7 @@ import { parseCsv, coerceValue } from "@/lib/csv";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import FieldMappingList from "@/components/import/FieldMappingList";
+import { syncOvertimeFromOperationLogs } from "@/services/shiftLogService";
 import { Upload, FileText, Loader2, CheckCircle2, AlertTriangle } from "lucide-react";
 
 const CHUNK_SIZE = 100;
@@ -246,6 +247,9 @@ export default function CsvImportPanel({ config }) {
         }
       }
       setProgress({ done: Math.min(i + CHUNK_SIZE, toInsert.length), total: toInsert.length });
+    }
+    if (entity === "OperationLog" && created > 0) {
+      await syncOvertimeFromOperationLogs().catch(() => {});
     }
     setImporting(false);
     setResult({ created, duplicatesSkipped, ignoredSummary, rowErrors });

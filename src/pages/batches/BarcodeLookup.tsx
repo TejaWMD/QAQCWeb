@@ -2,6 +2,8 @@ import React, { useState, useRef } from 'react';
 import { supabase } from '@/api/supabaseClient';
 import { useHardwareScanner } from '@/hooks/useHardwareScanner';
 import { playScanBeep } from '@/lib/scanFeedback';
+import { matchParsedQrToProduct, parseQRPayload } from '@/lib/qrParser';
+import { CameraQRScanner } from '@/components/warehouse/QRScanner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -22,19 +24,43 @@ export default function BarcodeLookup() {
     setBarcode(clean);
     setLoading(true);
     try {
-      const { data: prod } = await supabase
+      const { data: allProds } = await supabase
         .from('products')
         .select('*')
-        .or(`carton_barcode.eq.${clean},barcode.eq.${clean},product_code.eq.${clean}`)
-        .eq('deleted', false)
-        .limit(1)
-        .maybeSingle();
+        .neq('deleted', true);
+      const prodList = allProds || [];
+
+      let prod: any = null;
+      if (clean.includes('|') || clean.startsWith('{')) {
+        const parsed = parseQRPayload(clean);
+        if (parsed.ok) {
+          prod = matchParsedQrToProduct(parsed.data, prodList);
+        }
+      }
+
+      if (!prod) {
+        const norm = clean.replace(/^\*+/, '').toUpperCase();
+        const noZero = norm.replace(/^0+/, '');
+        prod = prodList.find((p) => {
+          const b1 = String(p.carton_barcode || '').replace(/^\*+/, '').toUpperCase();
+          const b2 = String(p.barcode || '').replace(/^\*+/, '').toUpperCase();
+          const c = String(p.product_code || '').toUpperCase();
+          const n = String(p.product_name || '').toUpperCase();
+          return (
+            b1 === norm ||
+            b2 === norm ||
+            (noZero && (b1.replace(/^0+/, '') === noZero || b2.replace(/^0+/, '') === noZero)) ||
+            c === norm ||
+            n === norm
+          );
+        });
+      }
 
       if (!prod) {
         playScanBeep(false);
         setProduct(null);
         setBatches([]);
-        toast.error(`No product found for barcode "${clean}"`);
+        toast.error(`No product found for "${clean}"`);
         return;
       }
 
@@ -73,14 +99,20 @@ export default function BarcodeLookup() {
   return (
     <div className="min-h-screen bg-[#F6F8FC] p-4 md:p-6 w-full space-y-4">
       <div>
-        <h2 className="text-[#0F294A] text-lg font-semibold">Carton Barcode Lookup</h2>
+        <h2 className="text-[#0F294A] text-lg font-semibold">Carton Barcode &amp; QR Lookup</h2>
         <p className="text-[#64748B] text-sm mt-1">
-          Scan a carton barcode or SKU code to inspect product specs and batch history.
+          Scan a carton barcode, QR code, or SKU code to inspect product specs and batch history.
         </p>
       </div>
 
       <Card>
-        <CardContent className="pt-6">
+        <CardContent className="pt-6 space-y-3">
+          <CameraQRScanner
+            onDecode={(decoded) => {
+              setBarcode(decoded);
+              performLookup(decoded);
+            }}
+          />
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -91,7 +123,7 @@ export default function BarcodeLookup() {
             <Input
               ref={inputRef}
               autoFocus
-              placeholder="Scan or type carton barcode / SKU..."
+              placeholder="Scan or type carton barcode, QR payload, or SKU..."
               value={barcode}
               onChange={(e) => setBarcode(e.target.value)}
               className="font-mono text-base"

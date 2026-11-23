@@ -6,7 +6,6 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { loadProductOptions, loadSupplierOptions } from "@/lib/masterOptions";
 import { todayStr } from "@/lib/warehouse";
 
 const FIELD = "bg-white border-[#E2E8F0] text-[#0F294A]";
@@ -14,8 +13,8 @@ const FIELD = "bg-white border-[#E2E8F0] text-[#0F294A]";
 const empty = (categories, units) => ({
   item_code: "",
   description: "",
-  category: categories[0] || "",
-  unit: units[0] || "",
+  category: categories[0] || "Packaging",
+  unit: units[0] || "PCS",
   quantity: "",
   min_level: "",
   default_rack: "",
@@ -25,18 +24,10 @@ const empty = (categories, units) => ({
   qty_per_unit: "",
 });
 
-export default function ItemDialog({ open, item, categories, units, racks, onClose, onSaved }) {
+export default function ItemDialog({ open, item, categories = [], units = [], onClose, onSaved }) {
   const [form, setForm] = useState(empty(categories, units));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [opts, setOpts] = useState({ suppliers: [], products: [] });
-
-  useEffect(() => {
-    if (!open || opts.suppliers.length) return;
-    Promise.all([loadSupplierOptions(), loadProductOptions()])
-      .then(([suppliers, products]) => setOpts({ suppliers, products }))
-      .catch(() => {});
-  }, [open, opts.suppliers.length]);
 
   useEffect(() => {
     if (!open) return;
@@ -45,9 +36,10 @@ export default function ItemDialog({ open, item, categories, units, racks, onClo
       item
         ? {
             item_code: item.item_code || "",
-            description: item.description || "",
-            category: item.category || "",
-            unit: item.unit || "",
+            description: item.description || item.name || "",
+            category: item.category || categories[0] || "Packaging",
+            unit: item.unit || units[0] || "PCS",
+            quantity: item.quantity != null ? String(item.quantity) : "",
             min_level: item.min_level != null ? String(item.min_level) : "",
             default_rack: item.default_rack || "",
             supplier: item.supplier || "",
@@ -63,17 +55,19 @@ export default function ItemDialog({ open, item, categories, units, racks, onClo
 
   const submit = async (e) => {
     e.preventDefault();
-    if (!form.item_code.trim()) return setError("Item code is required.");
+    const cleanDesc = form.description.trim();
+    const cleanCode = form.item_code.trim() || cleanDesc.toUpperCase().replace(/[^A-Z0-9-]+/g, "-").slice(0, 24);
+    if (!cleanDesc && !cleanCode) return setError("Item name or code is required.");
     setSaving(true);
     setError("");
     try {
       if (!item) {
-        const page = await base44.entities.PackagingItem.filter({ item_code: form.item_code.trim() }, { limit: 1 });
-        if ((page.items || []).length) throw new Error(`${form.item_code.trim()} is already in the packaging stock list.`);
+        const page = await base44.entities.PackagingItem.filter({ item_code: cleanCode }, { limit: 1 });
+        if ((page.items || []).length) throw new Error(`${cleanCode} is already in the packaging stock list.`);
       }
       const payload = {
-        item_code: form.item_code.trim(),
-        description: form.description.trim(),
+        item_code: cleanCode,
+        description: cleanDesc || cleanCode,
         category: form.category,
         unit: form.unit,
         min_level: Number(form.min_level) || 0,
@@ -85,7 +79,10 @@ export default function ItemDialog({ open, item, categories, units, racks, onClo
       };
       const initialQty = Math.max(0, Number(form.quantity) || 0);
       const saved = item
-        ? await base44.entities.PackagingItem.update(item.id, payload)
+        ? await base44.entities.PackagingItem.update(item.id, {
+            ...payload,
+            ...(form.quantity !== "" ? { quantity: initialQty } : {}),
+          })
         : await base44.entities.PackagingItem.create({
             ...payload,
             quantity: initialQty,
@@ -120,6 +117,9 @@ export default function ItemDialog({ open, item, categories, units, racks, onClo
     }
   };
 
+  const categoryOptions = [...new Set(["Cartons", "Packaging", "Bottles & Jars", "Labels", "Caps & Closures", "Pouches & Foil", ...categories])];
+  const unitOptions = [...new Set(["PCS", "BAG", "ROLL", "BOX", "KG", ...units])];
+
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose?.()}>
       <DialogContent className="bg-white border-[#E2E8F0] text-[#0F294A] max-h-[85vh] overflow-y-auto sm:max-w-xl">
@@ -128,16 +128,25 @@ export default function ItemDialog({ open, item, categories, units, racks, onClo
         </DialogHeader>
         <form onSubmit={submit} className="space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1 sm:col-span-2">
+              <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Item Name / Description *</label>
+              <Input
+                value={form.description}
+                onChange={(e) => set("description", e.target.value)}
+                placeholder="e.g. LIME JUICE 500ML BOTTLE"
+                className={FIELD}
+              />
+            </div>
             <div className="space-y-1">
-              <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Item Code *</label>
-              <Input value={form.item_code} onChange={(e) => set("item_code", e.target.value)} placeholder="e.g. LBL-250" className={FIELD} />
+              <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Item Code</label>
+              <Input value={form.item_code} onChange={(e) => set("item_code", e.target.value)} placeholder="e.g. LBL-250 (auto if blank)" className={FIELD} />
             </div>
             <div className="space-y-1">
               <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Category</label>
               <Select value={form.category || undefined} onValueChange={(v) => set("category", v)}>
                 <SelectTrigger className={FIELD}><SelectValue placeholder="Select category" /></SelectTrigger>
                 <SelectContent>
-                  {categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  {categoryOptions.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -146,7 +155,7 @@ export default function ItemDialog({ open, item, categories, units, racks, onClo
               <Select value={form.unit || undefined} onValueChange={(v) => set("unit", v)}>
                 <SelectTrigger className={FIELD}><SelectValue placeholder="Select unit" /></SelectTrigger>
                 <SelectContent>
-                  {units.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+                  {unitOptions.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -154,12 +163,10 @@ export default function ItemDialog({ open, item, categories, units, racks, onClo
               <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Minimum Level</label>
               <Input type="number" min="0" value={form.min_level} onChange={(e) => set("min_level", e.target.value)} placeholder="Low stock at or below this" className={FIELD} />
             </div>
-            {!item && (
-              <div className="space-y-1">
-                <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Initial Quantity</label>
-                <Input type="number" min="0" step="0.001" value={form.quantity} onChange={(e) => set("quantity", e.target.value)} placeholder="0" className={FIELD} />
-              </div>
-            )}
+            <div className="space-y-1">
+              <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">{item ? "Current Quantity" : "Initial Quantity"}</label>
+              <Input type="number" min="0" step="0.001" value={form.quantity} onChange={(e) => set("quantity", e.target.value)} placeholder="0" className={FIELD} />
+            </div>
             <div className="space-y-1">
               <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Qty per Finished Unit</label>
               <Input type="number" min="0" step="0.001" value={form.qty_per_unit} onChange={(e) => set("qty_per_unit", e.target.value)} placeholder="e.g. 1" className={FIELD} />

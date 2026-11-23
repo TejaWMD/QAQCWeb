@@ -1,92 +1,121 @@
 import React from "react";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { ArrowDownToLine, ArrowUpFromLine, ClipboardCheck, Pencil, Trash2, Layers, MoreVertical } from "lucide-react";
-import { fmtQty } from "@/lib/packaging";
-
-const STATUS_STYLES = {
-  "Low stock": "bg-amber-50 text-amber-700 border-amber-300",
-  "Pending approval": "bg-[#EBF3FF] text-[#1D4ED8] border-[#BFD7FF]",
-  "No stock": "bg-rose-600/15 text-rose-600 border-rose-300",
-  "In stock": "bg-emerald-50 text-emerald-700 border-emerald-300",
-};
+import { AlertTriangle, ClipboardCheck, Clock, PackageMinus, PackagePlus, Pencil, Sparkles, Trash2 } from "lucide-react";
+import { fmtQty, isLowStock } from "@/lib/packaging";
 
 export default function ItemCard({ item, status, canEdit, canDelete, onIn, onUse, onCheck, onEdit, onDelete, onDetail }) {
   const inactive = item.active === false;
+  const low = isLowStock(item) || status === "Low stock" || status === "No stock";
+  const unitLabel = String(item.unit || "PCS").toUpperCase();
+  const minVal = Number(item.min_level) || 0;
+  const curVal = Number(item.quantity) || 0;
+  const suggestedRestock = low && minVal > 0 ? Math.max(minVal * 2 - curVal, minVal) : 0;
+
   return (
-    <div className={`rounded-xl border border-[#E2E8F0] bg-white p-3.5 flex flex-col gap-3 ${inactive ? "opacity-60" : ""}`}>
+    <div
+      className={`rounded-2xl border p-4 flex flex-col justify-between gap-3 transition-shadow hover:shadow-sm ${
+        low ? "border-rose-300 bg-rose-50/20" : "border-[#E2E8F0] bg-white"
+      } ${inactive ? "opacity-60" : ""}`}
+    >
+      {/* Top Row: Item Name + Low Badge + Edit / Delete buttons */}
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
-          <p className="text-[#0F294A] text-sm font-semibold truncate">{item.description || item.item_code}</p>
-          <p className="text-[11px] text-[#64748B] mt-0.5 truncate">
-            {item.item_code}
-            {item.category ? ` · ${item.category}` : ""}
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={onDetail}
+              className="text-left text-[#0F294A] text-sm font-bold uppercase tracking-tight hover:underline truncate"
+            >
+              {item.description || item.name || item.item_code}
+            </button>
+            {low && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-500 text-white text-[11px] font-semibold">
+                <AlertTriangle className="w-3 h-3" /> Low
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-[#64748B] mt-0.5">
+            {item.category || "Packaging"}
             {inactive ? " · inactive" : ""}
           </p>
         </div>
+
         <div className="flex items-center gap-1 shrink-0">
-          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${STATUS_STYLES[status] || STATUS_STYLES["In stock"]}`}>
-            {status}
-          </span>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-[#64748B] hover:text-[#0F294A] hover:bg-[#F1F5F9]" aria-label="More actions">
-                <MoreVertical className="w-4 h-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={onDetail}>
-                <Layers className="w-3.5 h-3.5 mr-2" /> Batches &amp; racks
-              </DropdownMenuItem>
-              {canEdit && (
-                <DropdownMenuItem onClick={onEdit}>
-                  <Pencil className="w-3.5 h-3.5 mr-2" /> Edit
-                </DropdownMenuItem>
-              )}
-              {canDelete && (
-                <DropdownMenuItem onClick={onDelete} className="text-rose-600 focus:text-rose-600">
-                  <Trash2 className="w-3.5 h-3.5 mr-2" /> Delete
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {canEdit && (
+            <button
+              type="button"
+              onClick={onEdit}
+              className="p-1.5 rounded-lg text-[#475569] hover:text-[#0F294A] hover:bg-slate-100"
+              title="Edit item"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+            </button>
+          )}
+          {canDelete && (
+            <button
+              type="button"
+              onClick={onDelete}
+              className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50"
+              title="Delete item"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
       </div>
 
-      <div>
-        <p className="text-2xl text-[#0F294A] font-semibold leading-none">
-          {fmtQty(item.quantity)} <span className="text-xs text-[#64748B] font-normal">{item.unit || ""}</span>
+      {/* Middle: Quantity + Min + Suggested Restock */}
+      <div className="space-y-1.5">
+        <p className={`text-2xl font-bold leading-none ${low ? "text-rose-600" : "text-[#0F294A]"}`}>
+          {fmtQty(item.quantity)}{" "}
+          <span className="text-xs text-[#64748B] font-normal uppercase">{unitLabel}</span>
         </p>
-        <p className="text-[11px] text-[#64748B] mt-1">
-          Min {fmtQty(item.min_level)} {item.unit || ""} · Rack {item.default_rack || "—"}
+        <p className="text-xs text-[#64748B]">
+          Min: {fmtQty(minVal)} {unitLabel}
         </p>
-        {status === "Low stock" && Number(item.min_level) > 0 && (
-          <p className="text-[11px] text-amber-700 mt-1 font-medium">
-            Suggested restock: {fmtQty(Math.max(Number(item.min_level) * 2 - (Number(item.quantity) || 0), Number(item.min_level)))} {item.unit || ""}
-          </p>
-        )}
-        {item.order_status && item.order_status !== "no_action" && (
-          <p className="text-[10px] text-[#1D4ED8] mt-1 capitalize">
-            {item.order_status.replace(/_/g, " ")}
-          </p>
+        {suggestedRestock > 0 && (
+          <div>
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md border border-amber-300 bg-amber-50 text-amber-800 text-[11px] font-medium">
+              <Sparkles className="w-3 h-3 text-amber-600" />
+              Suggested restock: {fmtQty(suggestedRestock)} {unitLabel}
+            </span>
+          </div>
         )}
       </div>
 
-      <div className="grid grid-cols-3 gap-2 mt-auto">
-        <Button size="sm" onClick={onIn} className="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold">
-          <ArrowDownToLine className="w-3.5 h-3.5" /> In
-        </Button>
-        <Button size="sm" onClick={onUse} className="bg-[#0F294A] hover:bg-[#193B68] text-white font-semibold">
-          <ArrowUpFromLine className="w-3.5 h-3.5" /> Use
-        </Button>
-        <Button size="sm" onClick={onCheck} className="bg-amber-500 hover:bg-amber-600 text-white font-semibold">
-          <ClipboardCheck className="w-3.5 h-3.5" /> Check
-        </Button>
+      {/* Bottom Row: Status pill on left, In / Use / Check buttons on right (Matches Picture 13) */}
+      <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-slate-200 bg-slate-50 text-[#64748B] text-[11px]">
+          <Clock className="w-3 h-3" />
+          {status === "Pending approval"
+            ? "Pending approval"
+            : item.order_status && item.order_status !== "no_action"
+            ? item.order_status.replace(/_/g, " ")
+            : "No action yet"}
+        </span>
+
+        <div className="flex items-center gap-1.5 ml-auto">
+          <button
+            type="button"
+            onClick={onIn}
+            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-emerald-50 hover:border-emerald-300 text-xs font-semibold text-[#0F294A] transition-colors"
+          >
+            <PackagePlus className="w-3.5 h-3.5 text-emerald-600" /> In
+          </button>
+          <button
+            type="button"
+            onClick={onUse}
+            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-rose-50 hover:border-rose-300 text-xs font-semibold text-[#0F294A] transition-colors"
+          >
+            <PackageMinus className="w-3.5 h-3.5 text-rose-500" /> Use
+          </button>
+          <button
+            type="button"
+            onClick={onCheck}
+            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-indigo-50 hover:border-indigo-300 text-xs font-semibold text-[#0F294A] transition-colors"
+          >
+            <ClipboardCheck className="w-3.5 h-3.5 text-indigo-600" /> Check
+          </button>
+        </div>
       </div>
     </div>
   );

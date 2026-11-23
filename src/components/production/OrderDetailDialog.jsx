@@ -114,7 +114,7 @@ export default function OrderDetailDialog({ order, products = [], recipes = [], 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
           <div><p className={labelClass}>Cartons</p><p className="text-[#0F294A]">{fmtQty(order.quantity_cartons)}</p></div>
           <div><p className={labelClass}>Batches</p><p className="text-[#0F294A]">{order.batches || 1}</p></div>
-          <div><p className={labelClass}>Machine</p><p className="text-[#0F294A] text-xs leading-5">{order.machine || "—"}</p></div>
+          <div><p className={labelClass}>Machine (Tank)</p><p className="text-[#0F294A] text-xs leading-5">{order.machine || "—"}</p></div>
           <div><p className={labelClass}>Customer</p><p className="text-[#64748B] text-xs leading-5">{order.customer || "—"}</p></div>
           <div><p className={labelClass}>Planned</p><p className="text-[#0F294A] text-xs leading-5">{fmtDateTime(order.planned_start)}</p><p className="text-[11px] text-[#64748B]">to {fmtDateTime(order.planned_end)}</p></div>
           <div><p className={labelClass}>Actual</p><p className="text-[#0F294A] text-xs leading-5">{order.actual_start ? fmtDateTime(order.actual_start) : "not started"}</p><p className="text-[11px] text-[#64748B]">{order.actual_end ? `to ${fmtTime(order.actual_end)}` : ""}</p></div>

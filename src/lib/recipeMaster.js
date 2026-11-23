@@ -131,6 +131,8 @@ export const saveRecipeVersion = async ({ versions = [], products = [], recipeNa
   const version = (versions || []).reduce((max, row) => Math.max(max, num(row.version)), 0) + 1;
   const payload = {
     recipe_name: name,
+    brand: (form.brand || linked[0]?.brand || "").trim(),
+    batch_prefix: (form.batch_prefix || linked[0]?.batch_prefix || "").trim().toUpperCase(),
     product_ids: linked.map((p) => p.id),
     product_id: linked[0]?.id || "",
     product_code: linked[0]?.product_code || "",

@@ -4,7 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Pencil, TrendingUp, Package, Clock } from "lucide-react";
+import { Trash2, Pencil, Plus, TrendingUp, Package, Clock } from "lucide-react";
 import MetricCard from "@/components/dashboard/MetricCard";
 import LineAchievementChart from "@/components/dashboard/LineAchievementChart";
 import OTEfficiencyChart from "@/components/dashboard/OTEfficiencyChart";
@@ -12,6 +12,7 @@ import OutputByLineChart from "@/components/oplog/OutputByLineChart";
 import OperationLogModal from "@/components/oplog/OperationLogModal";
 import BatchBadge from "@/components/BatchBadge";
 import { calculateOTMetrics } from "@/lib/otCalculations";
+import { syncOvertimeFromOperationLogs } from "@/services/shiftLogService";
 import { groupByDate, formatDateHeader } from "@/lib/logGrouping";
 import { productionLines, lineCode } from "@/lib/shiftLogConstants";
 import { canChangeRecord } from "@/lib/permissions";
@@ -30,6 +31,7 @@ export default function OperationLogs() {
   const loadLogs = async (silent = false) => {
     if (!silent) setLoading(true);
     try {
+      await syncOvertimeFromOperationLogs();
       const query = {};
       if (dateFrom || dateTo) {
         query.ot_date = {};
@@ -198,6 +200,13 @@ export default function OperationLogs() {
               Clear
             </Button>
           )}
+          <Button
+            size="sm"
+            onClick={() => { setEditLog(null); setModalOpen(true); }}
+            className="bg-[#0F294A] hover:bg-[#193B68] text-white font-semibold"
+          >
+            <Plus className="w-4 h-4 mr-1" /> Add Operation Record
+          </Button>
         </div>
       </div>
 

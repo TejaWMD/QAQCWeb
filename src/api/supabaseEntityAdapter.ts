@@ -129,8 +129,15 @@ function normalizeRow(row: Record<string, any> | null): any {
   }
   for (const col of TIME_ONLY_COLS) {
     if (typeof out[col] === 'string' && /^\d{4}-\d{2}-\d{2}T(\d{2}:\d{2})/.test(out[col])) {
-      const m = out[col].match(/T(\d{2}:\d{2})/);
-      if (m) out[col] = m[1];
+      const d = new Date(out[col]);
+      if (!Number.isNaN(d.getTime()) && (out[col].endsWith('Z') || /[+-]\d{2}:?\d{2}$/.test(out[col]))) {
+        const hh = String(d.getHours()).padStart(2, '0');
+        const mm = String(d.getMinutes()).padStart(2, '0');
+        out[col] = `${hh}:${mm}`;
+      } else {
+        const m = out[col].match(/T(\d{2}:\d{2})/);
+        if (m) out[col] = m[1];
+      }
     }
   }
   return out;
@@ -157,10 +164,12 @@ function coerceTimeColumnsToIso(payload: Record<string, any>): Record<string, an
     (typeof next.check_date === 'string' && next.check_date.slice(0, 10)) ||
     (typeof next.ot_date === 'string' && next.ot_date.slice(0, 10)) ||
     new Date().toISOString().slice(0, 10);
+  const [y, mo, da] = baseDate.split('-').map(Number);
   for (const col of TIME_ONLY_COLS) {
     if (typeof next[col] === 'string' && /^\d{1,2}:\d{2}(:\d{2})?$/.test(next[col].trim())) {
-      const hm = next[col].trim().slice(0, 5).padStart(5, '0');
-      next[col] = `${baseDate}T${hm}:00Z`;
+      const [hh, mm] = next[col].trim().split(':').map(Number);
+      const localDt = new Date(y || 2026, (mo || 1) - 1, da || 1, hh || 0, mm || 0, 0, 0);
+      next[col] = Number.isNaN(localDt.getTime()) ? `${baseDate}T00:00:00Z` : localDt.toISOString();
     }
   }
   return next;
