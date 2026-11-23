@@ -23,6 +23,7 @@ export default function WmsWarehouse() {
   const [stockItems, setStockItems] = useState<any[]>([]);
   const [rackLines, setRackLines] = useState<any[]>([]);
   const [stagingAreas, setStagingAreas] = useState<any[]>([]);
+  const [warehouseRacks, setWarehouseRacks] = useState<string[]>([]);
 
   // Scan-in state (Goods Receiving)
   const [qrInput, setQrInput] = useState('');
@@ -70,10 +71,11 @@ export default function WmsWarehouse() {
   });
 
   const loadWms = async () => {
-    const [sRes, lRes, stRes, prodsRes, bats, batchRecRes, takeRes] = await Promise.all([
+    const [sRes, lRes, stRes, wrRes, prodsRes, bats, batchRecRes, takeRes] = await Promise.all([
       supabase.from('wms_stock_items').select('*').eq('deleted', false).neq('status', 'shipped').order('scanned_at', { ascending: false }),
       supabase.from('rack_lines').select('*').eq('deleted', false).order('sort_order'),
       supabase.from('staging_areas').select('*').eq('deleted', false).order('sort_order'),
+      supabase.from('warehouse_racks').select('rack_code').eq('deleted', false).order('rack_code'),
       supabase.from('products').select('*').neq('deleted', true).order('product_code'),
       loadBatchOptions(),
       supabase.from('batch_records').select('batch_number, product_code, product_name, production_date, expiry_date, pcs_per_carton, quantity_cartons, carton_barcode').eq('deleted', false).order('created_at', { ascending: false }).limit(500),
@@ -82,6 +84,7 @@ export default function WmsWarehouse() {
     setStockItems(sRes.data || []);
     setRackLines(lRes.data || []);
     setStagingAreas(stRes.data || []);
+    setWarehouseRacks((wrRes.data || []).map((r: any) => r.rack_code).filter(Boolean));
     if (takeRes.data) {
       setActiveTake(takeRes.data);
       const { data: tItems } = await supabase
@@ -108,9 +111,10 @@ export default function WmsWarehouse() {
     const slotCodes = layout.flatMap((line) =>
       line.racks.flatMap((r) => r.slots.map((s) => s.code))
     );
-    const areaNames = [DEFAULT_STAGING_AREA, ...stagingAreas.map((a) => a.name).filter(Boolean)];
-    return [...new Set([...areaNames, ...slotCodes])];
-  }, [layout, stagingAreas]);
+    const areaNames = [DEFAULT_STAGING_AREA, 'Staging Area', ...stagingAreas.map((a) => a.name).filter(Boolean)];
+    const activeStockRacks = stockItems.map((s) => s.rack).filter(Boolean);
+    return [...new Set([...areaNames, ...warehouseRacks, ...slotCodes, ...activeStockRacks])];
+  }, [layout, stagingAreas, warehouseRacks, stockItems]);
 
   const handleQrDecode = (raw: string) => {
     const res = parseQRPayload(raw);
@@ -559,7 +563,8 @@ export default function WmsWarehouse() {
                   onValueChange={(v) => setScanForm({ ...scanForm, rack: v })}
                   options={rackOptions}
                   placeholder="Rack (e.g. G1A)"
-                  searchPlaceholder="Search rack..."
+                  searchPlaceholder="Search or type rack..."
+                  allowCustom
                 />
                 <Button type="submit" className="md:col-span-4 bg-[#0F294A] hover:bg-[#193B68] text-white">
                   Receive Stock-In

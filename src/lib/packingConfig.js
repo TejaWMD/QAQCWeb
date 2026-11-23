@@ -1,6 +1,7 @@
 // Pcs per carton is encoded in the product name after the net weight.
 // e.g. "CIK SURI CHICKEN STOCK 100G X 14 X 4" -> 14 x 4 = 56
-const NET_WEIGHT = /\d+(?:\.\d+)?\s*(?:KGS?|GMS?|G|ML|LTRS?|LITRES?|CL|L)\b/gi;
+// e.g. "MONTCAR750MLx12" -> 12
+const NET_WEIGHT = /\d+(?:\.\d+)?\s*(?:KGS?|GMS?|G|ML|LTRS?|LITRES?|CL|L)(?=\b|[Xx×]|\s|$)/gi;
 const PACK_MULTIPLIER = /[Xx×]\s*(\d+)(?:'s)?/g;
 
 // Returns 0 when the name carries no packing config (to be filled in manually)

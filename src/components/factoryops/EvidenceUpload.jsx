@@ -31,6 +31,7 @@ export default function EvidenceUpload({ value = {}, onChange, label = "Evidence
       <input
         ref={inputRef}
         type="file"
+        accept="image/*,.pdf,application/pdf,.doc,.docx,.xls,.xlsx,.csv"
         className="hidden"
         onChange={(e) => handleFile(e.target.files?.[0])}
       />

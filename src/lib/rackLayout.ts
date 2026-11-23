@@ -17,8 +17,15 @@ export const RACK_LAYERS: Array<'T' | 'M' | 'G'> = ['T', 'M', 'G'];
 export const RACK_SIDES: Array<'A' | 'B'> = ['A', 'B'];
 export const DEFAULT_STAGING_AREA = 'Waiting Area';
 
+export const DEFAULT_RACK_LINES: RackLineConfig[] = [
+  { id: 'default-line-a', name: 'Line A', rack_count: 4, sort_order: 1 },
+  { id: 'default-line-b', name: 'Line B', rack_count: 4, sort_order: 2 },
+  { id: 'default-line-c', name: 'Line C', rack_count: 4, sort_order: 3 },
+];
+
 export function buildRackLayout(lines: RackLineConfig[]) {
-  const sorted = [...lines].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+  const source = Array.isArray(lines) && lines.length > 0 ? lines : DEFAULT_RACK_LINES;
+  const sorted = [...source].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
   let counter = 1;
 
   return sorted.map((line) => {

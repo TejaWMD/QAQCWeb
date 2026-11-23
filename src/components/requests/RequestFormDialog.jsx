@@ -229,7 +229,6 @@ export default function RequestFormDialog({ open, onOpenChange, user, config = D
   const submit = async (e) => {
     e.preventDefault();
     const missing = [];
-    if (!values.production_line) missing.push("Production Line");
     if (!(values.owners || []).length) missing.push("Owner");
     visibleKeys.forEach((k) => {
       if (requiredKeys.includes(k) && (values[k] === "" || values[k] === undefined || values[k] === null)) {

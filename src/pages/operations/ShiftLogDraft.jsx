@@ -129,12 +129,23 @@ export default function ShiftLogDraft({ onSavedTab } = {}) {
   const checkedCount = taskChecklist.filter((t) => form[t.key]).length;
   const status = taskChecklist.every((t) => form[t.key]) ? "complete" : "incomplete";
 
-  const pcsPerCartonValue = Number(form.pcs_per_carton) || 0;
+  const matchedProduct = opts.products.find(
+    (p) =>
+      p.product_name === form.product_name ||
+      p.product_code === form.product_name ||
+      p.label === form.product_name
+  );
+  const pcsPerCartonValue =
+    Number(form.pcs_per_carton) ||
+    Number(matchedProduct?.carton_size) ||
+    Number(matchedProduct?.pcs_per_carton) ||
+    pcsPerCarton(matchedProduct?.product_name_original || form.product_name) ||
+    0;
   const totalPlanned = (Number(form.planned_cartons) || 0) * pcsPerCartonValue;
   const rawActualSum = timeRows.reduce((s, r) => s + (Number(r.actual_output) || 0), 0);
   const totalActual =
-    outputUnit === "carton" && pcsPerCartonValue > 0
-      ? Math.round(rawActualSum * pcsPerCartonValue)
+    outputUnit === "carton"
+      ? Math.round(rawActualSum * (pcsPerCartonValue > 0 ? pcsPerCartonValue : 1))
       : rawActualSum;
   const totalRejected = timeRows.reduce((s, r) => s + (Number(r.rejected_qty) || 0), 0);
   const achieveRate = totalPlanned > 0 ? (totalActual / totalPlanned * 100).toFixed(1) : "0";
@@ -171,15 +182,24 @@ export default function ShiftLogDraft({ onSavedTab } = {}) {
   // Pcs per carton & size from Product Master or product name string
   useEffect(() => {
     if (!form.product_name) return;
-    const match = opts.products.find((p) => p.product_name === form.product_name);
-    const pcs = Number(match?.carton_size) || pcsPerCarton(form.product_name) || "";
+    const match = opts.products.find(
+      (p) =>
+        p.product_name === form.product_name ||
+        p.product_code === form.product_name ||
+        p.label === form.product_name
+    );
+    const pcs =
+      Number(match?.carton_size) ||
+      Number(match?.pcs_per_carton) ||
+      pcsPerCarton(match?.product_name_original || form.product_name) ||
+      "";
     const packType =
       match?.pack_size ||
       (match?.size_value ? `${match.size_value}${match.size_unit || ""}` : "") ||
       "";
     setForm((f) => ({
       ...f,
-      pcs_per_carton: pcs,
+      pcs_per_carton: pcs || f.pcs_per_carton,
       product_type: f.product_type || packType,
     }));
   }, [form.product_name, opts.products]);
@@ -493,7 +513,15 @@ export default function ShiftLogDraft({ onSavedTab } = {}) {
                         <td className="px-3 py-1.5 text-right text-slate-700">{calcHours(row.start, row.end).toFixed(2)}</td>
                         <td className="px-2 py-1.5"><Input type="number" value={row.actual_output} onChange={(e) => updateTimeRow(i, "actual_output", e.target.value)} className="h-8 text-right" placeholder="0" /></td>
                         <td className="px-2 py-1.5"><Input type="number" value={row.rejected_qty} onChange={(e) => updateTimeRow(i, "rejected_qty", e.target.value)} className="h-8 text-right" placeholder="0" /></td>
-                        <td className="px-3 py-1.5 text-right text-slate-700">{calcUpm(row.start, row.end, row.actual_output).toFixed(2)}</td>
+                        <td className="px-3 py-1.5 text-right text-slate-700">
+                          {calcUpm(
+                            row.start,
+                            row.end,
+                            outputUnit === "carton"
+                              ? (Number(row.actual_output) || 0) * (pcsPerCartonValue > 0 ? pcsPerCartonValue : 1)
+                              : row.actual_output
+                          ).toFixed(2)}
+                        </td>
                         <td className="px-2 py-1.5">
                           {timeRows.length > 1 &&
                         <Button variant="ghost" size="icon" onClick={() => removeTimeRow(i)} className="text-red-400 hover:text-red-600 h-8 w-8">
@@ -508,7 +536,11 @@ export default function ShiftLogDraft({ onSavedTab } = {}) {
                     <tr>
                       <td className="px-3 py-2 font-semibold text-slate-700" colSpan={3}>Gross Duration</td>
                       <td className="px-3 py-2 text-right font-semibold text-slate-700">{grossHours.toFixed(2)} hrs</td>
-                      <td className="px-3 py-2 text-right font-semibold text-slate-700">{totalActual.toLocaleString()}</td>
+                      <td className="px-3 py-2 text-right font-semibold text-slate-700">
+                        {outputUnit === "carton" && pcsPerCartonValue > 0
+                          ? `${rawActualSum.toLocaleString()} ctn (${totalActual.toLocaleString()} pcs)`
+                          : `${totalActual.toLocaleString()} pcs`}
+                      </td>
                       <td className="px-3 py-2 text-right font-semibold text-red-500">{totalRejected.toLocaleString()}</td>
                       <td className="px-3 py-2 text-right font-semibold text-slate-700">{(grossHours > 0 ? totalActual / grossHours / 60 : 0).toFixed(2)}</td>
                       <td></td>
@@ -614,7 +646,10 @@ export default function ShiftLogDraft({ onSavedTab } = {}) {
             <h2 className="text-sm font-semibold tracking-wide">PACKAGING MATERIAL TRACEABILITY / WASTAGE</h2>
           </div>
           <div className="p-5">
-            <p className="text-xs text-red-500 mb-3">* At least 1 component (Used or Wasted) must be filled.</p>
+            <p className="text-xs text-red-500 mb-1">* At least 1 component (Used or Wasted) must be filled.</p>
+            <p className="text-xs text-slate-500 mb-3">
+              All packaging inputs are in <strong>units (pieces)</strong> ({totalActual.toLocaleString()} pcs), except Carton Box which is in <strong>cartons</strong> ({totalCartons.toLocaleString()} cartons).
+            </p>
             <div className="mb-3 max-w-xs">
               <Field label="Product Type / Size">
                 <Input value={form.product_type} onChange={(e) => set("product_type", e.target.value)} placeholder="e.g. 1L, 200g" />

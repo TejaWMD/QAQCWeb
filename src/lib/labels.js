@@ -103,8 +103,11 @@ export const shelfLifeMonthsFromDays = (shelfLifeDays) => {
   const days = Math.round(num(shelfLifeDays));
   if (days <= 0) return 0;
   if (days === 365) return 12;
+  if (days === 547 || days === 548) return 18;
   if (days === 730) return 24;
+  if (days === 1095) return 36;
   if (days % 30 === 0) return days / 30;
+  if (days >= 28) return Math.round(days / 30);
   return 0;
 };
 

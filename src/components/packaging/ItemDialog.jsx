@@ -12,18 +12,15 @@ const FIELD = "bg-white border-[#E2E8F0] text-[#0F294A]";
 
 const empty = (categories, units) => ({
   item_code: "",
-  description: "",
   category: categories[0] || "Packaging",
   unit: units[0] || "PCS",
   quantity: "",
   min_level: "",
-  default_rack: "",
-  supplier: "",
   active: true,
-  linked_product: "",
   qty_per_unit: "",
 });
 
+// V3: Add Item -> Removed Description, default rack, supplier, linked product
 export default function ItemDialog({ open, item, categories = [], units = [], onClose, onSaved }) {
   const [form, setForm] = useState(empty(categories, units));
   const [saving, setSaving] = useState(false);
@@ -35,16 +32,12 @@ export default function ItemDialog({ open, item, categories = [], units = [], on
     setForm(
       item
         ? {
-            item_code: item.item_code || "",
-            description: item.description || item.name || "",
+            item_code: item.item_code || item.description || "",
             category: item.category || categories[0] || "Packaging",
             unit: item.unit || units[0] || "PCS",
             quantity: item.quantity != null ? String(item.quantity) : "",
             min_level: item.min_level != null ? String(item.min_level) : "",
-            default_rack: item.default_rack || "",
-            supplier: item.supplier || "",
             active: item.active !== false,
-            linked_product: item.linked_product || "",
             qty_per_unit: item.qty_per_unit != null ? String(item.qty_per_unit) : "",
           }
         : empty(categories, units)
@@ -55,9 +48,8 @@ export default function ItemDialog({ open, item, categories = [], units = [], on
 
   const submit = async (e) => {
     e.preventDefault();
-    const cleanDesc = form.description.trim();
-    const cleanCode = form.item_code.trim() || cleanDesc.toUpperCase().replace(/[^A-Z0-9-]+/g, "-").slice(0, 24);
-    if (!cleanDesc && !cleanCode) return setError("Item name or code is required.");
+    const cleanCode = form.item_code.trim();
+    if (!cleanCode) return setError("Item code is required.");
     setSaving(true);
     setError("");
     try {
@@ -67,14 +59,11 @@ export default function ItemDialog({ open, item, categories = [], units = [], on
       }
       const payload = {
         item_code: cleanCode,
-        description: cleanDesc || cleanCode,
+        description: item?.description || cleanCode,
         category: form.category,
         unit: form.unit,
         min_level: Number(form.min_level) || 0,
-        default_rack: form.default_rack,
-        supplier: form.supplier.trim(),
         active: form.active,
-        linked_product: form.linked_product.trim(),
         qty_per_unit: Number(form.qty_per_unit) || 0,
       };
       const initialQty = Math.max(0, Number(form.quantity) || 0);
@@ -99,8 +88,6 @@ export default function ItemDialog({ open, item, categories = [], units = [], on
             quantity: initialQty,
             movement_date: todayStr(),
             batch_number: "OPENING",
-            rack_location: saved.default_rack || "",
-            supplier: saved.supplier || "",
             remarks: "Opening balance",
             source: "Opening Balance",
           });
@@ -128,18 +115,9 @@ export default function ItemDialog({ open, item, categories = [], units = [], on
         </DialogHeader>
         <form onSubmit={submit} className="space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1 sm:col-span-2">
-              <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Item Name / Description *</label>
-              <Input
-                value={form.description}
-                onChange={(e) => set("description", e.target.value)}
-                placeholder="e.g. LIME JUICE 500ML BOTTLE"
-                className={FIELD}
-              />
-            </div>
             <div className="space-y-1">
-              <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Item Code</label>
-              <Input value={form.item_code} onChange={(e) => set("item_code", e.target.value)} placeholder="e.g. LBL-250 (auto if blank)" className={FIELD} />
+              <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Item Code *</label>
+              <Input value={form.item_code} onChange={(e) => set("item_code", e.target.value)} placeholder="e.g. LBL-250" className={FIELD} />
             </div>
             <div className="space-y-1">
               <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Category</label>

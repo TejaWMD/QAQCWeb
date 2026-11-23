@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import StatusBadge from "@/components/factoryops/StatusBadge";
 import { Paperclip, Trash2 } from "lucide-react";
-import { lineCode } from "@/lib/shiftLogConstants";
 import { DOWNTIME_TYPE, ITEM_TYPE, TYPE_STYLES, statusesForType } from "@/lib/requestConstants";
 
 const DemoBadge = () => (
@@ -55,7 +54,6 @@ export default function RequestsList({ rows, loading, user, onStatusChange, onRe
           <TableHeader>
             <TableRow className="border-[#E2E8F0] hover:bg-transparent">
               <TableHead className="text-[#64748B]">Type</TableHead>
-              <TableHead className="text-[#64748B]">Line</TableHead>
               <TableHead className="text-[#64748B]">Date</TableHead>
               <TableHead className="text-[#64748B]">Details</TableHead>
               <TableHead className="text-[#64748B]">Owner / Requester</TableHead>
@@ -66,14 +64,14 @@ export default function RequestsList({ rows, loading, user, onStatusChange, onRe
           <TableBody>
             {loading && (
               <TableRow className="border-[#E2E8F0]">
-                <TableCell colSpan={7} className="text-center text-[#64748B] py-8">
+                <TableCell colSpan={6} className="text-center text-[#64748B] py-8">
                   <span className="inline-block w-5 h-5 border-2 border-[#E2E8F0] border-t-[#0F294A] rounded-full animate-spin" />
                 </TableCell>
               </TableRow>
             )}
             {!loading && rows.length === 0 && (
               <TableRow className="border-[#E2E8F0]">
-                <TableCell colSpan={7} className="text-center text-[#64748B] py-8">
+                <TableCell colSpan={6} className="text-center text-[#64748B] py-8">
                   No requests yet.
                 </TableCell>
               </TableRow>
@@ -105,7 +103,6 @@ export default function RequestsList({ rows, loading, user, onStatusChange, onRe
                     )}
                   </div>
                 </TableCell>
-                <TableCell className="text-sm text-[#334155]">{lineCode(row.production_line || "") || "—"}</TableCell>
                 <TableCell className="text-sm text-[#334155]">{row.shift_date || "—"}</TableCell>
                 <TableCell><Details row={row} /></TableCell>
                 <TableCell>

@@ -12,31 +12,35 @@ import ProductPicker from "@/components/labels/ProductPicker";
 import { loadProductLinkData } from "@/lib/productLinks";
 import { loadMachineOptions, loadUserOptions } from "@/lib/masterOptions";
 
-const initialValues = (fields) => {
+const initialValues = (fields, initialData = null) => {
   const values = {};
   fields.forEach((f) => {
     if (f.type === "file") {
-      values[`${f.key}_uri`] = "";
-      values[`${f.key}_name`] = "";
+      values[`${f.key}_uri`] = initialData?.[`${f.key}_uri`] || "";
+      values[`${f.key}_name`] = initialData?.[`${f.key}_name`] || "";
       return;
     }
     if (f.type === "product") {
-      values.product_id = "";
-      values.product_code = "";
-      values.product_name = "";
+      values.product_id = initialData?.product_id || "";
+      values.product_code = initialData?.product_code || "";
+      values.product_name = initialData?.product_name || "";
     }
-    values[f.key] = f.type === "checkbox" ? false : f.default !== undefined ? f.default : "";
+    if (initialData && initialData[f.key] !== undefined && initialData[f.key] !== null) {
+      if (f.type === "date" && typeof initialData[f.key] === "string") {
+        values[f.key] = initialData[f.key].slice(0, 10);
+      } else {
+        values[f.key] = initialData[f.key];
+      }
+    } else {
+      values[f.key] = f.type === "checkbox" ? false : f.default !== undefined ? f.default : "";
+    }
   });
   return values;
 };
 
-// Generic add-record form driven by a field config: { key, label, type, options, required, showIf }
-// type: text | number | date | time | select | textarea | checkbox | file | product | batch | user | line
-// "product" picks an item from the Product Master and stores product_id / product_code /
-// product_name; "batch" picks a batch recorded in BatchRecord; "user" picks from backend users;
-// "line" picks from backend machines.
-export default function AddRecordDialog({ open, onOpenChange, title, fields, onSubmit }) {
-  const [values, setValues] = useState(() => initialValues(fields));
+// Generic add/edit-record form driven by a field config: { key, label, type, options, required, showIf }
+export default function AddRecordDialog({ open, onOpenChange, title, fields, initialData = null, onSubmit }) {
+  const [values, setValues] = useState(() => initialValues(fields, initialData));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [link, setLink] = useState({ products: [], records: [] });
@@ -48,10 +52,10 @@ export default function AddRecordDialog({ open, onOpenChange, title, fields, onS
 
   useEffect(() => {
     if (open) {
-      setValues(initialValues(fields));
+      setValues(initialValues(fields, initialData));
       setError("");
     }
-  }, [open]);
+  }, [open, initialData]);
 
   useEffect(() => {
     if (!open || !needsLink || link.products.length) return;
@@ -72,7 +76,6 @@ export default function AddRecordDialog({ open, onOpenChange, title, fields, onS
 
   const set = (key, value) => setValues((v) => ({ ...v, [key]: value }));
 
-  // Picking a product also clears any batch typed for the previous product.
   const pickProduct = (product) => {
     setValues((v) => {
       const next = {
@@ -101,7 +104,7 @@ export default function AddRecordDialog({ open, onOpenChange, title, fields, onS
         }
       });
       await onSubmit(cleaned);
-      toast.success("Record saved successfully.");
+      toast.success(initialData ? "Record updated successfully." : "Record saved successfully.");
       onOpenChange(false);
     } catch (err) {
       const msg = err?.message || "Could not save the record. Please try again.";
@@ -130,6 +133,7 @@ export default function AddRecordDialog({ open, onOpenChange, title, fields, onS
                 <div className="space-y-1.5">
                   <Label className="text-xs text-[#64748B]">{f.label}</Label>
                   <EvidenceUpload
+                    label=""
                     value={{ uri: values[`${f.key}_uri`], name: values[`${f.key}_name`] }}
                     onChange={(v) => { set(`${f.key}_uri`, v.uri || ""); set(`${f.key}_name`, v.name || ""); }}
                   />
@@ -185,7 +189,6 @@ export default function AddRecordDialog({ open, onOpenChange, title, fields, onS
                       </SelectTrigger>
                       <SelectContent>
                         {f.options.map((opt) => {
-                          // { group, options } renders a labelled group of choices.
                           if (opt && typeof opt === "object" && Array.isArray(opt.options)) {
                             return (
                               <SelectGroup key={opt.group}>
@@ -203,7 +206,7 @@ export default function AddRecordDialog({ open, onOpenChange, title, fields, onS
                   ) : f.type === "textarea" ? (
                     <Textarea
                       id={f.key}
-                      value={values[f.key]}
+                      value={values[f.key] || ""}
                       onChange={(e) => set(f.key, e.target.value)}
                       placeholder={f.placeholder || ""}
                       required={f.required}
@@ -231,7 +234,7 @@ export default function AddRecordDialog({ open, onOpenChange, title, fields, onS
               Cancel
             </Button>
             <Button type="submit" disabled={saving} className="bg-[#0F294A] hover:bg-[#193B68] text-white">
-              {saving ? "Saving..." : "Save"}
+              {saving ? "Saving..." : initialData ? "Save changes" : "Save"}
             </Button>
           </DialogFooter>
         </form>

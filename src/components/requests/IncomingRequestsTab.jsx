@@ -2,7 +2,6 @@ import React from "react";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import StatusBadge from "@/components/factoryops/StatusBadge";
-import { lineCode } from "@/lib/shiftLogConstants";
 import { ITEM_TYPE, TYPE_STYLES, URGENCY_STYLES, requestSummary } from "@/lib/requestConstants";
 
 const URGENCY_RANK = { "Line stopped": 0, Urgent: 1, Normal: 2 };
@@ -32,7 +31,6 @@ export default function IncomingRequestsTab({ requests, onReview }) {
           <TableHeader>
             <TableRow className="border-[#E2E8F0] hover:bg-transparent">
               <TableHead className="text-[#64748B]">Type</TableHead>
-              <TableHead className="text-[#64748B]">Line</TableHead>
               <TableHead className="text-[#64748B]">Requester</TableHead>
               <TableHead className="text-[#64748B]">Request</TableHead>
               <TableHead className="text-[#64748B]">Priority / Approval</TableHead>
@@ -49,7 +47,6 @@ export default function IncomingRequestsTab({ requests, onReview }) {
                     {r.request_type}
                   </span>
                 </TableCell>
-                <TableCell className="text-sm text-[#334155]">{lineCode(r.production_line || "") || "—"}</TableCell>
                 <TableCell className="text-sm text-[#334155]">{r.requester_name || "—"}</TableCell>
                 <TableCell className="text-sm text-[#334155]">{requestSummary(r)}</TableCell>
                 <TableCell>

@@ -6,7 +6,7 @@ import { actingUserName, canChangeRecord } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import AddRecordDialog from "@/components/factoryops/AddRecordDialog";
 import StatusBadge from "@/components/factoryops/StatusBadge";
 import { logSystemAction } from "@/lib/historyLog";
@@ -17,9 +17,9 @@ const eventStamp = () => {
   return `${d.toISOString().slice(0, 10)} ${d.toTimeString().slice(0, 8)}`;
 };
 
-// Generic dark-themed records table for the FactoryOps modules: lists one entity,
-// supports adding records, inline status changes and deletion, and writes an
-// AuditLog entry for every action.
+// Generic records table for the FactoryOps modules: lists one entity,
+// supports adding records, editing records, inline status changes (recording
+// status_updated_at date & time), deletion, and AuditLog tracking.
 export default function RecordsTable({
   entity,
   title,
@@ -41,6 +41,7 @@ export default function RecordsTable({
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
+  const [editingRecord, setEditingRecord] = useState(null);
   const [statusFilter, setStatusFilter] = useState(() => {
     const fromUrl = new URLSearchParams(window.location.search).get("status");
     return statuses && statuses.includes(fromUrl) ? fromUrl : "all";
@@ -50,15 +51,14 @@ export default function RecordsTable({
     if (!silent) setLoading(true);
     try {
       const data = await base44.entities[entity].list("-created_date", 200);
-      setRecords(data);
+      setRecords(Array.isArray(data) ? data : []);
       if (markOverdue) {
         const today = new Date().toISOString().slice(0, 10);
-        const ids = data
+        const ids = (Array.isArray(data) ? data : [])
           .filter((r) => markOverdue(r, today) && !["Overdue", "Completed", "Verified"].includes(r.status))
           .map((r) => r.id);
         if (ids.length > 0) {
           await base44.entities[entity].updateMany({ id: { $in: ids } }, { $set: { status: "Overdue" } });
-          // The app flagged these records itself, so the change is a system action.
           await logSystemAction({
             module: title,
             action: "Updated",
@@ -102,13 +102,61 @@ export default function RecordsTable({
   };
 
   const handleAdd = async (values) => {
+    const nowIso = new Date().toISOString();
     const payload = {
       ...values,
+      status: values.status || (statuses ? statuses[0] : "Open"),
+      status_updated_at: nowIso,
       created_by: values.created_by || user?.email || user?.id || actingUserName(user),
     };
     const created = await base44.entities[entity].create(payload);
     await audit("Created", created?.id, `New record created in ${title}`);
     await onAfterCreate?.(created);
+    await load(true);
+  };
+
+  const handleEdit = async (values) => {
+    if (!editingRecord) return;
+    const prevStatus = editingRecord.status || "";
+    const nextStatus = values.status || prevStatus;
+    if (nextStatus !== prevStatus && guard) {
+      const error = guard({ ...editingRecord, ...values }, nextStatus);
+      if (error) {
+        throw new Error(error);
+      }
+    }
+    const nowIso = new Date().toISOString();
+    const statusChanged = nextStatus !== prevStatus;
+    const patch = {
+      ...values,
+      ...(statusChanged ? { status_updated_at: nowIso } : {}),
+      ...(statusChanged && nextStatus === "Verified"
+        ? { verified_by: actingUserName(user), verification_date: nowIso }
+        : {}),
+    };
+    const updated = await base44.entities[entity].update(editingRecord.id, patch);
+    setRecords((prev) =>
+      prev.map((r) =>
+        r.id === editingRecord.id
+          ? {
+              ...r,
+              ...patch,
+              ...(updated || {}),
+              ...(statusChanged ? { status_updated_at: nowIso, updated_date: nowIso } : {}),
+            }
+          : r
+      )
+    );
+    await audit(
+      "Updated",
+      editingRecord.id,
+      statusChanged
+        ? `Record updated & status changed to "${nextStatus}" at ${eventStamp()}`
+        : `Record updated in ${title}`,
+      prevStatus,
+      nextStatus
+    );
+    setEditingRecord(null);
     await load(true);
   };
 
@@ -126,13 +174,19 @@ export default function RecordsTable({
       const patch = {
         status,
         status_updated_at: nowIso,
-        ...(status === "Verified" ? { verified_by: actingUserName(user), verified_at: nowIso } : {}),
+        ...(status === "Verified" ? { verified_by: actingUserName(user), verification_date: nowIso } : {}),
       };
-      await base44.entities[entity].update(record.id, patch);
-      await audit("Updated", record.id, `Status changed to "${status}" at ${nowIso}`, prev, status);
+      const updated = await base44.entities[entity].update(record.id, patch);
+      setRecords((prevList) =>
+        prevList.map((r) =>
+          r.id === record.id
+            ? { ...r, ...patch, ...(updated || {}), status_updated_at: nowIso, updated_date: nowIso }
+            : r
+        )
+      );
+      await audit("Updated", record.id, `Status changed to "${status}" at ${eventStamp()}`, prev, status);
       await onAfterChange?.(record, prev);
-      await load(true);
-      toast.success(`Status updated to "${status}".`);
+      toast.success(`Status updated to "${status}" (${new Date(nowIso).toLocaleString()}).`);
     } catch (err) {
       toast.error(err?.message || "Failed to update status.");
     }
@@ -149,6 +203,15 @@ export default function RecordsTable({
       toast.error(err?.message || "Failed to delete record.");
     }
   };
+
+  const editFields = statuses
+    ? [
+        ...fields,
+        ...(fields.some((f) => f.key === "status")
+          ? []
+          : [{ key: "status", label: "Status", type: "select", options: statuses }]),
+      ]
+    : fields;
 
   const roleFiltered = filterRows ? records.filter(filterRows) : records;
   const visible = statusFilter === "all" ? roleFiltered : roleFiltered.filter((r) => r.status === statusFilter);
@@ -189,7 +252,7 @@ export default function RecordsTable({
                 <TableHead key={c.key} className="text-[#64748B]">{c.label}</TableHead>
               ))}
               <TableHead className="text-[#64748B]">Status</TableHead>
-              <TableHead className="text-[#64748B] w-[60px]"></TableHead>
+              <TableHead className="text-[#64748B] w-[90px] text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -230,9 +293,26 @@ export default function RecordsTable({
                     <StatusBadge status={record.status} />
                   )}
                 </TableCell>
-                <TableCell>
+                <TableCell className="text-right whitespace-nowrap">
+                  {canEdit && canChangeRecord(user, record) && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setEditingRecord(record)}
+                      className="text-[#475569] hover:text-[#1D4ED8] hover:bg-[#EBF3FF] h-8 w-8 p-0 mr-1"
+                      title="Edit record"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </Button>
+                  )}
                   {canDelete && canChangeRecord(user, record) && (
-                    <Button size="sm" variant="ghost" onClick={() => remove(record)} className="text-rose-600 hover:text-rose-600 hover:bg-rose-600/10 h-8 w-8 p-0">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => remove(record)}
+                      className="text-rose-600 hover:text-rose-600 hover:bg-rose-600/10 h-8 w-8 p-0"
+                      title="Delete record"
+                    >
                       <Trash2 className="w-3.5 h-3.5" />
                     </Button>
                   )}
@@ -248,6 +328,14 @@ export default function RecordsTable({
         title={addLabel || `Add ${title}`}
         fields={fields}
         onSubmit={handleAdd}
+      />
+      <AddRecordDialog
+        open={!!editingRecord}
+        onOpenChange={(o) => !o && setEditingRecord(null)}
+        title={`Edit ${title}`}
+        fields={editFields}
+        initialData={editingRecord}
+        onSubmit={handleEdit}
       />
     </div>
   );

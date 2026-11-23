@@ -48,7 +48,8 @@ export default function CreateBatch() {
 
   const [productId, setProductId] = useState("");
   const [alphabetSuffix, setAlphabetSuffix] = useState("");
-  const [productionDate, setProductionDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [productionDate, setProductionDate] = useState("");
+  const [manualBatch, setManualBatch] = useState("");
   const [quantity, setQuantity] = useState("");
   const [layoutId, setLayoutId] = useState("qr13_l");
   const [custom, setCustom] = useState({ width_mm: 70, height_mm: 50, font_size: 7, qr_mm: 14, qr_ecc: "M" });
@@ -84,12 +85,13 @@ export default function CreateBatch() {
 
   const selectProduct = (next) => {
     setProductId(next?.id || "");
+    setManualBatch("");
     if (next?.default_label_layout) {
       setLayoutId(next.default_label_layout);
     }
   };
 
-  // Auto-generate Batch Number: PREFIX + DDMMYY + Alphabet Suffix (e.g. MCL200626T)
+  // Auto-generate Batch Number once Product and Production Date are chosen: PREFIX + DDMMYY + Alphabet Suffix (e.g. MCL200626T)
   const batchPrefix = useMemo(() => {
     if (!product) return "";
     if (product.batch_prefix) return String(product.batch_prefix).trim().toUpperCase();
@@ -104,7 +106,8 @@ export default function CreateBatch() {
   }, [productionDate]);
 
   const cleanSuffix = alphabetSuffix.replace(/[^A-Za-z]/g, "").toUpperCase();
-  const batchNumber = product && datePart ? `${batchPrefix}${datePart}${cleanSuffix}` : "";
+  const autoBatchNumber = product && datePart ? `${batchPrefix}${datePart}${cleanSuffix}` : "";
+  const batchNumber = manualBatch.trim() ? manualBatch.trim().toUpperCase() : autoBatchNumber;
 
   const shelfMonths = useMemo(() => {
     if (!product) return 0;
@@ -216,6 +219,8 @@ export default function CreateBatch() {
         description: `${batch} · ready to print.`,
       });
       setAlphabetSuffix("");
+      setProductionDate("");
+      setManualBatch("");
       setQuantity("");
       setOverrideOpen(false);
       setOverrideDate("");
@@ -455,8 +460,8 @@ export default function CreateBatch() {
             </label>
             <Input
               value={batchNumber}
-              readOnly
-              placeholder="Auto-generated when Product & Production Date are chosen"
+              onChange={(e) => setManualBatch(e.target.value.toUpperCase())}
+              placeholder="Enter production date & product, or type batch number"
               className={`${inputClass} bg-[#F8FAFC] font-mono font-semibold text-[#0F294A]`}
             />
             <p className="text-[11px] text-[#64748B]">

@@ -96,17 +96,14 @@ export const base44 = {
           error = retry.error;
         }
         if (error) {
-          // Fallback: embed smaller attachments (<= 5 MB) as a data URL so missing storage buckets never block evidence uploads
-          if (file.size <= 5 * 1024 * 1024) {
-            const dataUrl = await new Promise<string>((resolve, reject) => {
-              const reader = new FileReader();
-              reader.onload = () => resolve(String(reader.result || ''));
-              reader.onerror = () => reject(new Error('Could not read file.'));
-              reader.readAsDataURL(file);
-            });
-            return { file_uri: dataUrl };
-          }
-          throw new Error(`Evidence upload failed: ${error.message}`);
+          // Fallback: embed attachment as a data URL so missing storage buckets never block image or PDF evidence uploads
+          const dataUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(String(reader.result || ''));
+            reader.onerror = () => reject(new Error('Could not read file.'));
+            reader.readAsDataURL(file);
+          });
+          return { file_uri: dataUrl };
         }
         return { file_uri: path };
       },

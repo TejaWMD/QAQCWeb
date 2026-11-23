@@ -150,8 +150,8 @@ export const ownsRecord = (user, record) => {
 export const canChangeRecord = (user, record) =>
   isAdminUser(user) ||
   ownsRecord(user, record) ||
-  ["manager", "supervisor", "qa_officer"].includes(appRoleOf(user)) ||
-  user?.role === "staff";
+  ["manager", "supervisor", "qa_officer", "operator", "warehouse_supervisor", "warehouse_staff"].includes(appRoleOf(user)) ||
+  (Boolean(user) && appRoleOf(user) !== "sales");
 
 // Shared status-change rules: an item cannot move to "Verified" without an
 // evidence attachment and a verifier who is not the owner. Optionally closing

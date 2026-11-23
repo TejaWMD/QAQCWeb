@@ -1,52 +1,28 @@
 import { productionLines } from "@/lib/shiftLogConstants";
 
-// Issue types for "Raise CAPA", grouped as shown in the specification.
+// Issue types for "Raise CAPA" per V3 specification.
 // "Others" is pinned at the bottom and opens a free-text "Please specify" box.
 export const OTHERS = "Others";
 
-export const ISSUE_TYPE_GROUPS = [
-  {
-    group: "Customer and returns",
-    options: [
-      "Returned goods · sensory issue",
-      "Returned goods · specification not met",
-      "Customer complaint · sensory",
-      "Customer complaint · foreign matter",
-      "Customer complaint · packaging",
-    ],
-  },
-  {
-    group: "In-process QC",
-    options: [
-      "CCP out of limit",
-      "Fat globule out of limit",
-      "Food safety",
-      "Product quality",
-    ],
-  },
-  {
-    group: "Operations & Facility",
-    options: [
-      "Supplier & Materials",
-      "Hygiene & Facility",
-      "Equipment",
-      "People & documents",
-    ],
-  },
-];
-
-export const ISSUE_TYPE_OPTIONS = [...ISSUE_TYPE_GROUPS, OTHERS];
-
 export const SALES_VISIBLE_ISSUE_TYPES = [
-  "Returned goods · sensory issue",
-  "Returned goods · specification not met",
-  "Customer complaint · sensory",
-  "Customer complaint · foreign matter",
-  "Customer complaint · packaging",
   "Complaints- sensory",
   "Complaints- foreign matter",
   "Returned- sensory issue",
   "Returned- spec not met",
+];
+
+export const ISSUE_TYPE_OPTIONS = [
+  "Food safety",
+  "Product quality",
+  "Complaints- sensory",
+  "Complaints- foreign matter",
+  "Returned- sensory issue",
+  "Returned- spec not met",
+  "Supplier & Materials",
+  "Hygiene & Facility",
+  "Equipment",
+  "People & documents",
+  OTHERS,
 ];
 
 export const CAPA_SOURCES = [
