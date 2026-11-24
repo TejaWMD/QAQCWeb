@@ -22,6 +22,7 @@ export const MODULES = [
   { key: "baseline_capacity", label: "Baseline Capacity", path: "/baseline-capacity", description: "Line capacity, setup and staffing baselines" },
   { key: "downtime", label: "Requests & Stoppages", path: "/downtime", description: "Downtime stoppages, item/material and approval requests" },
   { key: "qa_haccp", label: "QA & HACCP Safety", path: "/qa-haccp", description: "Food safety checks, defects and product holds" },
+  { key: "qaqc_queries", label: "Query", path: "/queries", description: "Read-only view of QAQC queries involving Muttha from the Manager Dashboard" },
   { key: "task_matrix", label: "Supervisor Task Matrix", path: "/task-matrix", description: "Supervisor attention tasks and verification" },
   { key: "capa_tracker", label: "Unified CAPA Tracker", path: "/capa-tracker", description: "Corrective and preventive actions" },
   { key: "audit_trail", label: "Audit Trail Log", path: "/audit-trail", description: "Chronological record of actions across modules" },
@@ -42,6 +43,8 @@ export const ALL_MODULE_KEYS = MODULES.map((m) => m.key);
 
 // Modules an administrator can hand out (User Management itself is administrator only).
 export const ASSIGNABLE_MODULE_KEYS = MODULES.filter((m) => !m.adminOnly).map((m) => m.key);
+// Opt-in modules are Admin-only by default and must be assigned explicitly in User Management.
+const MANAGER_PRESET_KEYS = ASSIGNABLE_MODULE_KEYS.filter((key) => key !== "qaqc_queries");
 
 export const isAdminUser = (user) => user?.role === "admin" || user?.role === "super_admin";
 
@@ -54,7 +57,7 @@ export const APP_ROLES = [
   { key: "warehouse_staff", label: "Warehouse Staff", preset: ["wms_warehouse", "packaging_stock"] },
   { key: "warehouse_supervisor", label: "Warehouse Supervisor", preset: ["wms_warehouse", "packaging_stock", "packaging_movements", "packaging_approvals"] },
   { key: "sales", label: "Sales Team", preset: ["capa_tracker"] },
-  { key: "manager", label: "Production Manager / MD", preset: ASSIGNABLE_MODULE_KEYS },
+  { key: "manager", label: "Production Manager / MD", preset: MANAGER_PRESET_KEYS },
 ];
 
 export const ROLE_PRESETS = Object.fromEntries(APP_ROLES.map((r) => [r.key, r.preset]));
@@ -74,7 +77,7 @@ const VIEW_AS_PRESETS = {
   supervisor: ROLE_PRESETS.supervisor,
   maintenance: ["downtime", "shift_log"],
   qa_officer: ROLE_PRESETS.qa_officer,
-  manager: ASSIGNABLE_MODULE_KEYS,
+  manager: MANAGER_PRESET_KEYS,
 };
 
 // The member's FactoryOps role: "admin" for platform administrators, the stored

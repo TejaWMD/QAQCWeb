@@ -7,7 +7,7 @@ import {
   Radar, Clock, ShieldCheck, ClipboardList, AlertTriangle, ScrollText,
   LayoutDashboard, Users, Upload, Layers,
   ArrowLeftRight, ClipboardCheck, Package, FlaskConical, ListChecks,
-  CalendarDays, Trash2, Tag, History, Scale, X, LogOut, PanelLeftClose, PanelLeftOpen, TrendingUp, ShoppingCart, LayoutGrid, QrCode
+  CalendarDays, Trash2, Tag, History, Scale, X, LogOut, PanelLeftClose, PanelLeftOpen, TrendingUp, ShoppingCart, LayoutGrid, QrCode, MessageSquareText
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -15,6 +15,7 @@ const factoryItems = [
   { key: "attention_dashboard", label: "Attention Dashboard", icon: Radar },
   { key: "downtime", label: "Requests & Stoppages", icon: Clock },
   { key: "qa_haccp", label: "QA & HACCP Safety", icon: ShieldCheck },
+  { key: "qaqc_queries", label: "Query", icon: MessageSquareText },
   { key: "task_matrix", label: "Supervisor Tasks", icon: ClipboardList },
   { key: "capa_tracker", label: "CAPA Tracker", icon: AlertTriangle, badge: "capa" },
   { key: "audit_trail", label: "Audit Trail", icon: ScrollText },

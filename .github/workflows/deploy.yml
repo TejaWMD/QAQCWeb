@@ -39,6 +39,8 @@ jobs:
           VITE_BASE_PATH: ${{ steps.pages.outputs.base_path }}/
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || 'https://mfeojzfaeyctdtgwldem.supabase.co' }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1mZW9qemZhZXljdGR0Z3dsZGVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ4NzgwNTksImV4cCI6MjExMDQ1NDA1OX0.M07IpoxwWEJiFZiPMPzLlfn0vR8hclPzrB7iceFS1t8' }}
+          VITE_MANAGER_SUPABASE_URL: ${{ secrets.VITE_MANAGER_SUPABASE_URL || 'https://mjrqamakqqsqqmuvaqpw.supabase.co' }}
+          VITE_MANAGER_SUPABASE_ANON_KEY: ${{ secrets.VITE_MANAGER_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qcnFhbWFrcXFzcXFtdXZhcXB3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI0NjQyOTgsImV4cCI6MjEwODA0MDI5OH0.5VWlGTl87khT4JHlLLoT8IAwmceToyNZcN2EjfDohKg' }}
         run: |
           npm run build
           cp dist/index.html dist/404.html

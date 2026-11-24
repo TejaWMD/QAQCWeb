@@ -33,6 +33,7 @@ import Traceability from './pages/batches/Traceability';
 
 // QA / QC & Loss Control
 import QaHaccp from './pages/qaqc/QaHaccp';
+import QueryViewer from './pages/qaqc/QueryViewer';
 import CapaTracker from './pages/qaqc/CapaTracker';
 import YieldLoss from './pages/qaqc/YieldLoss';
 
@@ -81,6 +82,7 @@ const AuthenticatedApp = () => {
           <Route path="/operations-overview" element={<Home />} />
           <Route path="/downtime" element={<RequestsStoppages />} />
           <Route path="/qa-haccp" element={<QaHaccp />} />
+          <Route path="/queries" element={<QueryViewer />} />
           <Route path="/task-matrix" element={<TaskMatrix />} />
           <Route path="/capa-tracker" element={<CapaTracker />} />
           <Route path="/audit-trail" element={<AuditTrailLog />} />
