@@ -172,10 +172,27 @@ export const cartonUnitsFromDescription = (description) => {
 };
 
 // ---- completeness -----------------------------------------------------------
+export const isPapadamProduct = (product) => {
+  if (!product) return false;
+  const hay = [
+    product.product_name,
+    product.product_name_original,
+    product.recipe_name,
+    product.product_code,
+    product.brand,
+  ]
+    .filter(Boolean)
+    .join(" ");
+  return /pap+ad[au]m/i.test(hay);
+};
+
 const missing = (test, label) => (test ? null : label);
 
 export const productCompleteness = (product) => {
-  const labels = [missing(!!clean(product?.batch_prefix), "Batch code"), missing(num(product?.shelf_life_days) > 0, "Shelf life")].filter(Boolean);
+  const labels = [
+    isPapadamProduct(product) ? null : missing(!!clean(product?.batch_prefix), "Batch code"),
+    missing(num(product?.shelf_life_days) > 0, "Shelf life"),
+  ].filter(Boolean);
   const scheduling = [missing(num(product?.batch_output_kg) > 0, "Batch output"), missing(num(product?.cartons_per_batch) > 0, "Cartons per batch")].filter(Boolean);
   const yieldGaps = [missing(num(product?.net_weight_kg) > 0, "Net weight"), missing(num(product?.net_filling_kg) > 0, "Net filling")].filter(Boolean);
   const traceGaps = [missing(!!clean(product?.barcode), "SKU barcode")].filter(Boolean);

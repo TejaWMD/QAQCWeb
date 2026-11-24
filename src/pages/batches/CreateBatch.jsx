@@ -13,7 +13,7 @@ import ProductPicker from "@/components/labels/ProductPicker";
 import LabelPrintSheet from "@/components/labels/LabelPrintSheet";
 import LabelSettingsDialog from "@/components/labels/LabelSettingsDialog";
 import { loadProducts, num } from "@/lib/planning";
-import { labelBlock } from "@/lib/productMaster";
+import { isPapadamProduct, labelBlock } from "@/lib/productMaster";
 import { actingUserName, isAdminUser } from "@/lib/permissions";
 import {
   DEFAULT_LAYOUTS,
@@ -82,16 +82,19 @@ export default function CreateBatch() {
   }, [reload]);
 
   const product = products.find((p) => p.id === productId) || null;
+  const isPapadam = useMemo(() => isPapadamProduct(product), [product]);
 
   const selectProduct = (next) => {
     setProductId(next?.id || "");
     setManualBatch("");
+    setAlphabetSuffix("");
     if (next?.default_label_layout) {
       setLayoutId(next.default_label_layout);
     }
   };
 
   // Auto-generate Batch Number once Product and Production Date are chosen: PREFIX + DDMMYY + Alphabet Suffix (e.g. MCL200626T)
+  // For Papadam products only, batch number is entered manually instead.
   const batchPrefix = useMemo(() => {
     if (!product) return "";
     if (product.batch_prefix) return String(product.batch_prefix).trim().toUpperCase();
@@ -107,7 +110,7 @@ export default function CreateBatch() {
 
   const cleanSuffix = alphabetSuffix.replace(/[^A-Za-z]/g, "").toUpperCase();
   const autoBatchNumber = product && datePart ? `${batchPrefix}${datePart}${cleanSuffix}` : "";
-  const batchNumber = manualBatch.trim() ? manualBatch.trim().toUpperCase() : autoBatchNumber;
+  const batchNumber = isPapadam ? manualBatch.trim().toUpperCase() : autoBatchNumber;
 
   const shelfMonths = useMemo(() => {
     if (!product) return 0;
@@ -162,8 +165,12 @@ export default function CreateBatch() {
     const blocked = labelBlock(product);
     if (blocked) return toast({ title: "Product cannot be labelled", description: `${product.product_name}: ${blocked}. Fix it in Product Master.`, variant: "destructive" });
     if (!productionDate) return toast({ title: "Production date required", description: "Please enter the Production Date manually.", variant: "destructive" });
-    if (!manualBatch.trim() && !cleanSuffix) return toast({ title: "Alphabet suffix required", description: "Enter an Alphabet Suffix (e.g. A or T) or type a batch number manually.", variant: "destructive" });
-    if (!batch) return toast({ title: "Batch number missing", description: "Enter a batch number or choose a product, production date, and suffix.", variant: "destructive" });
+    if (isPapadam) {
+      if (!batch) return toast({ title: "Batch number required", description: "Please enter the batch number manually for Papadam.", variant: "destructive" });
+    } else {
+      if (!cleanSuffix) return toast({ title: "Alphabet suffix required", description: "Enter an Alphabet Suffix (e.g. A or T) to complete the batch number.", variant: "destructive" });
+      if (!batch) return toast({ title: "Batch number missing", description: "Choose a product, production date, and alphabet suffix.", variant: "destructive" });
+    }
     if (duplicate) return toast({ title: "Duplicate batch number", description: `${batch} is already recorded for ${product.product_name}.`, variant: "destructive" });
     if (!expiryDate) return toast({ title: "Expiry date missing", description: "Set the product shelf life, or override the expiry date.", variant: "destructive" });
     if (overrideOpen && !overrideReason.trim()) return toast({ title: "Reason required", description: "Give a reason for overriding the expiry date.", variant: "destructive" });
@@ -464,7 +471,10 @@ export default function CreateBatch() {
                 </span>
               </div>
               <div className="text-[#64748B]">
-                Batch Prefix: <span className="font-mono font-semibold text-[#0F294A]">{batchPrefix || "—"}</span>
+                Batch Prefix:{" "}
+                <span className="font-mono font-semibold text-[#0F294A]">
+                  {isPapadam ? "Manual entry (Papadam)" : batchPrefix || "—"}
+                </span>
               </div>
             </div>
           )}
@@ -474,13 +484,18 @@ export default function CreateBatch() {
               Batch Number <span className="text-rose-500">*</span>
             </label>
             <Input
-              value={batchNumber}
-              onChange={(e) => setManualBatch(e.target.value.toUpperCase())}
-              placeholder="Enter production date & product, or type batch number"
-              className={`${inputClass} bg-[#F8FAFC] font-mono font-semibold text-[#0F294A]`}
+              value={isPapadam ? manualBatch : autoBatchNumber}
+              onChange={(e) => {
+                if (isPapadam) setManualBatch(e.target.value.toUpperCase());
+              }}
+              readOnly={!isPapadam}
+              placeholder={isPapadam ? "Enter batch number manually" : "Select product, production date & alphabet suffix"}
+              className={`${inputClass} ${isPapadam ? "bg-white" : "bg-[#F8FAFC] cursor-default"} font-mono font-semibold text-[#0F294A]`}
             />
             <p className="text-[11px] text-[#64748B]">
-              Auto-generated: {batchPrefix || "PREFIX"} + date (DDMMYY) + alphabet
+              {isPapadam
+                ? "Manual entry enabled for Papadam — type the batch number directly."
+                : `Auto-generated: ${batchPrefix || "PREFIX"} + date (DDMMYY) + alphabet`}
             </p>
             {duplicate && (
               <p className="text-[11px] text-rose-600 flex items-center gap-1">
@@ -489,17 +504,19 @@ export default function CreateBatch() {
             )}
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-[#0F294A]">
-              Alphabet Suffix <span className="text-rose-500">*</span>
-            </label>
-            <Input
-              value={alphabetSuffix}
-              onChange={(e) => setAlphabetSuffix(e.target.value.replace(/[^A-Za-z]/g, "").toUpperCase().slice(0, 3))}
-              placeholder="e.g. A"
-              className={inputClass}
-            />
-          </div>
+          {!isPapadam && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-[#0F294A]">
+                Alphabet Suffix <span className="text-rose-500">*</span>
+              </label>
+              <Input
+                value={alphabetSuffix}
+                onChange={(e) => setAlphabetSuffix(e.target.value.replace(/[^A-Za-z]/g, "").toUpperCase().slice(0, 3))}
+                placeholder="e.g. A"
+                className={inputClass}
+              />
+            </div>
+          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
