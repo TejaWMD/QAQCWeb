@@ -64,6 +64,7 @@ export default function FactorySidebar({
   const logoSrc = `${import.meta.env.BASE_URL}wmd-logo.jpg`;
 
   useEffect(() => {
+    let timer = null;
     const loadCount = async () => {
       try {
         setCapaOpen(await base44.entities.CAPA.count({ status: { $ne: "Verified" } }));
@@ -71,9 +72,16 @@ export default function FactorySidebar({
         setCapaOpen(0);
       }
     };
+    const debouncedLoad = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(loadCount, 300);
+    };
     loadCount();
-    const unsubscribe = base44.entities.CAPA.subscribe(loadCount);
-    return () => { if (typeof unsubscribe === "function") unsubscribe(); };
+    const unsubscribe = base44.entities.CAPA.subscribe(debouncedLoad);
+    return () => {
+      if (timer) clearTimeout(timer);
+      if (typeof unsubscribe === "function") unsubscribe();
+    };
   }, []);
 
   const isCollapsed = collapsed && !mobileOpen;

@@ -105,6 +105,7 @@ async function resilientTableWrite(
     const msg = res.error.message || '';
     const missingMatch = msg.match(/Could not find the '([^']+)' column/);
     if (missingMatch && missingMatch[1] in clean) {
+      console.warn(`[Supabase:${table}] Dropping unknown column "${missingMatch[1]}" during write.`);
       const next = { ...clean };
       delete next[missingMatch[1]];
       clean = next;
@@ -344,6 +345,8 @@ export async function recordOperationLog(args: {
   const endHHMM = toHHMM(opLog.ot_end);
   const otHours = otHoursAfterFive(startHHMM, endHHMM);
 
+  const syncWarnings: string[] = [];
+
   // Sync linked ShiftLog if one exists for this session_id
   const { data: existingShift } = await supabase
     .from('shift_logs')
@@ -372,7 +375,10 @@ export async function recordOperationLog(args: {
       },
       existingShift.id,
       dayStr
-    ).catch(() => {});
+    ).catch((err) => {
+      console.error('[recordOperationLog] Failed to sync linked shift_logs:', err);
+      syncWarnings.push(`shift_logs: ${err?.message || 'sync failed'}`);
+    });
   }
 
   // Sync OTLog from the OperationLog
@@ -409,9 +415,16 @@ export async function recordOperationLog(args: {
       record_batch: opLog.record_batch || 'current',
       updated_at: new Date().toISOString(),
     };
-    await resilientTableWrite('otlogs', otPayload, existingOt?.id, dayStr).catch(() => {});
+    await resilientTableWrite('otlogs', otPayload, existingOt?.id, dayStr).catch((err) => {
+      console.error('[recordOperationLog] Failed to sync linked otlogs:', err);
+      syncWarnings.push(`otlogs: ${err?.message || 'sync failed'}`);
+    });
   } else if (existingOt?.id) {
-    await supabase.from('otlogs').delete().eq('id', existingOt.id);
+    const { error: otDelErr } = await supabase.from('otlogs').delete().eq('id', existingOt.id);
+    if (otDelErr) {
+      console.error('[recordOperationLog] Failed to remove stale otlogs row:', otDelErr);
+      syncWarnings.push(`otlogs delete: ${otDelErr.message}`);
+    }
   }
 
   // Sync linked WastageLog total_waste if one exists for this session_id
@@ -433,10 +446,13 @@ export async function recordOperationLog(args: {
       },
       existingWaste.id,
       dayStr
-    ).catch(() => {});
+    ).catch((err) => {
+      console.error('[recordOperationLog] Failed to sync linked wastage_logs:', err);
+      syncWarnings.push(`wastage_logs: ${err?.message || 'sync failed'}`);
+    });
   }
 
-  return { operationLog: opLog };
+  return { operationLog: opLog, syncWarnings };
 }
 
 let otSyncInFlight: Promise<boolean> | null = null;
@@ -615,7 +631,8 @@ export async function deleteShiftSession(args: {
     sessionId = data?.session_id || args.shiftLogId;
     shiftIdsToClean.push(args.shiftLogId);
     if (data) details = `Deleted ${data.production_line} (${data.shift_date})`;
-    await supabase.from('shift_logs').delete().eq('id', args.shiftLogId);
+    const { error: delErr } = await supabase.from('shift_logs').delete().eq('id', args.shiftLogId);
+    if (delErr) throw new Error(`[shift_logs] delete failed: ${delErr.message}`);
   } else if (args.operationLogId) {
     const { data } = await supabase
       .from('operation_logs')
@@ -624,7 +641,8 @@ export async function deleteShiftSession(args: {
       .maybeSingle();
     sessionId = data?.session_id || null;
     if (data) details = `Deleted ${data.production_line} (${data.ot_date})`;
-    await supabase.from('operation_logs').delete().eq('id', args.operationLogId);
+    const { error: delErr } = await supabase.from('operation_logs').delete().eq('id', args.operationLogId);
+    if (delErr) throw new Error(`[operation_logs] delete failed: ${delErr.message}`);
   }
 
   if (sessionId) {
@@ -636,7 +654,7 @@ export async function deleteShiftSession(args: {
       if (s?.id && !shiftIdsToClean.includes(s.id)) shiftIdsToClean.push(s.id);
     });
 
-    await Promise.all([
+    const cleanupResults = await Promise.all([
       supabase.from('shift_logs').delete().eq('session_id', sessionId),
       supabase.from('operation_logs').delete().eq('session_id', sessionId),
       supabase.from('otlogs').delete().eq('session_id', sessionId),
@@ -645,6 +663,11 @@ export async function deleteShiftSession(args: {
         ? [supabase.from('packaging_wastes').delete().in('shift_log_id', shiftIdsToClean)]
         : []),
     ]);
+    const cleanupErrors = cleanupResults.map((r) => r.error).filter(Boolean);
+    if (cleanupErrors.length > 0) {
+      console.error('[deleteShiftSession] Linked cleanup errors:', cleanupErrors);
+      throw new Error(`Failed to clean up linked records: ${cleanupErrors.map((e) => e!.message).join('; ')}`);
+    }
   }
 
   const nowIso = new Date().toISOString();

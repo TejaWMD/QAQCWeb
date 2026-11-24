@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { actingUserName, canChangeRecord, isManagerRole } from "@/lib/permissions";
@@ -52,7 +53,7 @@ export default function TaskCellDialog({ task, onOpenChange, onUpdated }) {
 
   const update = async (status) => {
     if (status === "Verified" && isOwner) {
-      window.alert("The verifier cannot be the owner of this item.");
+      toast.error("The verifier cannot be the owner of this item.");
       return;
     }
     setBusy(true);
@@ -67,7 +68,7 @@ export default function TaskCellDialog({ task, onOpenChange, onUpdated }) {
       onUpdated();
       onOpenChange(false);
     } catch (err) {
-      window.alert(err?.message || "Failed to update task. Please try again.");
+      toast.error(err?.message || "Failed to update task. Please try again.");
     } finally {
       setBusy(false);
     }

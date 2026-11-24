@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -116,7 +117,7 @@ export default function IncompleteRecordEditModal({ record, open, onClose, onSav
       onSaved && onSaved(res?.data?.shiftLog || { ...record, ...payload });
       onClose();
     } catch (e) {
-      alert("Save failed: " + e.message);
+      toast.error("Save failed: " + (e?.message || "Unknown error"));
     } finally {
       setSaving(false);
     }

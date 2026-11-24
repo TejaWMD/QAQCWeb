@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { Toaster } from "@/components/ui/toaster"
 import { Toaster as SonnerToaster } from "@/components/ui/sonner"
 import { QueryClientProvider } from '@tanstack/react-query'
@@ -7,57 +8,64 @@ import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import ScrollToTop from './components/ScrollToTop';
 import { ErrorBoundary } from './components/ErrorBoundary';
+
 // Operations
-import Home from './pages/operations/Home';
-import AttentionDashboard from './pages/operations/AttentionDashboard';
-import RequestsStoppages from './pages/operations/RequestsStoppages';
-import TaskMatrix from './pages/operations/TaskMatrix';
-import OvertimeRecord from './pages/operations/OvertimeRecord';
-import OperationLogs from './pages/operations/OperationLogs';
-import WastageLogs from './pages/operations/WastageLogs';
-import BaselineCapacity from './pages/operations/BaselineCapacity';
-import ShiftLogDraft from './pages/operations/ShiftLogDraft';
-import ProductionLineLogs from './pages/operations/ProductionLineLogs';
+const Home = lazy(() => import('./pages/operations/Home'));
+const AttentionDashboard = lazy(() => import('./pages/operations/AttentionDashboard'));
+const RequestsStoppages = lazy(() => import('./pages/operations/RequestsStoppages'));
+const TaskMatrix = lazy(() => import('./pages/operations/TaskMatrix'));
+const OvertimeRecord = lazy(() => import('./pages/operations/OvertimeRecord'));
+const OperationLogs = lazy(() => import('./pages/operations/OperationLogs'));
+const WastageLogs = lazy(() => import('./pages/operations/WastageLogs'));
+const BaselineCapacity = lazy(() => import('./pages/operations/BaselineCapacity'));
+const ShiftLogDraft = lazy(() => import('./pages/operations/ShiftLogDraft'));
+const ProductionLineLogs = lazy(() => import('./pages/operations/ProductionLineLogs'));
 
 // Planning & Procurement
-import DemandPlanner from './pages/planning/DemandPlanner';
-import ProductionOrders from './pages/planning/ProductionOrders';
-import ProductionSchedule from './pages/planning/ProductionSchedule';
-import Procurement from './pages/planning/Procurement';
+const DemandPlanner = lazy(() => import('./pages/planning/DemandPlanner'));
+const ProductionOrders = lazy(() => import('./pages/planning/ProductionOrders'));
+const ProductionSchedule = lazy(() => import('./pages/planning/ProductionSchedule'));
+const Procurement = lazy(() => import('./pages/planning/Procurement'));
 
 // Batches, Labels & Traceability
-import CreateBatch from './pages/batches/CreateBatch';
-import BatchRecords from './pages/batches/BatchRecords';
-import BarcodeLookup from './pages/batches/BarcodeLookup';
-import Traceability from './pages/batches/Traceability';
+const CreateBatch = lazy(() => import('./pages/batches/CreateBatch'));
+const BatchRecords = lazy(() => import('./pages/batches/BatchRecords'));
+const BarcodeLookup = lazy(() => import('./pages/batches/BarcodeLookup'));
+const Traceability = lazy(() => import('./pages/batches/Traceability'));
 
 // QA / QC & Loss Control
-import QaHaccp from './pages/qaqc/QaHaccp';
-import QueryViewer from './pages/qaqc/QueryViewer';
-import CapaTracker from './pages/qaqc/CapaTracker';
-import YieldLoss from './pages/qaqc/YieldLoss';
+const QaHaccp = lazy(() => import('./pages/qaqc/QaHaccp'));
+const QueryViewer = lazy(() => import('./pages/qaqc/QueryViewer'));
+const CapaTracker = lazy(() => import('./pages/qaqc/CapaTracker'));
+const YieldLoss = lazy(() => import('./pages/qaqc/YieldLoss'));
 
 // Raw & Packaging Inventory
-import PackagingStock from './pages/inventory/PackagingStock';
-import PackagingMovements from './pages/inventory/PackagingMovements';
-import PackagingApprovals from './pages/inventory/PackagingApprovals';
+const PackagingStock = lazy(() => import('./pages/inventory/PackagingStock'));
+const PackagingMovements = lazy(() => import('./pages/inventory/PackagingMovements'));
+const PackagingApprovals = lazy(() => import('./pages/inventory/PackagingApprovals'));
 
 // Finished Goods WMS
-import WmsWarehouse from './pages/wms/WmsWarehouse';
+const WmsWarehouse = lazy(() => import('./pages/wms/WmsWarehouse'));
 
 // Master Data & Entry
-import ProductMaster from './pages/masters/ProductMaster';
-import RecipeMaster from './pages/masters/RecipeMaster';
+const ProductMaster = lazy(() => import('./pages/masters/ProductMaster'));
+const RecipeMaster = lazy(() => import('./pages/masters/RecipeMaster'));
 
 // System Admin & Governance
-import UserManagement from './pages/admin/UserManagement';
-import DataImport from './pages/admin/DataImport';
-import AuditTrailLog from './pages/admin/AuditTrailLog';
-import RecentlyDeletedOrders from './pages/admin/RecentlyDeletedOrders';
+const UserManagement = lazy(() => import('./pages/admin/UserManagement'));
+const DataImport = lazy(() => import('./pages/admin/DataImport'));
+const AuditTrailLog = lazy(() => import('./pages/admin/AuditTrailLog'));
+const RecentlyDeletedOrders = lazy(() => import('./pages/admin/RecentlyDeletedOrders'));
 
 import Layout from './components/Layout';
 import ModuleGuard from './components/ModuleGuard';
 import AccessGate from './components/AccessGate';
+
+const PageFallback = () => (
+  <div className="flex items-center justify-center min-h-[60vh]">
+    <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin" />
+  </div>
+);
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings } = useAuth();
@@ -73,6 +81,7 @@ const AuthenticatedApp = () => {
 
   // Render the main app
   return (
+    <Suspense fallback={<PageFallback />}>
     <Routes>
       {/* Add your page Route elements here */}
       <Route element={<AccessGate />}>
@@ -122,6 +131,7 @@ const AuthenticatedApp = () => {
       <Route path="/reset-password" element={<Navigate to="/" replace />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
+    </Suspense>
   );
 };
 

@@ -294,6 +294,7 @@ export async function updateUserDetails(
     role: 'admin' | 'staff';
     role_label: string;
     app_role: string;
+    line: string;
     dept: string;
     avatar_initials: string;
     status: string;
@@ -387,6 +388,7 @@ export async function setUserRoleAndPermissions(args: {
   return updateUserDetails(args.userId, {
     ...(args.role !== undefined ? { role: args.role } : {}),
     ...(args.app_role !== undefined ? { app_role: args.app_role } : {}),
+    ...(args.line !== undefined ? { line: args.line } : {}),
     ...(args.permissions !== undefined ? { permissions: args.permissions } : {}),
   });
 }

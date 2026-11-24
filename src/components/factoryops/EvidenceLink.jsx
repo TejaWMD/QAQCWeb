@@ -1,4 +1,5 @@
 import React from "react";
+import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
 import { Paperclip } from "lucide-react";
 
@@ -23,7 +24,7 @@ export default function EvidenceLink({ uri, name }) {
       else window.open(res.signed_url, "_blank");
     } catch {
       if (popup) popup.close();
-      window.alert("Could not open the attachment. Please try again.");
+      toast.error("Could not open the attachment. Please try again.");
     }
   };
   return (

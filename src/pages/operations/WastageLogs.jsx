@@ -73,14 +73,21 @@ export default function WastageLogs() {
 
   useEffect(() => { loadLogs(); }, []);
 
-  // Live pipeline: wastage recorded or corrected elsewhere lands here at once.
+  // Live pipeline: wastage recorded or corrected elsewhere lands here at once (debounced).
   useEffect(() => {
-    const reload = () => loadLogs(true);
+    let timer = null;
+    const reload = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => loadLogs(true), 300);
+    };
     const unsubscribes = [
       base44.entities.WastageLog.subscribe(reload),
       base44.entities.ShiftLog.subscribe(reload),
     ];
-    return () => unsubscribes.forEach((unsubscribe) => { if (typeof unsubscribe === "function") unsubscribe(); });
+    return () => {
+      if (timer) clearTimeout(timer);
+      unsubscribes.forEach((unsubscribe) => { if (typeof unsubscribe === "function") unsubscribe(); });
+    };
   }, []);
 
   if (loading) {

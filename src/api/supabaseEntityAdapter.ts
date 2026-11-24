@@ -1,4 +1,15 @@
+import { toast } from 'sonner';
 import { supabase } from './supabaseClient';
+
+const readErrorToastTimestamps = new Map<string, number>();
+function notifyReadError(table: string, label: string, message?: string) {
+  const key = `${table}:${label}`;
+  const now = Date.now();
+  const last = readErrorToastTimestamps.get(key) || 0;
+  if (now - last < 10_000) return;
+  readErrorToastTimestamps.set(key, now);
+  toast.error(`Failed to load ${table}: ${message || 'Database error'}`);
+}
 
 export const ENTITY_TABLE_MAP: Record<string, string> = {
   ActivityLog: 'activity_logs',
@@ -320,6 +331,7 @@ export function createSupabaseEntity(entityName: string) {
     }
     if (error) {
       console.error(`[Supabase:${table}] ${label} error:`, error.message);
+      notifyReadError(table, label, error.message);
       return withPage([] as any[]);
     }
     const all = (data || []).map(normalizeRow);
@@ -376,6 +388,7 @@ export function createSupabaseEntity(entityName: string) {
         if (!error) return normalizeRow(data);
         const missingCol = extractMissingColumn(error.message);
         if (missingCol && missingCol in clean) {
+          console.warn(`[Supabase:${table}] Dropping unknown column "${missingCol}" during write.`);
           const next = { ...clean };
           delete next[missingCol];
           clean = next;
@@ -402,6 +415,7 @@ export function createSupabaseEntity(entityName: string) {
         if (!error) return normalizeRow(data);
         const missingCol = extractMissingColumn(error.message);
         if (missingCol && missingCol in clean) {
+          console.warn(`[Supabase:${table}] Dropping unknown column "${missingCol}" during write.`);
           const next = { ...clean };
           delete next[missingCol];
           clean = next;
@@ -451,6 +465,7 @@ export function createSupabaseEntity(entityName: string) {
         if (!error) return (data || []).map(normalizeRow);
         const missingCol = extractMissingColumn(error.message);
         if (missingCol && clean.some((r) => missingCol in r)) {
+          console.warn(`[Supabase:${table}] Dropping unknown column "${missingCol}" during bulkCreate.`);
           clean = clean.map((r) => {
             const next = { ...r };
             delete next[missingCol];
@@ -471,10 +486,13 @@ export function createSupabaseEntity(entityName: string) {
     },
 
     async bulkUpdate(records: Record<string, any>[] = []) {
-      const results = [];
-      for (const rec of records) {
-        if (!rec.id) continue;
-        results.push(await entity.update(rec.id, rec));
+      const valid = records.filter((rec) => rec?.id);
+      const results: any[] = [];
+      const BATCH_SIZE = 8;
+      for (let i = 0; i < valid.length; i += BATCH_SIZE) {
+        const chunk = valid.slice(i, i + BATCH_SIZE);
+        const batchRes = await Promise.all(chunk.map((rec) => entity.update(rec.id, rec)));
+        results.push(...batchRes);
       }
       return results;
     },
