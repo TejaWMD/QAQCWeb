@@ -7,9 +7,8 @@ import {
   Radar, Clock, ShieldCheck, ClipboardList, AlertTriangle, ScrollText,
   LayoutDashboard, Users, Upload, Layers,
   ArrowLeftRight, ClipboardCheck, Package, FlaskConical, ListChecks,
-  CalendarDays, Trash2, Tag, History, Scale, X, LogOut, PanelLeftClose, PanelLeftOpen, TrendingUp, ShoppingCart, LayoutGrid, QrCode, MessageSquareText
+  CalendarDays, Trash2, Tag, History, Scale, X, PanelLeftClose, PanelLeftOpen, TrendingUp, ShoppingCart, LayoutGrid, QrCode, MessageSquareText
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 const factoryItems = [
   { key: "attention_dashboard", label: "Attention Dashboard", icon: Radar },
@@ -129,15 +128,21 @@ export default function FactorySidebar({
 
   const sidebarContent = (
     <div className="flex flex-col h-full">
-      <div className={`h-16 flex items-center border-b border-[#1e2740] shrink-0 ${isCollapsed ? "justify-center px-2" : "justify-between px-4"}`}>
-        {!isCollapsed ? (
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div data-logo-badge="true" className="w-9 h-9 rounded-xl bg-white p-0.5 ring-2 ring-[#00e5ff]/30 shadow-sm shrink-0 overflow-hidden">
-              <img src={logoSrc} alt="WMD Logo" className="w-full h-full object-contain rounded-lg" />
-            </div>
-            <span className="font-bold text-base tracking-tight text-white truncate">WMG QAQC</span>
+      <div className={`flex items-center border-b border-[#1e2740] shrink-0 ${isCollapsed ? "flex-col justify-center gap-2 py-3 px-2" : "h-16 justify-between px-4"}`}>
+        <button
+          type="button"
+          onClick={() => logout(true)}
+          title="Back to Main Hub"
+          aria-label="Back to Main Hub"
+          className={`wmd-hub-logo-trigger flex items-center ${isCollapsed ? "justify-center" : "gap-2.5 min-w-0 text-left"} rounded-xl cursor-pointer focus:outline-none`}
+        >
+          <div data-logo-badge="true" className="wmd-hub-logo-btn w-9 h-9 shrink-0">
+            <img src={logoSrc} alt="WMD Logo" className="w-full h-full object-contain rounded-lg" />
           </div>
-        ) : null}
+          {!isCollapsed && (
+            <span className="font-bold text-base tracking-tight text-white truncate">WMG QAQC</span>
+          )}
+        </button>
         <button
           type="button"
           onClick={onToggleCollapse}
@@ -170,7 +175,7 @@ export default function FactorySidebar({
       </div>
 
       {user && (
-        <div className={`mt-auto border-t border-[#1e2740] bg-[#0a0e17]/70 ${isCollapsed ? "p-2.5 flex flex-col items-center gap-2" : "px-4 py-3.5 space-y-3"}`}>
+        <div className={`mt-auto border-t border-[#1e2740] bg-[#0a0e17]/70 ${isCollapsed ? "p-2.5 flex justify-center" : "px-4 py-3.5"}`}>
           <div className={`flex items-center ${isCollapsed ? "justify-center" : "gap-2.5 min-w-0"}`}>
             <div
               title={isCollapsed ? (user.name || user.full_name || user.email || "User") : undefined}
@@ -189,18 +194,6 @@ export default function FactorySidebar({
               </div>
             )}
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => logout(true)}
-            aria-label="Back to WMD Hub"
-            title={isCollapsed ? "Back to WMD Hub" : undefined}
-            className={`${isCollapsed ? "w-9 h-8 p-0" : "w-full h-8"} rounded-full bg-[#131926] border-[#1e2740] text-[#e2e8f0] hover:bg-[#2563eb]/20 hover:text-[#60a5fa] hover:border-[#3b82f6]/40 text-xs justify-center`}
-          >
-            <LogOut className={`w-3.5 h-3.5 ${isCollapsed ? "" : "mr-1.5"}`} />
-            {!isCollapsed && "Back to Hub"}
-          </Button>
         </div>
       )}
     </div>

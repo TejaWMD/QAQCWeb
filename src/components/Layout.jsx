@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Outlet } from "react-router-dom";
-import { Eye, Menu, ArrowLeft } from "lucide-react";
+import { Eye, Menu } from "lucide-react";
 import FactorySidebar from "@/components/factoryops/FactorySidebar";
 import { useAuth } from "@/lib/AuthContext";
 import { VIEW_AS_ROLES } from "@/lib/permissions";
@@ -51,25 +51,20 @@ export default function Layout() {
             >
               <Menu className="w-5 h-5" />
             </Button>
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="w-8 h-8 rounded-lg bg-white p-0.5 ring-1 ring-[#00e5ff]/30 shrink-0 overflow-hidden">
+            <button
+              type="button"
+              onClick={() => logout(true)}
+              title="Back to Main Hub"
+              aria-label="Back to Main Hub"
+              className="wmd-hub-logo-trigger flex items-center gap-2 min-w-0 text-left rounded-lg cursor-pointer focus:outline-none"
+            >
+              <div className="wmd-hub-logo-btn w-8 h-8 shrink-0">
                 <img src={logoSrc} alt="WMD Logo" className="w-full h-full object-contain rounded" />
               </div>
               <span className="font-bold text-sm tracking-tight text-white truncate">WMG QAQC</span>
-            </div>
+            </button>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => logout(true)}
-              aria-label="Back to WMD Hub"
-              className="h-8 px-2.5 rounded-full bg-[#131926] border border-[#1e2740] text-[#cbd5e1] hover:text-white hover:bg-[#1e2740] text-xs gap-1"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Hub</span>
-            </Button>
             {user && (
               <div className="w-8 h-8 rounded-full bg-[#00e5ff]/15 text-[#00e5ff] ring-1 ring-[#00e5ff]/30 text-xs font-bold flex items-center justify-center shrink-0">
                 {user.avatar_initials || "U"}
