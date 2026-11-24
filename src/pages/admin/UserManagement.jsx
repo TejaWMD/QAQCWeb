@@ -751,25 +751,31 @@ export default function UserManagement() {
                         const checked = draftPermissions.includes(mod.key);
                         return (
                           <label
-                            key={mod.key}
-                            className={`flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition-colors ${
-                              checked
-                                ? "border-[#1D4ED8]/50 bg-[#EFF6FF]"
-                                : "border-[#E2E8F0] bg-white hover:bg-[#F8FAFC]"
-                            }`}
-                          >
-                            <Checkbox
-                              checked={checked}
-                              onCheckedChange={() => toggleModule(mod.key)}
-                              className="mt-0.5 border-[#CBD5E1] data-[state=checked]:bg-[#0F294A] data-[state=checked]:text-white data-[state=checked]:border-[#0F294A]"
-                            />
-                            <div className="min-w-0">
-                              <p className="text-xs font-semibold text-[#0F294A]">{mod.label}</p>
-                              <p className="text-[11px] text-[#64748B] line-clamp-2 mt-0.5">
-                                {mod.description}
-                              </p>
-                            </div>
-                          </label>
+  key={mod.key}
+  className={`flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition-colors ${
+    checked
+      ? "border-[#1D4ED8]/50 bg-[#EFF6FF]"
+      : "border-[#E2E8F0] bg-white hover:bg-[#F8FAFC]"
+  }`}
+>
+  <Checkbox
+    checked={checked}
+    onCheckedChange={() => toggleModule(mod.key)}
+    className="mt-0.5 border-[#CBD5E1] data-[state=checked]:bg-[#0F294A] data-[state=checked]:text-white data-[state=checked]:border-[#0F294A]"
+  />
+  <div className="min-w-0">
+    <p className={`text-xs font-semibold transition-colors ${
+      checked ? "text-[#0B1F38]" : "text-[#0F294A]"
+    }`}>
+      {mod.label}
+    </p>
+    <p className={`text-[11px] line-clamp-2 mt-0.5 transition-colors ${
+      checked ? "text-[#1E293B]" : "text-[#64748B]"
+    }`}>
+      {mod.description}
+    </p>
+  </div>
+</label>
                         );
                       })}
                     </div>
