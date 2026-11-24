@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import EvidenceUpload from "@/components/factoryops/EvidenceUpload";
 import ProductPicker from "@/components/labels/ProductPicker";
 import { loadProductLinkData } from "@/lib/productLinks";
-import { loadMachineOptions, loadUserOptions } from "@/lib/masterOptions";
+import { loadMachineOptions } from "@/lib/masterOptions";
 
 const initialValues = (fields, initialData = null) => {
   const values = {};
@@ -44,10 +44,8 @@ export default function AddRecordDialog({ open, onOpenChange, title, fields, ini
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [link, setLink] = useState({ products: [], records: [] });
-  const [users, setUsers] = useState([]);
   const [machines, setMachines] = useState([]);
   const needsLink = fields.some((f) => f.type === "product" || f.type === "batch");
-  const needsUsers = fields.some((f) => f.type === "user");
   const needsLines = fields.some((f) => f.type === "line");
 
   useEffect(() => {
@@ -55,7 +53,7 @@ export default function AddRecordDialog({ open, onOpenChange, title, fields, ini
       setValues(initialValues(fields, initialData));
       setError("");
     }
-  }, [open, initialData]);
+  }, [open, initialData, fields]);
 
   useEffect(() => {
     if (!open || !needsLink || link.products.length) return;
@@ -63,11 +61,6 @@ export default function AddRecordDialog({ open, onOpenChange, title, fields, ini
       .then((data) => setLink({ products: data.products, records: data.records }))
       .catch(() => setLink({ products: [], records: [] }));
   }, [open, needsLink, link.products.length]);
-
-  useEffect(() => {
-    if (!open || !needsUsers || users.length) return;
-    loadUserOptions().then(setUsers).catch(() => setUsers([]));
-  }, [open, needsUsers, users.length]);
 
   useEffect(() => {
     if (!open || !needsLines || machines.length) return;
@@ -91,6 +84,22 @@ export default function AddRecordDialog({ open, onOpenChange, title, fields, ini
 
   const submit = async (e) => {
     e.preventDefault();
+    const visibleFields = fields.filter((f) => (f.showIf ? f.showIf(values) : true));
+    const missing = visibleFields
+      .filter((f) => {
+        if (!f.required) return false;
+        if (f.type === "file") return !values[`${f.key}_uri`];
+        if (f.type === "product") return !values.product_id && !values.product_name;
+        const v = values[f.key];
+        return v === undefined || v === null || String(v).trim() === "";
+      })
+      .map((f) => f.label);
+    if (missing.length > 0) {
+      const msg = `Please fill required field(s): ${missing.join(", ")}.`;
+      setError(msg);
+      toast.error(msg);
+      return;
+    }
     setSaving(true);
     setError("");
     try {

@@ -61,6 +61,7 @@ export default function BaselineCapacity() {
       load();
     } catch (err) {
       toast.error(err?.message || "Failed to save baseline capacity.");
+      throw err;
     }
   };
 
@@ -83,7 +84,7 @@ export default function BaselineCapacity() {
 
   }
 
-  const isAdmin = currentUser?.role === "admin";
+  const isAdmin = currentUser?.role === "admin" || currentUser?.role === "super_admin";
   const canEnter = canAccess(currentUser, "baseline_capacity");
   const q = search.trim().toLowerCase();
   const lineOptions = Array.from(new Set(records.map((r) => r.packing_line_code).filter(Boolean))).sort();

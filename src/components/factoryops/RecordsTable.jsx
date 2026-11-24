@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
@@ -38,12 +39,13 @@ export default function RecordsTable({
   canDelete = true,
 }) {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
   const [statusFilter, setStatusFilter] = useState(() => {
-    const fromUrl = new URLSearchParams(window.location.search).get("status");
+    const fromUrl = searchParams.get("status");
     return statuses && statuses.includes(fromUrl) ? fromUrl : "all";
   });
 
@@ -132,7 +134,9 @@ export default function RecordsTable({
       ...(statusChanged ? { status_updated_at: nowIso } : {}),
       ...(statusChanged && nextStatus === "Verified"
         ? { verified_by: actingUserName(user), verification_date: nowIso }
-        : {}),
+        : statusChanged && prevStatus === "Verified"
+          ? { verified_by: "", verification_date: null }
+          : {}),
     };
     const updated = await base44.entities[entity].update(editingRecord.id, patch);
     setRecords((prev) =>
@@ -174,7 +178,11 @@ export default function RecordsTable({
       const patch = {
         status,
         status_updated_at: nowIso,
-        ...(status === "Verified" ? { verified_by: actingUserName(user), verification_date: nowIso } : {}),
+        ...(status === "Verified"
+          ? { verified_by: actingUserName(user), verification_date: nowIso }
+          : prev === "Verified"
+            ? { verified_by: "", verification_date: null }
+            : {}),
       };
       const updated = await base44.entities[entity].update(record.id, patch);
       setRecords((prevList) =>
@@ -252,20 +260,20 @@ export default function RecordsTable({
                 <TableHead key={c.key} className="text-[#64748B]">{c.label}</TableHead>
               ))}
               <TableHead className="text-[#64748B]">Status</TableHead>
-              <TableHead className="text-[#64748B] w-[90px] text-right">Actions</TableHead>
+              {(canEdit || canDelete) && <TableHead className="text-[#64748B] w-[90px] text-right">Actions</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading && (
               <TableRow className="border-[#E2E8F0]">
-                <TableCell colSpan={columns.length + 2} className="text-center text-[#64748B] py-8">
+                <TableCell colSpan={columns.length + (canEdit || canDelete ? 2 : 1)} className="text-center text-[#64748B] py-8">
                   <span className="inline-block w-5 h-5 border-2 border-[#E2E8F0] border-t-[#0F294A] rounded-full animate-spin" />
                 </TableCell>
               </TableRow>
             )}
             {!loading && visible.length === 0 && (
               <TableRow className="border-[#E2E8F0]">
-                <TableCell colSpan={columns.length + 2} className="text-center text-[#64748B] py-8">
+                <TableCell colSpan={columns.length + (canEdit || canDelete ? 2 : 1)} className="text-center text-[#64748B] py-8">
                   No records yet.
                 </TableCell>
               </TableRow>
@@ -293,30 +301,32 @@ export default function RecordsTable({
                     <StatusBadge status={record.status} />
                   )}
                 </TableCell>
-                <TableCell className="text-right whitespace-nowrap">
-                  {canEdit && canChangeRecord(user, record) && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => setEditingRecord(record)}
-                      className="text-[#475569] hover:text-[#1D4ED8] hover:bg-[#EBF3FF] h-8 w-8 p-0 mr-1"
-                      title="Edit record"
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                    </Button>
-                  )}
-                  {canDelete && canChangeRecord(user, record) && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => remove(record)}
-                      className="text-rose-600 hover:text-rose-600 hover:bg-rose-600/10 h-8 w-8 p-0"
-                      title="Delete record"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </Button>
-                  )}
-                </TableCell>
+                {(canEdit || canDelete) && (
+                  <TableCell className="text-right whitespace-nowrap">
+                    {canEdit && canChangeRecord(user, record) && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setEditingRecord(record)}
+                        className="text-[#475569] hover:text-[#1D4ED8] hover:bg-[#EBF3FF] h-8 w-8 p-0 mr-1"
+                        title="Edit record"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </Button>
+                    )}
+                    {canDelete && canChangeRecord(user, record) && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => remove(record)}
+                        className="text-rose-600 hover:text-rose-600 hover:bg-rose-600/10 h-8 w-8 p-0"
+                        title="Delete record"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    )}
+                  </TableCell>
+                )}
               </TableRow>
             ))}
           </TableBody>

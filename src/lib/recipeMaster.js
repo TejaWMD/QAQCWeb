@@ -156,9 +156,15 @@ export const saveRecipeVersion = async ({ versions = [], products = [], recipeNa
     await base44.entities.Recipe.update(old.id, { status: "Superseded", superseded_by_version: version });
   }
 
-  const links = linked
-    .filter((p) => p.recipe_id !== created.id || upper(p.recipe_name) !== upper(name))
-    .map((p) => ({ id: p.id, recipe_id: created.id, recipe_name: name }));
+  const links = linked.map((p) => ({
+    id: p.id,
+    recipe_id: created.id,
+    recipe_name: name,
+    ...(payload.cooking_time_hr > 0 ? { cooking_time_hr: payload.cooking_time_hr } : {}),
+    ...(payload.batch_output_kg > 0 ? { batch_output_kg: payload.batch_output_kg } : {}),
+    ...(payload.brand ? { brand: payload.brand } : {}),
+    ...(payload.batch_prefix ? { batch_prefix: payload.batch_prefix } : {}),
+  }));
 
   for (let i = 0; i < links.length; i += 100) {
     await base44.entities.Product.bulkUpdate(links.slice(i, i + 100));

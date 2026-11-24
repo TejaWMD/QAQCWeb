@@ -14,12 +14,7 @@ import IncompleteDataAlert from "@/components/shiftlog/IncompleteDataAlert";
 import WastageGroupTable from "@/components/shiftlog/WastageGroupTable";
 import WastagePickerRow from "@/components/shiftlog/WastagePickerRow";
 import { pcsPerCarton } from "@/lib/packingConfig";
-import {
-  loadBatchOptions,
-  loadMachineOptions,
-  loadProductOptions,
-  loadUserOptions,
-} from "@/lib/masterOptions";
+import { loadProductOptions } from "@/lib/masterOptions";
 
 const primaryContainers = ["bottle", "jar", "plastic", "pouch", "foil", "cup", "tub", "packet"];
 const closures = ["cap", "lid"];
@@ -67,7 +62,6 @@ export default function ShiftLogDraft({ onSavedTab } = {}) {
     shift_type: "Morning",
     production_line: productionLines[0],
     task: "Carton Packing",
-    supervisor: "",
     product_name: "",
     product_type: "",
     planned_cartons: "",
@@ -102,14 +96,14 @@ export default function ShiftLogDraft({ onSavedTab } = {}) {
   const [primaryContainer, setPrimaryContainer] = useState("");
   const [closure, setClosure] = useState("");
   const [outputUnit, setOutputUnit] = useState("units");
-  const [opts, setOpts] = useState({ lines: [], products: [], batches: [], users: [] });
+  const [opts, setOpts] = useState({ products: [] });
 
   useEffect(() => {
     base44.entities.ShiftLog.filter({}, { sort: "-created_date", limit: 100 }).
     then(({ items }) => setLogRecords(items)).
     catch(() => {});
-    Promise.all([loadMachineOptions(), loadProductOptions(), loadBatchOptions(), loadUserOptions()])
-      .then(([lines, products, batches, users]) => setOpts({ lines, products, batches, users }))
+    loadProductOptions()
+      .then((products) => setOpts({ products }))
       .catch(() => {});
   }, []);
 
@@ -163,7 +157,8 @@ export default function ShiftLogDraft({ onSavedTab } = {}) {
     const [eh, em] = end.split(":").map(Number);
     const sMin = sh * 60 + sm;
     const eMin = eh * 60 + em;
-    if (eMin <= sMin) {
+    if (eMin === sMin) return 0;
+    if (eMin < sMin) {
       const beforeMidnight = Math.max(0, 1440 - Math.max(sMin, OT_START));
       return (beforeMidnight + eMin) / 60;
     }
@@ -290,6 +285,7 @@ export default function ShiftLogDraft({ onSavedTab } = {}) {
         staff_names: cleanedNames,
         start_time: timeRows[0]?.start || "",
         end_time: latestEnd,
+        _has_multi_segments: timeRows.length > 1,
         break_duration: Number(form.break_duration) || 0,
         ot_duration_hours: Number(otHours.toFixed(2)) || 0,
         hourly_ot_rate: Number(form.hourly_ot_rate) || 0,

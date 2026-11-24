@@ -61,6 +61,7 @@ export const TYPE_FIELDS = {
   [ITEM_TYPE]: [
     { key: "item_name", label: "Item Name" },
     { key: "quantity", label: "Quantity" },
+    { key: "unit", label: "Unit" },
     { key: "urgency", label: "Urgency" },
     { key: "needed_by_date", label: "Needed By Date" },
     { key: "item_category", label: "Request Category" },

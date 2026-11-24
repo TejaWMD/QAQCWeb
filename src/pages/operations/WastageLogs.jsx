@@ -7,10 +7,16 @@ import WastageTrendChart from "@/components/wastage/WastageTrendChart";
 
 const wasteColumns = wasteComponents.map((c) => ({ key: `${c.key}_waste`, label: c.label }));
 
-// A row's wastage is its component breakdown plus, for entries branched off an
-// Operation Record, the rejected / wasted quantity recorded there.
-const rowWaste = (log) =>
-  wasteColumns.reduce((s, c) => s + (log[c.key] || 0), 0) + (Number(log.total_waste) || 0);
+// Avoid double-counting: ShiftLog rows add component waste + rejected_qty,
+// whereas standalone/imported WastageLog rows may store componentSum inside total_waste.
+const compWaste = (log) => wasteColumns.reduce((s, c) => s + (Number(log[c.key]) || 0), 0);
+const opOnlyWaste = (log) => {
+  if (log._fromShift) return Number(log.total_waste) || 0;
+  const comp = compWaste(log);
+  const tot = Number(log.total_waste) || 0;
+  return tot > comp ? tot - comp : 0;
+};
+const rowWaste = (log) => compWaste(log) + opOnlyWaste(log);
 
 export default function WastageLogs() {
   const [logs, setLogs] = useState([]);
@@ -35,6 +41,7 @@ export default function WastageLogs() {
         if (!hasComp && !hasRej) return;
         const row = {
           ...l,
+          _fromShift: true,
           total_waste: Number(l.rejected_qty) || 0,
         };
         if (l.session_id) bySession.set(l.session_id, row);
@@ -85,7 +92,7 @@ export default function WastageLogs() {
   }
 
   const totalWaste = logs.reduce((sum, log) => sum + rowWaste(log), 0);
-  const operationWaste = logs.reduce((s, l) => s + (Number(l.total_waste) || 0), 0);
+  const operationWaste = logs.reduce((s, l) => s + opOnlyWaste(l), 0);
   const componentTotals = [
     ...wasteColumns.map((c) => ({
       name: c.label,

@@ -1,4 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { base44 } from "@/api/base44Client";
+import { actingUserName } from "@/lib/permissions";
 import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -96,10 +98,21 @@ export default function RecipeMaster() {
     setEdit({ recipe: null, versions: [], products: product ? [product] : [], product });
 
   const handleDeleteRecipe = async (row) => {
-    if (!row.active?.id) return;
+    const versionIds = (row.versions || []).map((v) => v.id).filter(Boolean);
+    if (!versionIds.length && !row.active?.id) return;
     if (!window.confirm(`Delete recipe "${row.name}"?`)) return;
     try {
-      await archiveRecipeSafely(row.active.id);
+      await archiveRecipeSafely(versionIds.length ? versionIds : [row.active.id], row.name);
+      await base44.entities.AuditLog.create({
+        event_time: new Date().toISOString(),
+        event_stamp: new Date().toISOString().slice(0, 19).replace("T", " "),
+        user_name: actingUserName(user),
+        module: "Recipe Master",
+        action: "Deleted",
+        entity: "Recipe",
+        record_id: row.active?.id || versionIds[0] || "",
+        details: `Archived recipe "${row.name}" (${versionIds.length || 1} version(s))`,
+      }).catch(() => {});
       toast({ title: "Recipe archived", description: row.name });
       await load();
     } catch (err) {

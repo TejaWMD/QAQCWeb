@@ -64,7 +64,7 @@ export default function RecentlyDeletedOrders() {
                 <th className="text-left font-semibold px-3 py-2">Order</th>
                 <th className="text-left font-semibold px-3 py-2">Product</th>
                 <th className="text-right font-semibold px-3 py-2">Cartons</th>
-                <th className="text-left font-semibold px-3 py-2">Machine</th>
+                <th className="text-left font-semibold px-3 py-2">Machine (Tank)</th>
                 <th className="text-left font-semibold px-3 py-2">Planned</th>
                 <th className="text-left font-semibold px-3 py-2">Deleted</th>
                 <th className="px-3 py-2" />

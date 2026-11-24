@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { calculateOTMetrics } from "@/lib/otCalculations";
 import { taskOptions } from "@/lib/shiftLogConstants";
-import { loadMachineOptions, loadProductOptions, loadUserOptions } from "@/lib/masterOptions";
+import { loadProductOptions } from "@/lib/masterOptions";
 
 const objectives = ["Production Catch-up", "Maintenance", "Cleaning", "Changeover", "Quality Issue", "Trial Run", "To complete the day's order"];
 
@@ -60,14 +60,14 @@ const toLocalDatetimeInput = (val) => {
 
 export default function OperationLogModal({ open, onClose, onSave, editData }) {
   const [formData, setFormData] = useState(defaultForm);
-  const [opts, setOpts] = useState({ lines: [], products: [], users: [] });
+  const [opts, setOpts] = useState({ products: [] });
 
   useEffect(() => {
-    if (!open || opts.lines.length) return;
-    Promise.all([loadMachineOptions(), loadProductOptions(), loadUserOptions()])
-      .then(([lines, products, users]) => setOpts({ lines, products, users }))
+    if (!open || opts.products.length) return;
+    loadProductOptions()
+      .then((products) => setOpts({ products }))
       .catch(() => {});
-  }, [open, opts.lines.length]);
+  }, [open, opts.products.length]);
 
   useEffect(() => {
     if (open) {
@@ -131,7 +131,12 @@ export default function OperationLogModal({ open, onClose, onSave, editData }) {
                 value={formData.product_sku}
                 onValueChange={(v) => {
                   const prod = opts.products.find((p) => p.product_code === v || p.product_name === v || p.value === v);
-                  update("product_sku", prod?.product_name || v);
+                  const resolvedName = prod?.product_name || v;
+                  setFormData((prev) => ({
+                    ...prev,
+                    product_sku: resolvedName,
+                    product_name: resolvedName,
+                  }));
                 }}
                 options={opts.products.map((p) => ({
                   value: p.product_name || p.product_code,

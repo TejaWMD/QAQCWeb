@@ -102,16 +102,17 @@ export const addMonths = (dateStr, months) => {
 export const shelfLifeMonthsFromDays = (shelfLifeDays) => {
   const days = Math.round(num(shelfLifeDays));
   if (days <= 0) return 0;
-  if (days === 365) return 12;
-  if (days === 547 || days === 548) return 18;
-  if (days === 730) return 24;
-  if (days === 1095) return 36;
+  if (days === 365 || days === 360) return 12;
+  if (days === 547 || days === 548 || days === 540) return 18;
+  if (days === 730 || days === 720) return 24;
+  if (days === 1095 || days === 1080) return 36;
   if (days % 30 === 0) return days / 30;
-  if (days >= 28) return Math.round(days / 30);
   return 0;
 };
 
-export const expiryFor = (productionDate, shelfLifeDays) => {
+export const expiryFor = (productionDate, shelfLifeDays, shelfLifeMonths = 0) => {
+  const directMonths = num(shelfLifeMonths);
+  if (directMonths > 0) return addMonths(productionDate, directMonths);
   const days = num(shelfLifeDays);
   if (days <= 0) return "";
   const months = shelfLifeMonthsFromDays(days);
@@ -127,7 +128,7 @@ export const fmtDay = (dateStr) => {
 
 // ---- codes -----------------------------------------------------------------
 export const traceUrlFor = (batchNumber) =>
-  `${window.location.origin}/traceability?batch=${encodeURIComponent(batchNumber || "")}`;
+  `${window.location.origin}${window.location.pathname}#/traceability?batch=${encodeURIComponent(batchNumber || "")}`;
 
 export const batchQrPayload = ({ productCode, productName, batchNumber, productionDate, expiryDate, cartonBarcode } = {}) => {
   const barcode = String(cartonBarcode || "").trim();
@@ -168,7 +169,7 @@ export const printCss = (layout) => `
 // ---- records ---------------------------------------------------------------
 export const loadBatchRecords = async () => {
   const rows = await base44.entities.BatchRecord.list("-created_date", 2000);
-  return Array.isArray(rows) ? rows : [];
+  return (Array.isArray(rows) ? rows : []).filter((r) => !r.deleted);
 };
 
 export const normalizeBatch = (value) => (value || "").trim().toUpperCase();
@@ -178,16 +179,6 @@ export const duplicateOf = (records, productId, batchNumber, ignoreId) => {
   const batch = normalizeBatch(batchNumber);
   if (!batch) return null;
   return (records || []).find((r) => r.id !== ignoreId && r.product_id === productId && normalizeBatch(r.batch_number) === batch) || null;
-};
-
-// Batch numbers waiting on the production schedule, with the order they belong to.
-export const scheduledBatches = (orders = [], recordedIds = []) => {
-  const done = new Set(recordedIds);
-  return (orders || [])
-    .filter((o) => !o.deleted && o.status !== "Cancelled")
-    .flatMap((o) => (o.batch_codes || []).map((code) => ({ code, order: o })))
-    .map((entry) => ({ ...entry, recorded: done.has(`${entry.order.product_id}|${normalizeBatch(entry.code)}`) }))
-    .sort((a, b) => (a.code || "").localeCompare(b.code || ""));
 };
 
 export const logLabelAudit = async ({ user, action, recordId, details }) => {

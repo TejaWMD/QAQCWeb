@@ -12,7 +12,6 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import EvidenceUploader from "@/components/requests/EvidenceUploader";
 import {
   loadBatchOptions,
-  loadMachineOptions,
   loadMaterialAndPackagingOptions,
   loadProductHoldOptions,
   loadProductionOrderOptions,
@@ -66,6 +65,7 @@ const fieldDefs = (config) => ({
   is_demo: { type: "checkbox" },
   item_name: { type: "material" },
   quantity: { type: "number" },
+  unit: { type: "text" },
   urgency: { type: "select", options: config.urgencies, default: "Normal" },
   needed_by_date: { type: "date" },
   item_category: { type: "select", options: config.item_categories },
@@ -114,7 +114,6 @@ export default function RequestFormDialog({ open, onOpenChange, user, config = D
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [opts, setOpts] = useState({
-    lines: [],
     products: [],
     batches: [],
     orders: [],
@@ -124,24 +123,23 @@ export default function RequestFormDialog({ open, onOpenChange, user, config = D
   });
 
   useEffect(() => {
-    if (!open || opts.lines.length) return;
+    if (!open || opts.products.length) return;
     Promise.all([
-      loadMachineOptions(),
       loadProductOptions(),
       loadBatchOptions(),
       loadProductionOrderOptions(),
       loadMaterialAndPackagingOptions(),
       loadUserOptions(),
       loadProductHoldOptions(),
-    ]).then(([lines, products, batches, orders, materials, users, holds]) => {
-      setOpts({ lines, products, batches, orders, materials, users, holds });
+    ]).then(([products, batches, orders, materials, users, holds]) => {
+      setOpts({ products, batches, orders, materials, users, holds });
     }).catch(() => {});
-  }, [open, opts.lines.length]);
+  }, [open, opts.products.length]);
 
   const defs = useMemo(() => fieldDefs(config), [config]);
 
   const defaults = useMemo(() => {
-    const d = { owners: [], production_line: "" };
+    const d = { owners: [] };
     Object.entries(defs).forEach(([k, def]) => {
       d[k] = def.type === "checkbox" ? false : def.default !== undefined ? def.default : "";
     });
@@ -172,13 +170,12 @@ export default function RequestFormDialog({ open, onOpenChange, user, config = D
     } else {
       setType(DOWNTIME_TYPE);
       const init = { ...defaults, shift_date: todayDateStr() };
-      if (user?.line) init.production_line = user.line;
       setValues(init);
       setExistingEvidence([]);
       setEvidenceFiles([]);
       setError("");
     }
-  }, [open, defaults, initialRecord, user?.line]);
+  }, [open, defaults, initialRecord]);
 
   const visibleKeys = visibleKeysFor(type, values);
   const requiredKeys = config.required?.[type] || DEFAULT_REQUIRED[type];
@@ -187,12 +184,12 @@ export default function RequestFormDialog({ open, onOpenChange, user, config = D
   // Labelling / Packaging Error requests are always routed to the QA/QC Team.
   const qaForced = type === APPROVAL_TYPE && values.approval_type === LABELLING_TYPE;
 
-  // Changing the Request Type clears the hidden fields but keeps the common ones.
+  // Changing the Request Type clears the hidden fields but keeps common ones (owners & shift_date).
   const switchType = (t) => {
     setType(t);
     setValues((v) => ({
       ...defaults,
-      production_line: v.production_line,
+      shift_date: v.shift_date || todayDateStr(),
       owners: v.owners,
     }));
     setError("");

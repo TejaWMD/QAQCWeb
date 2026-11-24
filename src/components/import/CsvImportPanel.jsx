@@ -249,7 +249,7 @@ export default function CsvImportPanel({ config }) {
       setProgress({ done: Math.min(i + CHUNK_SIZE, toInsert.length), total: toInsert.length });
     }
     if (entity === "OperationLog" && created > 0) {
-      await syncOvertimeFromOperationLogs().catch(() => {});
+      await syncOvertimeFromOperationLogs({ force: true, limit: 1500 }).catch(() => {});
     }
     setImporting(false);
     setResult({ created, duplicatesSkipped, ignoredSummary, rowErrors });

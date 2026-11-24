@@ -80,21 +80,29 @@ export async function archiveProductSafely(product, deletedBy = "Admin") {
  * Archives a recipe and clears stale recipe_id references on any products
  * pointing to it so Product Master / Insert Data do not hold broken links.
  */
-export async function archiveRecipeSafely(recipeId) {
-  if (!recipeId) return;
+export async function archiveRecipeSafely(recipeIdOrIds, recipeName = "") {
+  const ids = (Array.isArray(recipeIdOrIds) ? recipeIdOrIds : [recipeIdOrIds]).filter(Boolean);
+  if (!ids.length) return;
+  const now = new Date().toISOString();
 
   const { error: unlinkErr } = await supabase
     .from("products")
-    .update({ recipe_id: null, updated_at: new Date().toISOString() })
-    .eq("recipe_id", recipeId);
+    .update({ recipe_id: null, recipe_name: "", updated_at: now })
+    .in("recipe_id", ids);
   if (unlinkErr) {
     throw new Error(`Failed to unlink products from recipe: ${unlinkErr.message}`);
+  }
+  if (recipeName) {
+    await supabase
+      .from("products")
+      .update({ recipe_id: null, recipe_name: "", updated_at: now })
+      .ilike("recipe_name", recipeName);
   }
 
   const { error } = await supabase
     .from("recipes")
-    .update({ deleted: true, updated_at: new Date().toISOString() })
-    .eq("id", recipeId);
+    .update({ deleted: true, updated_at: now })
+    .in("id", ids);
   if (error) {
     throw new Error(error.message);
   }

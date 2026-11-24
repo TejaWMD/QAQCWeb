@@ -10,10 +10,10 @@ const TOTAL_PX = 24 * HOUR_PX;
 const HOURS = Array.from({ length: 25 }, (_, i) => i);
 
 const BLOCK_STYLES = {
-  Planned: "bg-sky-500/20 border-sky-400/50 text-sky-100",
-  "In Progress": "bg-amber-500/20 border-amber-400/50 text-amber-100",
-  Completed: "bg-emerald-500/20 border-emerald-400/50 text-emerald-100",
-  Cancelled: "bg-slate-700/40 border-slate-600 text-slate-400 line-through",
+  Planned: "bg-sky-100 border-sky-300 text-sky-900",
+  "In Progress": "bg-amber-100 border-amber-300 text-amber-900",
+  Completed: "bg-emerald-100 border-emerald-300 text-emerald-900",
+  Cancelled: "bg-slate-100 border-slate-300 text-slate-500 line-through",
 };
 
 const endMinuteOf = (order) => {
@@ -56,7 +56,8 @@ export default function ScheduleGrid({ machines = [], orders = [], dateStr, onOp
   const draggedRef = useRef(false);
   const [hoverMachine, setHoverMachine] = useState("");
 
-  const ordersOf = (machineName) => orders.filter((o) => (o.machine || "") === machineName);
+  const ordersOf = (machineName) =>
+    orders.filter((o) => String(o.machine || "").trim().toLowerCase() === String(machineName || "").trim().toLowerCase());
 
   const onDrop = (e, machine) => {
     e.preventDefault();
@@ -99,7 +100,7 @@ export default function ScheduleGrid({ machines = [], orders = [], dateStr, onOp
           const maintenance = machine.status === "Under Maintenance";
           return (
             <div key={machine.id} className="w-[230px] shrink-0 border-r border-[#E2E8F0]">
-              <div className={`h-11 sticky top-0 z-20 border-b border-[#E2E8F0] px-2 flex items-center gap-1.5 ${maintenance ? "bg-[#2a1417]" : "bg-[#F8FAFC]"}`}>
+              <div className={`h-11 sticky top-0 z-20 border-b border-[#E2E8F0] px-2 flex items-center gap-1.5 ${maintenance ? "bg-rose-50" : "bg-[#F8FAFC]"}`}>
                 <span className="text-xs font-semibold text-[#0F294A] truncate" title={machine.name}>{machine.name}</span>
                 {maintenance && <Wrench className="w-3 h-3 text-rose-600 shrink-0" />}
               </div>

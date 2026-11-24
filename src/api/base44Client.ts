@@ -96,6 +96,9 @@ export const base44 = {
           error = retry.error;
         }
         if (error) {
+          if (file.size > 5 * 1024 * 1024) {
+            throw new Error('File exceeds 5 MB limit for inline attachment. Run supabase/storage_evidence_bucket.sql to enable larger uploads.');
+          }
           // Fallback: embed attachment as a data URL so missing storage buckets never block image or PDF evidence uploads
           const dataUrl = await new Promise<string>((resolve, reject) => {
             const reader = new FileReader();

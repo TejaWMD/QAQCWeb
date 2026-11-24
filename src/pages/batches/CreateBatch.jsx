@@ -51,7 +51,7 @@ export default function CreateBatch() {
   const [productionDate, setProductionDate] = useState("");
   const [manualBatch, setManualBatch] = useState("");
   const [quantity, setQuantity] = useState("");
-  const [layoutId, setLayoutId] = useState("qr13_l");
+  const [layoutId, setLayoutId] = useState("");
   const [custom, setCustom] = useState({ width_mm: 70, height_mm: 50, font_size: 7, qr_mm: 14, qr_ecc: "M" });
   const [copies] = useState(1);
   const [overrideOpen, setOverrideOpen] = useState(false);
@@ -121,7 +121,7 @@ export default function CreateBatch() {
     return num(product.shelf_life_days);
   }, [product, shelfMonths]);
 
-  const computedExpiry = expiryFor(productionDate, effectiveShelfDays);
+  const computedExpiry = expiryFor(productionDate, num(product?.shelf_life_days), shelfMonths);
   const expiryDate = overrideOpen && overrideDate ? overrideDate : computedExpiry;
   const duplicate =
     duplicateOf(records, productId, batchNumber) ||
@@ -161,8 +161,9 @@ export default function CreateBatch() {
     if (!product) return toast({ title: "Pick a product", description: "The batch must belong to a product.", variant: "destructive" });
     const blocked = labelBlock(product);
     if (blocked) return toast({ title: "Product cannot be labelled", description: `${product.product_name}: ${blocked}. Fix it in Product Master.`, variant: "destructive" });
-    if (!cleanSuffix) return toast({ title: "Alphabet suffix required", description: "Enter an Alphabet Suffix (e.g. A or T) to complete the batch number.", variant: "destructive" });
-    if (!batch) return toast({ title: "Batch number missing", description: "Choose a product and production date.", variant: "destructive" });
+    if (!productionDate) return toast({ title: "Production date required", description: "Please enter the Production Date manually.", variant: "destructive" });
+    if (!manualBatch.trim() && !cleanSuffix) return toast({ title: "Alphabet suffix required", description: "Enter an Alphabet Suffix (e.g. A or T) or type a batch number manually.", variant: "destructive" });
+    if (!batch) return toast({ title: "Batch number missing", description: "Enter a batch number or choose a product, production date, and suffix.", variant: "destructive" });
     if (duplicate) return toast({ title: "Duplicate batch number", description: `${batch} is already recorded for ${product.product_name}.`, variant: "destructive" });
     if (!expiryDate) return toast({ title: "Expiry date missing", description: "Set the product shelf life, or override the expiry date.", variant: "destructive" });
     if (overrideOpen && !overrideReason.trim()) return toast({ title: "Reason required", description: "Give a reason for overriding the expiry date.", variant: "destructive" });
@@ -273,7 +274,21 @@ export default function CreateBatch() {
             <Button variant="outline" onClick={generatePdf} className="bg-white border-[#E2E8F0] text-[#0F294A] hover:bg-[#F1F5F9]">
               <Download className="w-4 h-4 mr-1.5" /> Generate PDF
             </Button>
-            <Button onClick={() => setJob({ ...savedPrintView })} className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold">
+            <Button
+              onClick={() =>
+                setJob({
+                  ...savedPrintView,
+                  layout: retailStickerLayout
+                    ? { ...activeLayout, width_mm: 60, height_mm: 40 }
+                    : activeLayout,
+                  data: {
+                    ...d,
+                    cartonBarcode: retailTemplate ? d.batchNumber : (d.cartonBarcode || d.batchNumber),
+                  },
+                })
+              }
+              className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold"
+            >
               <Printer className="w-4 h-4 mr-1.5" /> Print Now
             </Button>
           </div>
@@ -310,12 +325,12 @@ export default function CreateBatch() {
               </div>
               <div className="pt-2 text-center">
                 <img
-                  src={barcodeImageUrl(d.cartonBarcode || d.batchNumber)}
+                  src={barcodeImageUrl(retailTemplate ? d.batchNumber : (d.cartonBarcode || d.batchNumber))}
                   alt="Barcode"
                   className="w-full h-11 object-contain"
                 />
                 <p className="text-[11px] font-mono tracking-wider mt-0.5" style={{ color: "#334155" }}>
-                  {d.cartonBarcode || d.batchNumber}
+                  {retailTemplate ? d.batchNumber : (d.cartonBarcode || d.batchNumber)}
                 </p>
               </div>
             </div>
@@ -386,7 +401,7 @@ export default function CreateBatch() {
             </div>
           </div>
         </div>
-        <LabelPrintSheet job={job} />
+        <LabelPrintSheet job={job} onDone={() => setJob(null)} />
       </div>
     );
   }

@@ -285,7 +285,7 @@ export default function OrderDetailDialog({ order, products = [], recipes = [], 
                   <Trash2 className="w-4 h-4 mr-1.5" /> Delete
                 </Button>
               )}
-              {canPlanOrders(user) && !editing && (
+              {canPlanOrders(user) && !editing && !["Completed", "Cancelled"].includes(order.status) && (
                 <Button variant="outline" onClick={startEdit} disabled={busy} className={subtleButton}>
                   <Pencil className="w-4 h-4 mr-1.5" /> Edit
                 </Button>

@@ -107,7 +107,7 @@ export default function RequestDecisionDialog({ open, onOpenChange, request, use
               {request.request_type}
             </span>
             <span className="text-[#64748B] text-xs">
-              from {request.requester_name || "—"} · {request.production_line || "—"} · {request.shift_date || "—"}
+              from {request.requester_name || "—"} · {request.shift_date || "—"}
             </span>
           </div>
           <p className="text-[#0F294A] font-medium">{requestSummary(request)}</p>
@@ -126,7 +126,7 @@ export default function RequestDecisionDialog({ open, onOpenChange, request, use
                   className="inline-flex items-center gap-1 text-xs text-[#1D4ED8] hover:underline border border-[#E2E8F0] rounded px-2 py-0.5"
                 >
                   <Paperclip className="w-3 h-3" />
-                  {typeof f === "object" && f?.name ? f.name : `Attachment ${idx + 1}`}
+                  {typeof f === "object" && (f?.file_name || f?.name) ? (f.file_name || f.name) : `Attachment ${idx + 1}`}
                 </button>
               ))}
             </div>

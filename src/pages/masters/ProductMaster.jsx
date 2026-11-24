@@ -84,6 +84,8 @@ export default function ProductMaster() {
       await setProductStatus({ product, status: next, user });
       toast({ title: `${product.product_code} ${next.toLowerCase()}`, description: next === "Active" ? "Offered in dropdowns and scans again." : "Kept on old records, hidden from new ones." });
       await load();
+    } catch (e) {
+      toast({ title: "Could not update product status", description: e?.message || "Please try again.", variant: "destructive" });
     } finally {
       setBusyId("");
     }
@@ -103,6 +105,8 @@ export default function ProductMaster() {
         toast({ title: "Moved to Recently Deleted", description: `${product.product_code} can be restored at any time.` });
         await load();
       }
+    } catch (e) {
+      toast({ title: "Could not delete product", description: e?.message || "Please try again.", variant: "destructive" });
     } finally {
       setBusyId("");
     }

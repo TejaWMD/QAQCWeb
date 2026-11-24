@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Save } from "lucide-react";
 import { base44 } from "@/api/base44Client";
+import { otHoursAfterFive } from "@/lib/otCalculations";
 import { productionLines, productNames, wasteComponents } from "@/lib/shiftLogConstants";
 import {
   loadBatchOptions,
@@ -36,16 +37,7 @@ const toNamesArray = (record) => {
 };
 
 // Overtime runs past 17:00, across midnight if the shift ends there.
-const calcOtHours = (start, end) => {
-  if (!start || !end) return 0;
-  const [sh, sm] = start.split(":").map(Number);
-  const [eh, em] = end.split(":").map(Number);
-  const sMin = sh * 60 + sm;
-  const eMin = eh * 60 + em;
-  if (eMin <= sMin) return Math.max(0, 1440 - Math.max(sMin, 17 * 60)) / 60;
-  if (eMin <= 17 * 60) return 0;
-  return (eMin - Math.max(sMin, 17 * 60)) / 60;
-};
+const calcOtHours = (start, end) => otHoursAfterFive(start, end);
 
 export default function IncompleteRecordEditModal({ record, open, onClose, onSaved }) {
   const [form, setForm] = useState(null);

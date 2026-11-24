@@ -223,7 +223,25 @@ export const productService = {
 
   // Update an existing product
   async updateProduct(id: string, input: Partial<ProductInput>): Promise<Product> {
-    const derived = calculateProductDerivedFields(input);
+    const DERIVED_TRIGGERS = [
+      'carton_size',
+      'net_weight_kg',
+      'target_net_weight_g',
+      'net_filling_kg',
+      'batch_output_kg',
+      'cartons_per_batch',
+      'standard_batch_cartons',
+      'shelf_life_months',
+      'shelf_life_days',
+      'cooking_time_hr',
+      'cooking_time_min',
+    ];
+    const touchesDerived = DERIVED_TRIGGERS.some((k) => k in input);
+    let derived: Record<string, any> = {};
+    if (touchesDerived) {
+      const { data: existingRow } = await supabase.from('products').select('*').eq('id', id).maybeSingle();
+      derived = calculateProductDerivedFields({ ...(existingRow || {}), ...input });
+    }
     let payload: any = sanitizeProductWrite({
       ...input,
       ...derived,

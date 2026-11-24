@@ -4,6 +4,7 @@ import {
   updateUserPermissions,
   updateUserDetails,
   createUserRecord,
+  softDeleteUser,
 } from "@/services/authService";
 import { useAuth } from "@/lib/AuthContext";
 import {
@@ -242,6 +243,54 @@ export default function UserManagement() {
       const msg = err?.message || "Failed to update role.";
       setFeedback({ type: "error", message: msg });
       toast.error(msg);
+    }
+  };
+
+  const handleAppRoleChange = async (u, nextAppRole) => {
+    setFeedback(null);
+    try {
+      const roleDef = APP_ROLES.find((r) => r.key === nextAppRole);
+      const updated = await updateUserDetails(u.id, {
+        app_role: nextAppRole === "custom" ? "" : nextAppRole,
+        ...(roleDef ? { role_label: roleDef.label } : {}),
+      });
+      setUsers((prev) => prev.map((x) => (x.id === updated.id ? updated : x)));
+      if (updated.id === currentUser?.id) {
+        await checkUserAuth();
+      }
+      const msg = `${updated.name} factory role updated to ${roleDef?.label || "Custom"}.`;
+      setFeedback({ type: "success", message: msg });
+      toast.success(msg);
+    } catch (err) {
+      const msg = err?.message || "Failed to update factory role.";
+      setFeedback({ type: "error", message: msg });
+      toast.error(msg);
+    }
+  };
+
+  const handleToggleSuspend = async (u) => {
+    const nextStatus = u.status === "suspended" ? "active" : "suspended";
+    setFeedback(null);
+    try {
+      const updated = await updateUserDetails(u.id, { status: nextStatus });
+      setUsers((prev) => prev.map((x) => (x.id === updated.id ? updated : x)));
+      const msg = `${updated.name} is now ${nextStatus}.`;
+      setFeedback({ type: "success", message: msg });
+      toast.success(msg);
+    } catch (err) {
+      toast.error(err?.message || "Failed to update user status.");
+    }
+  };
+
+  const handleDeleteUser = async (u) => {
+    if (!window.confirm(`Remove user "${u.name}" (${u.email})? They will lose access immediately.`)) return;
+    try {
+      await softDeleteUser(u.id);
+      setUsers((prev) => prev.filter((x) => x.id !== u.id));
+      setSelectedUserId(null);
+      toast.success(`Removed user ${u.name}.`);
+    } catch (err) {
+      toast.error(err?.message || "Failed to remove user.");
     }
   };
 
@@ -571,21 +620,66 @@ export default function UserManagement() {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center justify-between gap-2 pt-3">
-                  <span className="text-xs font-medium text-[#64748B]">Account Role</span>
-                  <Select
-                    value={selectedUser.role}
-                    onValueChange={(val) => handleRoleChange(selectedUser, val)}
-                    disabled={selectedUser.id === currentUser?.id}
-                  >
-                    <SelectTrigger className="w-32 h-8 text-xs bg-white border-[#E2E8F0] text-[#0F294A]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white border-[#E2E8F0] text-[#0F294A]">
-                      <SelectItem value="staff">staff</SelectItem>
-                      <SelectItem value="admin">admin</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="space-y-2 pt-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-xs font-medium text-[#64748B]">Account Role</span>
+                    <Select
+                      value={selectedUser.role === "super_admin" ? "admin" : selectedUser.role}
+                      onValueChange={(val) => handleRoleChange(selectedUser, val)}
+                      disabled={selectedUser.id === currentUser?.id}
+                    >
+                      <SelectTrigger className="w-40 h-8 text-xs bg-white border-[#E2E8F0] text-[#0F294A]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border-[#E2E8F0] text-[#0F294A]">
+                        <SelectItem value="staff">staff</SelectItem>
+                        <SelectItem value="admin">admin</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {!isAdminUser(selectedUser) && (
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-xs font-medium text-[#64748B]">Factory Role</span>
+                      <Select
+                        value={selectedUser.app_role || "custom"}
+                        onValueChange={(val) => handleAppRoleChange(selectedUser, val)}
+                      >
+                        <SelectTrigger className="w-48 h-8 text-xs bg-white border-[#E2E8F0] text-[#0F294A]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white border-[#E2E8F0] text-[#0F294A]">
+                          <SelectItem value="custom">Custom / Unassigned</SelectItem>
+                          {APP_ROLES.map((r) => (
+                            <SelectItem key={r.key} value={r.key}>{r.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  {selectedUser.id !== currentUser?.id && (
+                    <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleToggleSuspend(selectedUser)}
+                        className="h-7 text-xs border-[#E2E8F0]"
+                      >
+                        {selectedUser.status === "suspended" ? "Reactivate User" : "Suspend User"}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDeleteUser(selectedUser)}
+                        className="h-7 text-xs border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                      >
+                        Remove User
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </SheetHeader>
 
@@ -715,7 +809,7 @@ export default function UserManagement() {
               <Input
                 value={newUser.name}
                 onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
-                placeholder="John Doe"
+                placeholder="Enter full name"
                 required
                 className="mt-1 bg-white border-[#E2E8F0] text-[#0F294A]"
               />
@@ -726,7 +820,7 @@ export default function UserManagement() {
                 type="email"
                 value={newUser.email}
                 onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                placeholder="john@wmg.local"
+                placeholder="Enter email address"
                 required
                 className="mt-1 bg-white border-[#E2E8F0] text-[#0F294A]"
               />

@@ -227,6 +227,7 @@ export default function DemandPlanner() {
 
       toast.success(`Generated ${inserts.length} sequenced production orders (ready on Production Schedule)!`);
       setSelectedQty({});
+      await loadData();
     } catch (err: any) {
       toast.error(err.message || 'Failed to generate production orders');
     } finally {
@@ -237,8 +238,8 @@ export default function DemandPlanner() {
   const openForecastModal = (row?: PlanningCalculation) => {
     setForecastForm({
       product_id: row?.productId || '',
-      forecast_quantity: row ? String(row.forecastQty || 0) : '100',
-      reorder_level: row ? String(row.reorderLevel || 0) : '50',
+      forecast_quantity: row ? String(row.forecastQty || 0) : '',
+      reorder_level: row ? String(row.reorderLevel || 0) : '',
       buffer_percentage: '1.1',
       available_stock_cartons: row ? String(row.currentStockCartons || 0) : '',
     });
@@ -257,12 +258,13 @@ export default function DemandPlanner() {
       const buf = Number(forecastForm.buffer_percentage) || 1.1;
       const reorder = Number(forecastForm.reorder_level) || 0;
 
-      const { data: existingPlan } = await supabase
+      const { data: existingPlans } = await supabase
         .from('sales_planning')
         .select('id')
         .eq('product_id', targetRow.productId)
         .eq('deleted', false)
-        .maybeSingle();
+        .limit(1);
+      const existingPlan = existingPlans?.[0] || null;
 
       const planPayload = {
         product_id: targetRow.productId,

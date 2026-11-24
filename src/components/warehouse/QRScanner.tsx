@@ -7,10 +7,17 @@ export function CameraQRScanner({ onDecode }: { onDecode: (decodedText: string) 
   const [active, setActive] = useState(false);
   const [errMsg, setErrMsg] = useState('');
   const scannerRef = useRef<Html5Qrcode | null>(null);
+  const startTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mountedRef = useRef(true);
+  const decodedOnceRef = useRef(false);
   const rawId = useId();
   const regionId = `camera-qr-${rawId.replace(/[^a-zA-Z0-9_-]/g, '')}`;
 
   const stopScanner = async () => {
+    if (startTimerRef.current) {
+      clearTimeout(startTimerRef.current);
+      startTimerRef.current = null;
+    }
     try {
       if (scannerRef.current && scannerRef.current.isScanning) {
         await scannerRef.current.stop();
@@ -20,7 +27,7 @@ export function CameraQRScanner({ onDecode }: { onDecode: (decodedText: string) 
       // ignore stop errors
     } finally {
       scannerRef.current = null;
-      setActive(false);
+      if (mountedRef.current) setActive(false);
     }
   };
 
@@ -31,8 +38,11 @@ export function CameraQRScanner({ onDecode }: { onDecode: (decodedText: string) 
       return;
     }
 
+    decodedOnceRef.current = false;
     setActive(true);
-    setTimeout(async () => {
+    startTimerRef.current = setTimeout(async () => {
+      startTimerRef.current = null;
+      if (!mountedRef.current) return;
       try {
         const html5Qr = new Html5Qrcode(regionId);
         scannerRef.current = html5Qr;
@@ -43,6 +53,8 @@ export function CameraQRScanner({ onDecode }: { onDecode: (decodedText: string) 
         };
 
         const handleSuccess = (decodedText: string) => {
+          if (decodedOnceRef.current) return;
+          decodedOnceRef.current = true;
           onDecode(decodedText);
           stopScanner();
         };
@@ -83,7 +95,9 @@ export function CameraQRScanner({ onDecode }: { onDecode: (decodedText: string) 
   };
 
   useEffect(() => {
+    mountedRef.current = true;
     return () => {
+      mountedRef.current = false;
       stopScanner();
     };
   }, []);

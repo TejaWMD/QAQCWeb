@@ -17,7 +17,10 @@ import { downloadCsv, todayStr } from "@/lib/warehouse";
 import { inputClass, subtleButton, panelClass } from "@/components/planning/styles";
 
 function statusOfBatch(record) {
-  if (record?.status && record.status !== "Active") return record.status;
+  const raw = String(record?.status || "").trim();
+  if (raw && raw.toLowerCase() !== "active") {
+    return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
+  }
   const exp = String(record?.expiry_date || "").slice(0, 10);
   if (exp && exp < todayStr()) return "Expired";
   return "Active";
@@ -113,6 +116,12 @@ export default function BatchRecords() {
         status: editForm.status,
       };
       const updated = await base44.entities.BatchRecord.update(editTarget.id, patch);
+      await logLabelAudit({
+        user,
+        action: "Updated",
+        recordId: editTarget.id,
+        details: `Updated batch ${editTarget.batch_number} (${editTarget.product_name})`,
+      });
       setRecords((prev) => prev.map((r) => (r.id === editTarget.id ? { ...r, ...patch, ...(updated || {}) } : r)));
       setEditTarget(null);
       toast({ title: "Batch updated", description: `${editTarget.batch_number} saved.` });
@@ -129,14 +138,15 @@ export default function BatchRecords() {
     try {
       const entry = { user_name: actingUserName(user), user_id: user?.id || "", date: new Date().toISOString(), copies };
       const reprints = [...(reprintTarget.reprints || []), entry];
-      await base44.entities.BatchRecord.update(reprintTarget.id, { reprints });
+      const nextPrintCount = (Number(reprintTarget.print_count) || 0) + copies;
+      await base44.entities.BatchRecord.update(reprintTarget.id, { reprints, print_count: nextPrintCount });
       await logLabelAudit({
         user,
         action: "Reprinted",
         recordId: reprintTarget.id,
         details: `Batch ${reprintTarget.batch_number} reprinted for ${reprintTarget.product_name} · ${copies} label(s)`,
       });
-      setRecords((list) => list.map((r) => (r.id === reprintTarget.id ? { ...r, reprints } : r)));
+      setRecords((list) => list.map((r) => (r.id === reprintTarget.id ? { ...r, reprints, print_count: nextPrintCount } : r)));
       setJob({
         layout: layoutOfRecord(reprintTarget),
         copies,
@@ -167,7 +177,15 @@ export default function BatchRecords() {
           <p className="text-[#64748B] text-sm mt-0.5">View and manage all stock batches</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => window.print()} className={subtleButton} disabled={rows.length === 0}>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setJob(null);
+              setTimeout(() => window.print(), 50);
+            }}
+            className={subtleButton}
+            disabled={rows.length === 0}
+          >
             <Printer className="w-4 h-4 mr-1.5" /> Print List
           </Button>
           <Button variant="outline" onClick={exportCsv} className={subtleButton} disabled={rows.length === 0}>
@@ -445,7 +463,7 @@ export default function BatchRecords() {
         onConfirm={reprint}
       />
 
-      <LabelPrintSheet job={job} />
+      <LabelPrintSheet job={job} onDone={() => setJob(null)} />
     </div>
   );
 }

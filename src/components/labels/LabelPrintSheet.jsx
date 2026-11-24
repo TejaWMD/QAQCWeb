@@ -5,13 +5,17 @@ import { printCss } from "@/lib/labels";
 // Mounted only while a print job is running. The sheet sits off-screen on the
 // monitor and becomes the only visible thing on the printed page: one label per
 // page, at the layout's exact size with no margins.
-export default function LabelPrintSheet({ job }) {
+export default function LabelPrintSheet({ job, onDone }) {
   const layout = job?.layout;
   const copies = Math.max(1, Math.round(job?.copies || 1));
 
   useEffect(() => {
     if (!job || !layout) return undefined;
     let cancelled = false;
+    const handleAfterPrint = () => {
+      if (!cancelled) onDone?.();
+    };
+    window.addEventListener("afterprint", handleAfterPrint);
     const images = Array.from(document.querySelectorAll("#label-print-root img"));
     const loaded = Promise.all(
       images.map((img) => (img.complete ? Promise.resolve() : new Promise((resolve) => {
@@ -24,8 +28,11 @@ export default function LabelPrintSheet({ job }) {
       if (cancelled) return;
       setTimeout(() => { if (!cancelled) window.print(); }, 150);
     });
-    return () => { cancelled = true; };
-  }, [job, layout]);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("afterprint", handleAfterPrint);
+    };
+  }, [job, layout, onDone]);
 
   if (!job || !layout) return null;
 

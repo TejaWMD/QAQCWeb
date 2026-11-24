@@ -20,9 +20,14 @@ export async function loadQaSection(key, fallback) {
   try {
     const page = await base44.entities.FormConfig.filter({ key: storageKey }, { limit: 1 });
     const doc = (page.items || [])[0];
-    if (doc?.payload !== undefined) {
-      localStorage.setItem(storageKey, JSON.stringify(doc.payload));
-      return doc.payload;
+    const remotePayload = doc?.payload !== undefined ? doc.payload : doc?.required?.qa_payload;
+    if (remotePayload !== undefined) {
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(remotePayload));
+      } catch {
+        // Ignore storage quota error
+      }
+      return remotePayload;
     }
   } catch {
     // Fall back to localStorage below
@@ -43,15 +48,14 @@ export async function saveQaSection(key, payload) {
   } catch {
     // Ignore storage quota error
   }
-  try {
-    const page = await base44.entities.FormConfig.filter({ key: storageKey }, { limit: 1 });
-    const existing = (page.items || [])[0];
-    if (existing?.id) {
-      await base44.entities.FormConfig.update(existing.id, { payload });
-    } else {
-      await base44.entities.FormConfig.create({ key: storageKey, payload });
-    }
-  } catch {
-    // Keep localStorage copy if backend table rejects custom fields
+  // Persist into both `payload` (if migrated) and existing JSONB column `required.qa_payload`
+  // so Supabase ALWAYS persists QA/HACCP data even before running optional migrations.
+  const recordPatch = { payload, required: { qa_payload: payload } };
+  const page = await base44.entities.FormConfig.filter({ key: storageKey }, { limit: 1 });
+  const existing = (page.items || [])[0];
+  if (existing?.id) {
+    await base44.entities.FormConfig.update(existing.id, recordPatch);
+  } else {
+    await base44.entities.FormConfig.create({ key: storageKey, ...recordPatch });
   }
 }

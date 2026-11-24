@@ -22,7 +22,7 @@ export default function TaskCellDialog({ task, onOpenChange, onUpdated }) {
 
   useEffect(() => {
     setEvidence({ uri: task?.evidence_file_uri || "", name: task?.evidence_file_name || "" });
-  }, [task?.id]);
+  }, [task?.id, task?.evidence_file_uri, task?.evidence_file_name]);
 
   if (!task) return null;
 
@@ -60,12 +60,14 @@ export default function TaskCellDialog({ task, onOpenChange, onUpdated }) {
       const oldStatus = task.status || "";
       await base44.entities.Task.update(task.id, {
         status,
-        evidence_file_uri: evidence.uri || undefined,
-        evidence_file_name: evidence.name || undefined,
+        evidence_file_uri: evidence.uri || "",
+        evidence_file_name: evidence.name || "",
       });
       await audit(status, oldStatus);
       onUpdated();
       onOpenChange(false);
+    } catch (err) {
+      window.alert(err?.message || "Failed to update task. Please try again.");
     } finally {
       setBusy(false);
     }

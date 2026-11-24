@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { format } from "date-fns";
 import { base44 } from "@/api/base44Client";
 import { Timer, DollarSign, Users } from "lucide-react";
 import { groupByDate, formatDateHeader } from "@/lib/logGrouping";
 import { otHoursAfterFive, timeOfDay } from "@/lib/otCalculations";
-import { otWindowStart, syncOvertimeFromOperationLogs } from "@/services/shiftLogService";
+import { isOvertimeSyncRunning, otWindowStart, syncOvertimeFromOperationLogs } from "@/services/shiftLogService";
 import OTSpendTrendChart from "@/components/otlog/OTSpendTrendChart";
 import OTSpendByLineChart from "@/components/overtime/OTSpendByLineChart";
 import WorkforceQuadrantChart from "@/components/overtime/WorkforceQuadrantChart";
@@ -15,16 +15,16 @@ export default function OvertimeRecord() {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [batchFilter, setBatchFilter] = useState("");
+  const reloadTimerRef = useRef(null);
 
-  const loadLogs = async (silent = false) => {
+  const loadLogs = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      await syncOvertimeFromOperationLogs();
       const query = batchFilter ? { record_batch: batchFilter } : {};
       // Read OTLog and also include any OperationLog with hours after 5 PM that wasn't mirrored yet.
       const [otRes, opRes] = await Promise.all([
-        base44.entities.OTLog.filter(query, { sort: "-created_date", limit: 200 }),
-        base44.entities.OperationLog.filter(query, { sort: "-created_date", limit: 200 }),
+        base44.entities.OTLog.filter(query, { sort: "-created_date", limit: 300 }),
+        base44.entities.OperationLog.filter(query, { sort: "-created_date", limit: 300 }),
       ]);
       const otRows = otRes.items || otRes || [];
       const opRows = opRes.items || opRes || [];
@@ -37,8 +37,8 @@ export default function OvertimeRecord() {
       ];
 
       const mapped = combined.map((l) => {
-        const rawStart = l.ot_start ? timeOfDay(l.ot_start) : timeOfDay(l.start_time) || "";
-        const end = l.ot_end ? timeOfDay(l.ot_end) : timeOfDay(l.end_time) || "";
+        const rawStart = l.start_time ? timeOfDay(l.start_time) : timeOfDay(l.ot_start) || "";
+        const end = l.end_time ? timeOfDay(l.end_time) : timeOfDay(l.ot_end) || "";
         const winStart = otWindowStart(rawStart) || rawStart;
         const calcOt = Number(otHoursAfterFive(winStart, end).toFixed(2));
         return {
@@ -54,20 +54,84 @@ export default function OvertimeRecord() {
     } finally {
       if (!silent) setLoading(false);
     }
-  };
-
-  useEffect(() => { loadLogs(); }, [batchFilter]);
-
-  // Live pipeline: an overtime correction or shift log change lands here at once.
-  useEffect(() => {
-    const reload = () => loadLogs(true);
-    const unsubscribes = [
-      base44.entities.OTLog.subscribe(reload),
-      base44.entities.OperationLog.subscribe(reload),
-      base44.entities.ShiftLog.subscribe(reload),
-    ];
-    return () => unsubscribes.forEach((unsubscribe) => { if (typeof unsubscribe === "function") unsubscribe(); });
   }, [batchFilter]);
+
+  useEffect(() => {
+    // Non-blocking background sync once per cooldown window; reload quietly only if rows changed.
+    syncOvertimeFromOperationLogs().then((changed) => {
+      if (changed) loadLogs(true);
+    });
+  }, []);
+
+  useEffect(() => { loadLogs(); }, [loadLogs]);
+
+  // Live pipeline: debounced refresh on shift/OT/operation changes, ignoring self-sync echoes.
+  useEffect(() => {
+    const scheduleReload = () => {
+      if (isOvertimeSyncRunning()) return;
+      if (reloadTimerRef.current) clearTimeout(reloadTimerRef.current);
+      reloadTimerRef.current = setTimeout(() => {
+        loadLogs(true);
+      }, 450);
+    };
+    const unsubscribes = [
+      base44.entities.OTLog.subscribe(scheduleReload),
+      base44.entities.OperationLog.subscribe(scheduleReload),
+      base44.entities.ShiftLog.subscribe(scheduleReload),
+    ];
+    return () => {
+      if (reloadTimerRef.current) clearTimeout(reloadTimerRef.current);
+      unsubscribes.forEach((unsubscribe) => { if (typeof unsubscribe === "function") unsubscribe(); });
+    };
+  }, [loadLogs]);
+
+  const { totalOTHours, totalOTSpend, totalSessions, dateGroups, dailySummary, maxDaySpend, lineSummary } = useMemo(() => {
+    let otHrsSum = 0;
+    let otSpendSum = 0;
+    const dayMap = new Map();
+    const lineMap = new Map();
+
+    logs.forEach((l) => {
+      const otHrs = l.ot_duration_hours || 0;
+      const manHrs = otHrs * (l.staff_count || 0);
+      const spend = manHrs * (l.hourly_ot_rate || 0);
+      otHrsSum += manHrs;
+      otSpendSum += spend;
+
+      if (l.shift_date) {
+        const datePart = String(l.shift_date).slice(0, 10);
+        const day = new Date(`${datePart}T00:00:00`);
+        if (!Number.isNaN(day.getTime())) {
+          day.setHours(0, 0, 0, 0);
+          const key = day.toISOString();
+          if (!dayMap.has(key)) dayMap.set(key, { day, hours: 0, spend: 0, count: 0, manpower: 0, manHours: 0 });
+          const d = dayMap.get(key);
+          d.hours += otHrs;
+          d.manHours += manHrs;
+          d.manpower += l.staff_count || 0;
+          d.spend += spend;
+          d.count += 1;
+        }
+      }
+
+      const line = l.production_line?.split(" - ")[0] || "—";
+      if (!lineMap.has(line)) lineMap.set(line, { line, spend: 0, hours: 0 });
+      const ld = lineMap.get(line);
+      ld.spend += spend;
+      ld.hours += manHrs;
+    });
+
+    const dSummary = Array.from(dayMap.values()).sort((a, b) => b.day - a.day);
+    return {
+      totalOTHours: otHrsSum,
+      totalOTSpend: otSpendSum,
+      totalSessions: logs.length,
+      dateGroups: groupByDate(logs, "shift_date"),
+      dailySummary: dSummary,
+      maxDaySpend: Math.max(...dSummary.map((d) => d.spend), 0),
+      lineSummary: Array.from(lineMap.values()).sort((a, b) => b.spend - a.spend),
+    };
+  }, [logs]);
 
   if (loading) {
     return (
@@ -76,48 +140,6 @@ export default function OvertimeRecord() {
       </div>
     );
   }
-
-  const totalOTHours = logs.reduce((s, l) => s + (l.ot_duration_hours || 0) * (l.staff_count || 0), 0);
-  const totalOTSpend = logs.reduce((s, l) => s + (l.ot_duration_hours || 0) * (l.staff_count || 0) * (l.hourly_ot_rate || 0), 0);
-  const totalSessions = logs.length;
-  const dateGroups = groupByDate(logs, "shift_date");
-
-  const dailySummary = (() => {
-    const map = new Map();
-    logs.forEach((l) => {
-      if (!l.shift_date) return;
-      const datePart = String(l.shift_date).slice(0, 10);
-      const day = new Date(`${datePart}T00:00:00`);
-      if (Number.isNaN(day.getTime())) return;
-      day.setHours(0, 0, 0, 0);
-      const key = day.toISOString();
-      const otHrs = l.ot_duration_hours || 0;
-      const spend = otHrs * (l.staff_count || 0) * (l.hourly_ot_rate || 0);
-      if (!map.has(key)) map.set(key, { day, hours: 0, spend: 0, count: 0, manpower: 0, manHours: 0 });
-      const d = map.get(key);
-      d.hours += otHrs;
-      d.manHours += otHrs * (l.staff_count || 0);
-      d.manpower += l.staff_count || 0;
-      d.spend += spend;
-      d.count += 1;
-    });
-    return Array.from(map.values()).sort((a, b) => b.day - a.day);
-  })();
-  const maxDaySpend = Math.max(...dailySummary.map((d) => d.spend), 0);
-
-  const lineSummary = (() => {
-    const map = new Map();
-    logs.forEach((l) => {
-      const line = l.production_line?.split(" - ")[0] || "—";
-      const otHrs = l.ot_duration_hours || 0;
-      const spend = otHrs * (l.staff_count || 0) * (l.hourly_ot_rate || 0);
-      if (!map.has(line)) map.set(line, { line, spend: 0, hours: 0 });
-      const d = map.get(line);
-      d.spend += spend;
-      d.hours += otHrs * (l.staff_count || 0);
-    });
-    return Array.from(map.values()).sort((a, b) => b.spend - a.spend);
-  })();
 
   const fmtTime = (t) => (t ? new Date(`2000-01-01T${t}`).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }) : "—");
 

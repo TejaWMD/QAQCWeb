@@ -3,19 +3,20 @@ import { useAuth } from "@/lib/AuthContext";
 import { appRoleOf } from "@/lib/permissions";
 import RecordsTable from "@/components/factoryops/RecordsTable";
 import EvidenceLink from "@/components/factoryops/EvidenceLink";
-import { capaFormFields, SALES_VISIBLE_ISSUE_TYPES } from "@/lib/capaForm";
+import { capaFormFieldsForRole, SALES_VISIBLE_ISSUE_TYPES } from "@/lib/capaForm";
 
 const STATUSES = ["Open", "In Progress", "Overdue", "Completed", "Verified"];
-
-const fields = capaFormFields;
 
 const fmtDate = (iso) => {
   if (!iso) return "—";
   const s = String(iso).slice(0, 10);
-  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return String(iso);
-  return d.toISOString().slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    const [y, m, d] = s.split("-");
+    return `${d}/${m}/${y}`;
+  }
+  const dt = new Date(iso);
+  if (Number.isNaN(dt.getTime())) return String(iso);
+  return dt.toLocaleDateString("en-GB");
 };
 
 const fmtTimestamp = (iso) => {
@@ -63,19 +64,24 @@ const columns = [
 export default function CapaTracker() {
   const { user } = useAuth();
   const isSales = appRoleOf(user) === "sales";
+  const activeFields = capaFormFieldsForRole(isSales);
 
   return (
     <div className="min-h-screen bg-[#F6F8FC] p-4 md:p-6">
       <RecordsTable
         entity="CAPA"
         title="Unified CAPA Tracker"
-        subtitle="Track and update CAPA status; status edits automatically record the date and time."
+        subtitle={
+          isSales
+            ? "Customer complaint & returned goods CAPAs visible to Sales Team."
+            : "Track and update CAPA status; status edits automatically record the date and time."
+        }
         addLabel="Raise CAPA"
         columns={columns}
-        fields={fields}
+        fields={activeFields}
         statuses={STATUSES}
         filterRows={isSales ? (r) => SALES_VISIBLE_ISSUE_TYPES.includes(r.issue_type) : undefined}
-        canAdd={!isSales}
+        canAdd={true}
         canEdit={!isSales}
         canDelete={!isSales}
       />

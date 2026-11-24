@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { productionLines, lineCode, wasteComponents } from "@/lib/shiftLogConstants";
+import { calculateOTMetrics } from "@/lib/otCalculations";
+import { isOvertimeSyncRunning } from "@/services/shiftLogService";
 import { TrendingUp, Package, Trash2, Clock, CheckCircle2, AlertCircle } from "lucide-react";
 import MetricCard from "@/components/dashboard/MetricCard";
 import ScrapBreakdownChart from "@/components/dashboard/ScrapBreakdownChart";
@@ -19,12 +21,33 @@ export default function Home() {
   const [lineFilter, setLineFilter] = useState("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const reloadTimerRef = useRef(null);
 
   const loadLogs = async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const data = await base44.entities.ShiftLog.list("-created_date", 100);
-      setLogs(data);
+      const [shiftData, opData] = await Promise.all([
+        base44.entities.ShiftLog.list("-created_date", 150),
+        base44.entities.OperationLog.list("-ot_date", 150),
+      ]);
+      const shifts = Array.isArray(shiftData) ? shiftData : shiftData?.items || [];
+      const ops = Array.isArray(opData) ? opData : opData?.items || [];
+      const seenSessions = new Set(shifts.map((s) => s.session_id).filter(Boolean));
+      const extraOps = ops
+        .filter((o) => !o.session_id || !seenSessions.has(o.session_id))
+        .map((o) => {
+          const m = calculateOTMetrics(o);
+          return {
+            ...o,
+            shift_date: String(o.ot_date || "").slice(0, 10),
+            planned_qty: Number(o.planned_ot_qty) || 0,
+            actual_output: Number(o.actual_good_output) || 0,
+            rejected_qty: Number(o.rejected_wasted_qty) || 0,
+            ot_duration_hours: m.ot_duration_hours,
+            status: "complete",
+          };
+        });
+      setLogs([...shifts, ...extraOps]);
     } finally {
       if (!silent) setLoading(false);
     }
@@ -32,17 +55,23 @@ export default function Home() {
 
   useEffect(() => {loadLogs();}, []);
 
-  // Live pipeline: a submission or correction on any linked record refreshes
-  // these metrics without a manual reload.
+  // Live pipeline: debounced refresh on linked records, ignoring self-sync echoes.
   useEffect(() => {
-    const reload = () => loadLogs(true);
+    const reload = () => {
+      if (isOvertimeSyncRunning()) return;
+      if (reloadTimerRef.current) clearTimeout(reloadTimerRef.current);
+      reloadTimerRef.current = setTimeout(() => loadLogs(true), 500);
+    };
     const unsubscribes = [
       base44.entities.ShiftLog.subscribe(reload),
       base44.entities.OperationLog.subscribe(reload),
       base44.entities.OTLog.subscribe(reload),
       base44.entities.WastageLog.subscribe(reload),
     ];
-    return () => unsubscribes.forEach((unsubscribe) => { if (typeof unsubscribe === "function") unsubscribe(); });
+    return () => {
+      if (reloadTimerRef.current) clearTimeout(reloadTimerRef.current);
+      unsubscribes.forEach((unsubscribe) => { if (typeof unsubscribe === "function") unsubscribe(); });
+    };
   }, []);
 
   const selectedCode = lineFilter === "all" ? "" : lineCode(lineFilter).toUpperCase();

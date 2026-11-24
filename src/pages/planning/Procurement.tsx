@@ -18,7 +18,7 @@ export default function Procurement() {
   const [units, setUnits] = useState<any[]>([]);
 
   const [newSup, setNewSup] = useState<Record<string, any>>({ name: '', contact_person: '', phone: '', lead_time_days: '7' });
-  const [newPr, setNewPr] = useState<Record<string, any>>({ material_name: '', required_quantity: '100', unit: 'pcs', supplier_id: '' });
+  const [newPr, setNewPr] = useState<Record<string, any>>({ material_name: '', required_quantity: '', unit: 'pcs', supplier_id: '' });
 
   const loadAll = async () => {
     const [s, r, o, mats, u] = await Promise.all([
@@ -39,60 +39,83 @@ export default function Procurement() {
     loadAll();
   }, []);
 
+  const [busy, setBusy] = useState(false);
+
   const addSupplier = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (busy) return;
     if (!newSup.name.trim()) return toast.error('Supplier name is required.');
-    const { error } = await supabase.from('suppliers').insert({
-      name: newSup.name.trim(),
-      contact_person: newSup.contact_person || '',
-      phone: newSup.phone || '',
-      lead_time_days: Number(newSup.lead_time_days) || 7,
-      deleted: false,
-    });
-    if (error) return toast.error(error.message);
-    toast.success('Supplier added');
-    setNewSup({ name: '', contact_person: '', phone: '', lead_time_days: '7' });
-    loadAll();
+    setBusy(true);
+    try {
+      const { error } = await supabase.from('suppliers').insert({
+        name: newSup.name.trim(),
+        contact_person: newSup.contact_person || '',
+        phone: newSup.phone || '',
+        lead_time_days: Number(newSup.lead_time_days) || 7,
+        deleted: false,
+      });
+      if (error) return toast.error(error.message);
+      toast.success('Supplier added');
+      setNewSup({ name: '', contact_person: '', phone: '', lead_time_days: '7' });
+      loadAll();
+    } finally {
+      setBusy(false);
+    }
   };
 
   const addPr = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (busy) return;
     if (!newPr.material_name.trim()) return toast.error('Select or enter a material.');
-    const sup = suppliers.find((s) => s.id === newPr.supplier_id);
-    const { error } = await supabase.from('purchase_requests').insert({
-      material_name: newPr.material_name.trim(),
-      required_quantity: Number(newPr.required_quantity) || 1,
-      unit: newPr.unit || 'pcs',
-      supplier_id: newPr.supplier_id || null,
-      supplier_name: sup?.name || '',
-      lead_time_days: sup?.lead_time_days || 7,
-      status: 'pending',
-      deleted: false,
-    });
-    if (error) return toast.error(error.message);
-    toast.success('Purchase Request created');
-    setNewPr({ material_name: '', required_quantity: '100', unit: 'pcs', supplier_id: '' });
-    loadAll();
+    const qty = Number(newPr.required_quantity);
+    if (!(qty > 0)) return toast.error('Required quantity must be greater than zero.');
+    setBusy(true);
+    try {
+      const sup = suppliers.find((s) => s.id === newPr.supplier_id);
+      const { error } = await supabase.from('purchase_requests').insert({
+        material_name: newPr.material_name.trim(),
+        required_quantity: qty,
+        unit: newPr.unit || 'pcs',
+        supplier_id: newPr.supplier_id || null,
+        supplier_name: sup?.name || '',
+        lead_time_days: sup?.lead_time_days || 7,
+        status: 'pending',
+        deleted: false,
+      });
+      if (error) return toast.error(error.message);
+      toast.success('Purchase Request created');
+      setNewPr({ material_name: '', required_quantity: '', unit: 'pcs', supplier_id: '' });
+      loadAll();
+    } finally {
+      setBusy(false);
+    }
   };
 
   const convertPrToPo = async (pr: any) => {
-    const poNumber = `PO-${Date.now().toString().slice(-6)}`;
-    const { error: poErr } = await supabase.from('purchase_orders').insert({
-      po_number: poNumber,
-      purchase_request_id: pr.id,
-      material_name: pr.material_name,
-      quantity: pr.required_quantity,
-      unit: pr.unit,
-      supplier_id: pr.supplier_id || null,
-      supplier_name: pr.supplier_name || '',
-      status: 'pending',
-      deleted: false,
-    });
-    if (poErr) return toast.error(poErr.message);
+    if (busy) return;
+    setBusy(true);
+    try {
+      const poNumber = `PO-${Date.now().toString().slice(-6)}-${Math.random().toString(36).slice(2, 5).toUpperCase()}`;
+      const { error: poErr } = await supabase.from('purchase_orders').insert({
+        po_number: poNumber,
+        purchase_request_id: pr.id,
+        material_name: pr.material_name,
+        quantity: pr.required_quantity,
+        unit: pr.unit,
+        supplier_id: pr.supplier_id || null,
+        supplier_name: pr.supplier_name || '',
+        status: 'pending',
+        deleted: false,
+      });
+      if (poErr) return toast.error(poErr.message);
 
-    await supabase.from('purchase_requests').update({ status: 'converted' }).eq('id', pr.id);
-    toast.success(`Converted to ${poNumber}`);
-    loadAll();
+      const { error: prErr } = await supabase.from('purchase_requests').update({ status: 'converted' }).eq('id', pr.id);
+      if (prErr) toast.error(`PO created (${poNumber}), but PR status update failed: ${prErr.message}`);
+      else toast.success(`Converted to ${poNumber}`);
+      loadAll();
+    } finally {
+      setBusy(false);
+    }
   };
 
   const updatePoStatus = async (poId: string, status: string) => {

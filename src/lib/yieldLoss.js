@@ -31,13 +31,11 @@ export const canEnterYieldLoss = (user) =>
   canAccess(user, "yield_loss") ||
   ["manager", "supervisor", "operator", "qa_officer"].includes(role(user));
 export const canVerifyYieldLoss = (user) =>
-  isAdminUser(user) ||
-  canAccess(user, "yield_loss") ||
-  ["manager", "supervisor", "qa_officer"].includes(role(user));
+  isAdminUser(user) || ["manager", "supervisor", "qa_officer"].includes(role(user));
 export const canApproveRework = (user) =>
-  isAdminUser(user) || canAccess(user, "yield_loss") || ["qa_officer", "manager"].includes(role(user));
+  isAdminUser(user) || ["qa_officer", "manager"].includes(role(user));
 export const canEditYieldSettings = (user) =>
-  isAdminUser(user) || canAccess(user, "yield_loss") || role(user) === "qa_officer";
+  isAdminUser(user) || ["qa_officer", "manager"].includes(role(user));
 
 // A verifier can never be the person who entered the record.
 export const canVerifyRecord = (user, record) =>

@@ -7,38 +7,26 @@ import { Plus } from "lucide-react";
 import InLineRow from "@/components/packaging/InLineRow";
 import { newGroupId, receiveStock } from "@/lib/packaging";
 import { todayStr } from "@/lib/warehouse";
-import { loadPurchaseOrderOptions, loadSupplierOptions } from "@/lib/masterOptions";
 
 let seq = 0;
 const blankLine = (item) => ({
   key: `in${++seq}`,
   item_id: item?.id || "",
   quantity: "",
-  batch_number: "",
-  rack_location: item?.default_rack || "",
-  expiry_date: "",
   remarks: "",
 });
 
-export default function StockInDialog({ open, item, items, racks, user, onClose, onSaved }) {
-  const [header, setHeader] = useState({ date: todayStr(), supplier: "", delivery_note: "" });
+export default function StockInDialog({ open, item, items, user, onClose, onSaved }) {
+  const [header, setHeader] = useState({ date: todayStr() });
   const [lines, setLines] = useState([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [opts, setOpts] = useState({ suppliers: [], pos: [] });
-
-  useEffect(() => {
-    if (!open || opts.suppliers.length) return;
-    Promise.all([loadSupplierOptions(), loadPurchaseOrderOptions()])
-      .then(([suppliers, pos]) => setOpts({ suppliers, pos }))
-      .catch(() => {});
-  }, [open, opts.suppliers.length]);
 
   useEffect(() => {
     if (!open) return;
     setError("");
     setLines([blankLine(item)]);
-    setHeader({ date: todayStr(), supplier: item?.supplier || "", delivery_note: "" });
+    setHeader({ date: todayStr() });
   }, [open, item]);
 
   const setLine = (key, patch) => setLines((prev) => prev.map((l) => (l.key === key ? { ...l, ...patch } : l)));
@@ -74,7 +62,7 @@ export default function StockInDialog({ open, item, items, racks, user, onClose,
         module: "Packaging Stock",
         action: "Created",
         record_id: group,
-        details: `Stock in: ${lines.length} line${lines.length === 1 ? "" : "s"}${header.delivery_note ? ` on delivery note ${header.delivery_note}` : ""}`,
+        details: `Stock in: ${lines.length} line${lines.length === 1 ? "" : "s"}`,
       }).catch(() => {});
       onSaved?.();
       onClose?.();
@@ -105,7 +93,6 @@ export default function StockInDialog({ open, item, items, racks, user, onClose,
               key={line.key}
               line={line}
               items={items}
-              racks={racks}
               onChange={(patch) => setLine(line.key, patch)}
               onRemove={() => setLines((prev) => prev.filter((l) => l.key !== line.key))}
               removable={lines.length > 1}

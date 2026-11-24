@@ -85,8 +85,10 @@ export function otHoursAfterFive(start, end) {
   if (![sh, sm, eh, em].every((n) => Number.isFinite(n))) return 0;
   const sMin = sh * 60 + sm;
   const eMin = eh * 60 + em;
+  // Identical start and end means zero duration, not a 24h overnight shift.
+  if (eMin === sMin) return 0;
   // Crosses midnight (e.g. 20:00 to 04:00)
-  if (eMin <= sMin) {
+  if (eMin < sMin) {
     const beforeMidnight = Math.max(0, 1440 - Math.max(sMin, 17 * 60));
     return (beforeMidnight + eMin) / 60;
   }

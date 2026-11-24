@@ -28,8 +28,9 @@ export function otHoursAfterFive(startTime?: string, endTime?: string): number {
   const eRaw = parseMin(endTime);
   if (s === null || eRaw === null) return 0;
 
+  if (eRaw === s) return 0;
   let e = eRaw;
-  if (e <= s) e += 24 * 60; // overnight shift crossing midnight
+  if (e < s) e += 24 * 60; // overnight shift crossing midnight
 
   const fivePm = 17 * 60;
   const otStart = Math.max(s, fivePm);
@@ -60,7 +61,7 @@ export function toTimestamp(date?: string, time?: string, startTime?: string): s
   const d = new Date(y, mo - 1, da, h, m, 0, 0);
   if (Number.isNaN(d.getTime())) return null;
   const start = toMin(startTime);
-  if (start !== null && (toMin(time) as number) <= start) d.setDate(d.getDate() + 1);
+  if (start !== null && (toMin(time) as number) < start) d.setDate(d.getDate() + 1);
   return d.toISOString();
 }
 
@@ -146,15 +147,22 @@ export async function recordShiftLog(args: {
   }
   const sessionId = existingSessionId || args.shiftLogId || `sess_${crypto.randomUUID()}`;
   const calcOt = otHoursAfterFive(s.start_time, s.end_time);
-  const otHours =
-    calcOt > 0
-      ? calcOt
-      : s.ot_duration_hours !== undefined && s.ot_duration_hours !== null
+  const explicitOt =
+    s.ot_duration_hours !== undefined && s.ot_duration_hours !== null
       ? Number(s.ot_duration_hours)
+      : null;
+  const otHours =
+    s._has_multi_segments && explicitOt !== null && Number.isFinite(explicitOt)
+      ? Number(explicitOt.toFixed(2))
+      : calcOt > 0
+      ? calcOt
+      : explicitOt !== null && Number.isFinite(explicitOt)
+      ? Number(explicitOt.toFixed(2))
       : 0;
 
+  const { _has_multi_segments: _ignoredFlag, ...cleanShiftInput } = s;
   const shiftPayload = {
-    ...s,
+    ...cleanShiftInput,
     session_id: sessionId,
     ot_duration_hours: otHours,
     updated_at: new Date().toISOString(),
@@ -431,105 +439,162 @@ export async function recordOperationLog(args: {
   return { operationLog: opLog };
 }
 
+let otSyncInFlight: Promise<boolean> | null = null;
+let otLastSyncAt = 0;
+let otSyncActive = false;
+const OT_SYNC_COOLDOWN_MS = 60_000;
+
+export function isOvertimeSyncRunning(): boolean {
+  return otSyncActive;
+}
+
 /**
  * Ensures every OperationLog with overtime after 17:00 is stored in `otlogs`
  * with its overtime window start (>= 17:00), end time, and matching duration,
  * and repairs any OperationLog whose timestamp was stored as UTC instead of local time.
+ * Throttled + deduplicated so realtime subscriptions never trigger recursive write storms.
  */
-export async function syncOvertimeFromOperationLogs(): Promise<void> {
-  try {
-    const [opRes, otRes] = await Promise.all([
-      supabase.from('operation_logs').select('*').order('created_at', { ascending: false }).limit(200),
-      supabase.from('otlogs').select('*').order('created_at', { ascending: false }).limit(200),
-    ]);
-    const opRows = opRes.data || [];
-    const otRows = otRes.data || [];
-    if (!opRows.length) return;
+export async function syncOvertimeFromOperationLogs(
+  opts: { force?: boolean; limit?: number } = {}
+): Promise<boolean> {
+  const { force = false, limit = 500 } = opts;
+  const now = Date.now();
+  if (otSyncInFlight) return otSyncInFlight;
+  if (!force && now - otLastSyncAt < OT_SYNC_COOLDOWN_MS) return false;
 
-    const otBySession = new Map<string, any>();
-    const otByOpId = new Map<string, any>();
-    for (const ot of otRows) {
-      if (ot.session_id) otBySession.set(ot.session_id, ot);
-      if (ot.operation_log_id) otByOpId.set(ot.operation_log_id, ot);
-    }
+  otSyncActive = true;
+  otSyncInFlight = (async (): Promise<boolean> => {
+    let changed = false;
+    try {
+      const [opRes, otRes] = await Promise.all([
+        supabase.from('operation_logs').select('*').order('created_at', { ascending: false }).limit(limit),
+        supabase.from('otlogs').select('*').order('created_at', { ascending: false }).limit(limit),
+      ]);
+      const opRows = opRes.data || [];
+      const otRows = otRes.data || [];
+      if (!opRows.length) return false;
 
-    for (const op of opRows) {
-      const dayStr = String(op.ot_date || '').slice(0, 10);
-      if (!dayStr) continue;
-      const linkedOt = (op.session_id && otBySession.get(op.session_id)) || otByOpId.get(op.id);
+      const otBySession = new Map<string, any>();
+      const otByOpId = new Map<string, any>();
+      for (const ot of otRows) {
+        if (ot.session_id) otBySession.set(ot.session_id, ot);
+        if (ot.operation_log_id) otByOpId.set(ot.operation_log_id, ot);
+      }
 
-      let startHHMM = toHHMM(op.ot_start);
-      let endHHMM = toHHMM(op.ot_end);
+      const tasks: Array<() => Promise<void>> = [];
 
-      // Check if op.ot_start was stored as UTC without timezone offset (e.g. 01:15 AM local when linked OTLog has 17:15)
-      if (linkedOt && typeof linkedOt.start_time === 'string' && /^\d{2}:\d{2}$/.test(linkedOt.start_time.slice(0, 5))) {
-        const otPlainStart = linkedOt.start_time.slice(0, 5);
-        const otPlainEnd = typeof linkedOt.end_time === 'string' ? linkedOt.end_time.slice(0, 5) : '';
-        if (otPlainStart && otPlainEnd && otPlainStart !== startHHMM) {
-          const sHour = Number(startHHMM.split(':')[0]);
-          const otHour = Number(otPlainStart.split(':')[0]);
-          if (sHour >= 0 && sHour < 6 && otHour >= 16) {
-            startHHMM = otPlainStart;
-            endHHMM = otPlainEnd;
-            const fixedStartIso = toTimestamp(dayStr, startHHMM);
-            const fixedEndIso = toTimestamp(dayStr, endHHMM, startHHMM);
-            await supabase
-              .from('operation_logs')
-              .update({ ot_start: fixedStartIso, ot_end: fixedEndIso })
-              .eq('id', op.id);
+      for (const op of opRows) {
+        const dayStr = String(op.ot_date || '').slice(0, 10);
+        if (!dayStr) continue;
+        const linkedOt = (op.session_id && otBySession.get(op.session_id)) || otByOpId.get(op.id);
+
+        let startHHMM = toHHMM(op.ot_start);
+        let endHHMM = toHHMM(op.ot_end);
+
+        // Repair legacy UTC-shifted op timestamps when linked OTLog has plain local evening start
+        if (linkedOt && typeof linkedOt.start_time === 'string' && /^\d{2}:\d{2}$/.test(linkedOt.start_time.slice(0, 5))) {
+          const otPlainStart = linkedOt.start_time.slice(0, 5);
+          const otPlainEnd = typeof linkedOt.end_time === 'string' ? linkedOt.end_time.slice(0, 5) : '';
+          if (otPlainStart && otPlainEnd && otPlainStart !== startHHMM) {
+            const sHour = Number(startHHMM.split(':')[0]);
+            const otHour = Number(otPlainStart.split(':')[0]);
+            if (sHour >= 0 && sHour < 6 && otHour >= 16) {
+              startHHMM = otPlainStart;
+              endHHMM = otPlainEnd;
+              const fixedStartIso = toTimestamp(dayStr, startHHMM);
+              const fixedEndIso = toTimestamp(dayStr, endHHMM, startHHMM);
+              tasks.push(async () => {
+                await supabase
+                  .from('operation_logs')
+                  .update({ ot_start: fixedStartIso, ot_end: fixedEndIso })
+                  .eq('id', op.id);
+                changed = true;
+              });
+            }
           }
         }
-      }
 
-      const calcOt = otHoursAfterFive(startHHMM, endHHMM);
-      if (calcOt <= 0) continue;
-
-      const winStart = otWindowStart(startHHMM) || startHHMM;
-      const sessionId = op.session_id || `sess_${op.id}`;
-      const expectedStartIso = toTimestamp(dayStr, winStart);
-      const expectedEndIso = toTimestamp(dayStr, endHHMM, winStart);
-
-      const needsUpsert =
-        !linkedOt ||
-        Math.abs(Number(linkedOt.ot_duration_hours || 0) - calcOt) > 0.01 ||
-        toHHMM(linkedOt.ot_start || linkedOt.start_time) !== winStart ||
-        toHHMM(linkedOt.ot_end || linkedOt.end_time) !== endHHMM;
-
-      if (needsUpsert) {
-        if (!op.session_id) {
-          await supabase.from('operation_logs').update({ session_id: sessionId }).eq('id', op.id);
+        const calcOt = otHoursAfterFive(startHHMM, endHHMM);
+        if (calcOt <= 0) {
+          // Clean up stale OTLog if OperationLog was edited to have zero overtime
+          if (linkedOt?.id && Number(linkedOt.ot_duration_hours || 0) > 0) {
+            tasks.push(async () => {
+              await supabase.from('otlogs').delete().eq('id', linkedOt.id);
+              changed = true;
+            });
+          }
+          continue;
         }
-        const otPayload = {
-          ot_date: op.ot_date,
-          operation_log_id: op.id,
-          session_id: sessionId,
-          production_line: op.production_line,
-          product_sku: op.product_sku || op.product_name || '',
-          product_name: op.product_name || op.product_sku || '',
-          batch_number: op.batch_number || '',
-          staff_count: Number(op.staff_count) || 1,
-          staff_name: op.staff_name || '',
-          hourly_ot_rate: Number(op.hourly_ot_rate) || 12,
-          planned_cartons: Number(op.planned_cartons) || 0,
-          pcs_per_carton: Number(op.pcs_per_carton) || 0,
-          planned_ot_qty: Number(op.planned_ot_qty) || 0,
-          actual_good_output: Number(op.actual_good_output) || 0,
-          rejected_wasted_qty: Number(op.rejected_wasted_qty) || 0,
-          downtime_min: Number(op.downtime_min) || 0,
-          start_time: winStart,
-          end_time: endHHMM,
-          ot_start: expectedStartIso,
-          ot_end: expectedEndIso,
-          ot_duration_hours: calcOt,
-          record_batch: op.record_batch || 'current',
-          updated_at: new Date().toISOString(),
-        };
-        await resilientTableWrite('otlogs', otPayload, linkedOt?.id, dayStr).catch(() => {});
+
+        const winStart = otWindowStart(startHHMM) || startHHMM;
+        const sessionId = op.session_id || `sess_${op.id}`;
+        const expectedStartIso = toTimestamp(dayStr, winStart);
+        const expectedEndIso = toTimestamp(dayStr, endHHMM, winStart);
+
+        const existingStartHHMM = toHHMM(linkedOt?.start_time || linkedOt?.ot_start);
+        const existingEndHHMM = toHHMM(linkedOt?.end_time || linkedOt?.ot_end);
+
+        const needsUpsert =
+          !linkedOt ||
+          Math.abs(Number(linkedOt.ot_duration_hours || 0) - calcOt) > 0.01 ||
+          existingStartHHMM !== winStart ||
+          existingEndHHMM !== endHHMM;
+
+        if (needsUpsert) {
+          tasks.push(async () => {
+            if (!op.session_id) {
+              await supabase.from('operation_logs').update({ session_id: sessionId }).eq('id', op.id);
+            }
+            const otPayload = {
+              ot_date: op.ot_date,
+              operation_log_id: op.id,
+              session_id: sessionId,
+              production_line: op.production_line,
+              product_sku: op.product_sku || op.product_name || '',
+              product_name: op.product_name || op.product_sku || '',
+              batch_number: op.batch_number || '',
+              staff_count: Number(op.staff_count) || 1,
+              staff_name: op.staff_name || '',
+              hourly_ot_rate: Number(op.hourly_ot_rate) || 12,
+              planned_cartons: Number(op.planned_cartons) || 0,
+              pcs_per_carton: Number(op.pcs_per_carton) || 0,
+              planned_ot_qty: Number(op.planned_ot_qty) || 0,
+              actual_good_output: Number(op.actual_good_output) || 0,
+              rejected_wasted_qty: Number(op.rejected_wasted_qty) || 0,
+              downtime_min: Number(op.downtime_min) || 0,
+              start_time: winStart,
+              end_time: endHHMM,
+              ot_start: expectedStartIso,
+              ot_end: expectedEndIso,
+              ot_duration_hours: calcOt,
+              record_batch: op.record_batch || 'current',
+              updated_at: new Date().toISOString(),
+            };
+            await resilientTableWrite('otlogs', otPayload, linkedOt?.id, dayStr).catch(() => {});
+            changed = true;
+          });
+        }
       }
+
+      // Run pending writes in small parallel batches instead of sequentially
+      const BATCH_SIZE = 8;
+      for (let i = 0; i < tasks.length; i += BATCH_SIZE) {
+        await Promise.all(tasks.slice(i, i + BATCH_SIZE).map((fn) => fn()));
+      }
+      return changed;
+    } catch {
+      return false;
+    } finally {
+      otLastSyncAt = Date.now();
+      otSyncInFlight = null;
+      // Keep brief suppression window so immediate Supabase realtime echoes don't bounce
+      setTimeout(() => {
+        otSyncActive = false;
+      }, 1000);
     }
-  } catch {
-    // Non-blocking background sync
-  }
+  })();
+
+  return otSyncInFlight;
 }
 
 export async function deleteShiftSession(args: {

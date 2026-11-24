@@ -161,6 +161,7 @@ export const requestStockUse = async ({ item, quantity, user, extras = {}, thres
     rack_location: extras.rack_location || "",
     production_order: extras.production_order || "",
     production_line: extras.production_line || "",
+    movement_date: extras.movement_date || todayStr(),
     remarks: extras.remarks || "",
     requested_by: actingUserName(user),
     requested_by_id: user?.id || "",
@@ -209,6 +210,9 @@ export const requestAdjustment = async ({ item, counted, user, reason, extras = 
 
 // Approving applies the correction (or deducts the approved issue) and logs it.
 export const decideApproval = async ({ approval, decision, comment, user }) => {
+  if (decision === "Approved" && approval.requested_by_id && user?.id && approval.requested_by_id === user.id && !isAdminUser(user)) {
+    throw new Error("You cannot approve your own stock request.");
+  }
   const decided = {
     status: decision,
     decided_by: actingUserName(user),
@@ -216,11 +220,13 @@ export const decideApproval = async ({ approval, decision, comment, user }) => {
     decided_date: new Date().toISOString(),
     decision_comment: String(comment || "").trim(),
   };
+  await base44.entities.PackagingApproval.update(approval.id, decided);
   if (decision === "Approved") {
     const item = await base44.entities.PackagingItem.get(approval.item_id);
     if (approval.approval_type === "Stock Adjustment") {
       const counted = num(approval.requested_qty);
       await logMovement(item, "Adjustment", counted - num(item.quantity), user, {
+        movement_date: approval.movement_date || todayStr(),
         batch_number: approval.batch_number,
         rack_location: approval.rack_location,
         remarks: approval.reason,
@@ -234,6 +240,7 @@ export const decideApproval = async ({ approval, decision, comment, user }) => {
         quantity: approval.requested_qty,
         user,
         extras: {
+          movement_date: approval.movement_date || todayStr(),
           batch_number: approval.batch_number,
           rack_location: approval.rack_location,
           production_order: approval.production_order,
@@ -246,7 +253,6 @@ export const decideApproval = async ({ approval, decision, comment, user }) => {
     }
     await logAudit(user, "Updated", approval.item_id, `Approved stock ${approval.approval_type.toLowerCase()} for ${approval.item_code}`);
   }
-  await base44.entities.PackagingApproval.update(approval.id, decided);
 };
 
 // Batch / rack balances for one item, rebuilt from its movement log.

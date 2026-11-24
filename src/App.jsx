@@ -5,7 +5,6 @@ import { queryClientInstance } from '@/lib/query-client'
 import { HashRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
-import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ScrollToTop from './components/ScrollToTop';
 import { ErrorBoundary } from './components/ErrorBoundary';
 // Operations
@@ -55,11 +54,6 @@ import DataImport from './pages/admin/DataImport';
 import AuditTrailLog from './pages/admin/AuditTrailLog';
 import RecentlyDeletedOrders from './pages/admin/RecentlyDeletedOrders';
 
-// Auth
-import Login from './pages/auth/Login';
-import Register from './pages/auth/Register';
-import ForgotPassword from './pages/auth/ForgotPassword';
-import ResetPassword from './pages/auth/ResetPassword';
 import Layout from './components/Layout';
 import ModuleGuard from './components/ModuleGuard';
 import AccessGate from './components/AccessGate';

@@ -63,8 +63,9 @@ export default function ItemDialog({ open, item, categories = [], units = [], on
         }
         reactivateTarget = matches[0] || null;
       }
+      const codeChanged = item && cleanCode !== (item.item_code || "").trim();
       const nextDescription =
-        item && item.description && item.description !== item.item_code
+        item && !codeChanged && item.description && item.description !== item.item_code
           ? item.description
           : cleanCode;
       const payload = {

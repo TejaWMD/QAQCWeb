@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import OutputByLineChart from "@/components/oplog/OutputByLineChart";
 import OperationLogModal from "@/components/oplog/OperationLogModal";
 import BatchBadge from "@/components/BatchBadge";
 import { calculateOTMetrics } from "@/lib/otCalculations";
-import { syncOvertimeFromOperationLogs } from "@/services/shiftLogService";
+import { isOvertimeSyncRunning, syncOvertimeFromOperationLogs } from "@/services/shiftLogService";
 import { groupByDate, formatDateHeader } from "@/lib/logGrouping";
 import { productionLines, lineCode } from "@/lib/shiftLogConstants";
 import { canChangeRecord } from "@/lib/permissions";
@@ -27,11 +27,11 @@ export default function OperationLogs() {
   const [dateTo, setDateTo] = useState("");
   const [lineFilter, setLineFilter] = useState("");
   const [batchFilter, setBatchFilter] = useState("");
+  const reloadTimerRef = useRef(null);
 
-  const loadLogs = async (silent = false) => {
+  const loadLogs = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      await syncOvertimeFromOperationLogs();
       const query = {};
       if (dateFrom || dateTo) {
         query.ot_date = {};
@@ -40,32 +40,43 @@ export default function OperationLogs() {
       }
       if (lineFilter) query.production_line = { $regex: `^${lineCode(lineFilter)}` };
       if (batchFilter) query.record_batch = batchFilter;
-      const { items } = await base44.entities.OperationLog.filter(query, { sort: "-ot_date", limit: 100 });
+      const { items } = await base44.entities.OperationLog.filter(query, { sort: "-ot_date", limit: 200 });
       setLogs(items);
     } finally {
       if (!silent) setLoading(false);
     }
-  };
+  }, [dateFrom, dateTo, lineFilter, batchFilter]);
 
   useEffect(() => {
-    loadLogs();
     base44.auth.me().then(setCurrentUser).catch(() => {});
+    // Non-blocking background sync once per cooldown window; reload only if rows were repaired.
+    syncOvertimeFromOperationLogs().then((changed) => {
+      if (changed) loadLogs(true);
+    });
   }, []);
 
   useEffect(() => {
     loadLogs();
-  }, [dateFrom, dateTo, lineFilter, batchFilter]);
+  }, [loadLogs]);
 
-  // Live pipeline: a shift log submission or correction refreshes this page
-  // without a manual reload.
+  // Live pipeline: debounced refresh on shift/operation log changes, ignoring self-sync echoes.
   useEffect(() => {
-    const reload = () => loadLogs(true);
+    const scheduleReload = () => {
+      if (isOvertimeSyncRunning()) return;
+      if (reloadTimerRef.current) clearTimeout(reloadTimerRef.current);
+      reloadTimerRef.current = setTimeout(() => {
+        loadLogs(true);
+      }, 450);
+    };
     const unsubscribes = [
-      base44.entities.OperationLog.subscribe(reload),
-      base44.entities.ShiftLog.subscribe(reload),
+      base44.entities.OperationLog.subscribe(scheduleReload),
+      base44.entities.ShiftLog.subscribe(scheduleReload),
     ];
-    return () => unsubscribes.forEach((unsubscribe) => { if (typeof unsubscribe === "function") unsubscribe(); });
-  }, [dateFrom, dateTo, lineFilter, batchFilter]);
+    return () => {
+      if (reloadTimerRef.current) clearTimeout(reloadTimerRef.current);
+      unsubscribes.forEach((unsubscribe) => { if (typeof unsubscribe === "function") unsubscribe(); });
+    };
+  }, [loadLogs]);
 
   const handleSave = async (formData) => {
     try {
@@ -101,6 +112,43 @@ export default function OperationLogs() {
     }
   };
 
+  const isAdmin = currentUser?.role === "admin" || currentUser?.role === "super_admin";
+
+  const { dateGroups, metrics, lineData, metricsById } = useMemo(() => {
+    const mMap = new Map();
+    const acc = { planned: 0, good: 0, rejected: 0, otHours: 0, otSpend: 0 };
+    const lineMap = new Map();
+    logs.forEach((l) => {
+      const m = calculateOTMetrics(l);
+      mMap.set(l.id, m);
+      acc.planned += l.planned_ot_qty || 0;
+      acc.good += l.actual_good_output || 0;
+      acc.rejected += l.rejected_wasted_qty || 0;
+      acc.otHours += m.ot_man_hours;
+      acc.otSpend += m.expenditure_ot_man_hr;
+
+      const line = l.production_line?.split(" - ")[0] || "—";
+      if (!lineMap.has(line)) lineMap.set(line, { line, planned: 0, good: 0, rejected: 0, otHours: 0 });
+      const d = lineMap.get(line);
+      d.planned += l.planned_ot_qty || 0;
+      d.good += l.actual_good_output || 0;
+      d.rejected += l.rejected_wasted_qty || 0;
+      d.otHours += m.ot_man_hours;
+    });
+    const ld = Array.from(lineMap.values()).map((d) => {
+      const achieve = d.planned > 0 ? Math.round((d.good / d.planned) * 100) : 0;
+      return { line: d.line, good: d.good, rejected: d.rejected, target: 90, actual: achieve, otHours: Number(d.otHours.toFixed(1)), achieve };
+    });
+    return {
+      dateGroups: groupByDate(logs, "ot_date"),
+      metrics: acc,
+      lineData: ld,
+      metricsById: mMap,
+    };
+  }, [logs]);
+
+  const avgAchieve = metrics.planned > 0 ? (metrics.good / metrics.planned) * 100 : 0;
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -108,41 +156,6 @@ export default function OperationLogs() {
       </div>
     );
   }
-
-  const isAdmin = currentUser?.role === "admin";
-  const dateGroups = groupByDate(logs, "ot_date");
-
-  const metrics = logs.reduce(
-    (acc, l) => {
-      const m = calculateOTMetrics(l);
-      acc.planned += l.planned_ot_qty || 0;
-      acc.good += l.actual_good_output || 0;
-      acc.rejected += l.rejected_wasted_qty || 0;
-      acc.otHours += m.ot_man_hours;
-      acc.otSpend += m.expenditure_ot_man_hr;
-      return acc;
-    },
-    { planned: 0, good: 0, rejected: 0, otHours: 0, otSpend: 0 }
-  );
-  const avgAchieve = metrics.planned > 0 ? (metrics.good / metrics.planned) * 100 : 0;
-
-  const lineData = (() => {
-    const map = new Map();
-    logs.forEach((l) => {
-      const line = l.production_line?.split(" - ")[0] || "—";
-      const m = calculateOTMetrics(l);
-      if (!map.has(line)) map.set(line, { line, planned: 0, good: 0, rejected: 0, otHours: 0 });
-      const d = map.get(line);
-      d.planned += l.planned_ot_qty || 0;
-      d.good += l.actual_good_output || 0;
-      d.rejected += l.rejected_wasted_qty || 0;
-      d.otHours += m.ot_man_hours;
-    });
-    return Array.from(map.values()).map((d) => {
-      const achieve = d.planned > 0 ? Math.round((d.good / d.planned) * 100) : 0;
-      return { line: d.line, good: d.good, rejected: d.rejected, target: 90, actual: achieve, otHours: Number(d.otHours.toFixed(1)), achieve };
-    });
-  })();
 
   const fmtTime = (dt) => dt ? new Date(dt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }) : "—";
 
@@ -290,7 +303,7 @@ export default function OperationLogs() {
                     </td>
                   </tr>
                   {group.items.map((log) => {
-                  const m = calculateOTMetrics(log);
+                  const m = metricsById.get(log.id) || calculateOTMetrics(log);
                   return (
                     <tr key={log.id} className="hover:bg-slate-50">
                       <td className="px-3 py-3"><BatchBadge value={log.record_batch} /></td>

@@ -100,9 +100,9 @@ function buildSuggestedDishes(key, productName) {
 export default function QaHaccp() {
   const { user } = useAuth();
   const role = appRoleOf(user);
-  // User: QAQC Team ONLY. Can be Viewed by MD (and Admin)
-  const canRaiseCapa = !role || ["admin", "qa_officer"].includes(role);
-  const canEditQa = !role || ["admin", "qa_officer"].includes(role);
+  // User: QAQC Team ONLY can edit & raise CAPA; MD / Manager can view read-only.
+  const canEditQa = role === "admin" || role === "qa_officer";
+  const canRaiseCapa = canEditQa;
 
   const [tab, setTab] = useState("certifications");
   const [docs, setDocs] = useState([]);
@@ -160,21 +160,37 @@ export default function QaHaccp() {
     });
   }, []);
 
-  const persistDocs = (next) => {
+  const persistDocs = async (next) => {
     setDocs(next);
-    saveQaSection("docs", next);
+    try {
+      await saveQaSection("docs", next);
+    } catch (err) {
+      toast.error(err?.message || "Failed to sync HACCP documents to database.");
+    }
   };
-  const persistDates = (next) => {
+  const persistDates = async (next) => {
     setDates(next);
-    saveQaSection("dates", next);
+    try {
+      await saveQaSection("dates", next);
+    } catch (err) {
+      toast.error(err?.message || "Failed to sync important dates to database.");
+    }
   };
-  const persistSamples = (next) => {
+  const persistSamples = async (next) => {
     setSamples(next);
-    saveQaSection("samples", next);
+    try {
+      await saveQaSection("samples", next);
+    } catch (err) {
+      toast.error(err?.message || "Failed to sync retention samples to database.");
+    }
   };
-  const persistQc = (next) => {
+  const persistQc = async (next) => {
     setQcState(next);
-    saveQaSection("qc", next);
+    try {
+      await saveQaSection("qc", next);
+    } catch (err) {
+      toast.error(err?.message || "Failed to sync QC state to database.");
+    }
   };
 
   // KPI metrics
@@ -216,9 +232,19 @@ export default function QaHaccp() {
   }, [calYear, calMonth, firstWeekday, daysInMonth, dates]);
 
   const weekCells = useMemo(() => {
-    const nonNull = calendarCells.filter(Boolean);
-    return nonNull.slice(0, 7);
-  }, [calendarCells]);
+    const start = new Date(calCursor);
+    const dow = (start.getDay() + 6) % 7; // Mon=0 .. Sun=6
+    start.setDate(start.getDate() - dow);
+    const out = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(start);
+      d.setDate(start.getDate() + i);
+      const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      const evts = dates.filter((ev) => String(ev.date || "").slice(0, 10) === iso);
+      out.push({ day: d.getDate(), iso, evts });
+    }
+    return out;
+  }, [calCursor, dates]);
 
   const sortedDates = useMemo(
     () => [...dates].sort((a, b) => String(a.date || "").localeCompare(String(b.date || ""))),
@@ -240,13 +266,27 @@ export default function QaHaccp() {
           );
           const document_name = norm["document name"] || norm["document"] || norm["name"] || "";
           if (!document_name) return null;
+          const rawDue = norm["due date"] || norm["due_date"] || "";
+          let isoDue = "";
+          if (/^\d{4}-\d{2}-\d{2}/.test(rawDue)) {
+            isoDue = rawDue.slice(0, 10);
+          } else if (/^\d{1,2}[/-]\d{1,2}[/-]\d{4}$/.test(rawDue)) {
+            const [dPart, mPart, yPart] = rawDue.split(/[/-]/);
+            isoDue = `${yPart}-${mPart.padStart(2, "0")}-${dPart.padStart(2, "0")}`;
+          } else if (rawDue) {
+            const parsed = new Date(rawDue);
+            if (!Number.isNaN(parsed.getTime())) isoDue = parsed.toISOString().slice(0, 10);
+          }
+          const matchedStatus = DOC_STATUSES.find(
+            (st) => st.toLowerCase() === String(norm["status"] || "").toLowerCase()
+          );
           return {
             id: `imp-${Date.now()}-${idx}`,
             document_name,
             pic: norm["pic"] || norm["owner"] || "QA/QC Team",
             remarks: norm["remarks"] || norm["notes"] || "",
-            due_date: norm["due date"] || norm["due_date"] || "",
-            status: DOC_STATUSES.includes(norm["status"]) ? norm["status"] : "In progress",
+            due_date: isoDue || rawDue,
+            status: matchedStatus || "In progress",
           };
         })
         .filter(Boolean);
@@ -479,7 +519,13 @@ export default function QaHaccp() {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => setCalCursor(new Date(calYear, calMonth - 1, 1))}
+                    onClick={() =>
+                      setCalCursor(
+                        calMode === "week"
+                          ? new Date(calCursor.getFullYear(), calCursor.getMonth(), calCursor.getDate() - 7)
+                          : new Date(calYear, calMonth - 1, 1)
+                      )
+                    }
                     className="p-1 rounded hover:bg-[#1e293b] text-slate-400"
                   >
                     <ChevronLeft className="w-4 h-4" />
@@ -487,7 +533,13 @@ export default function QaHaccp() {
                   <span className="text-sm font-semibold text-white">{monthLabel}</span>
                   <button
                     type="button"
-                    onClick={() => setCalCursor(new Date(calYear, calMonth + 1, 1))}
+                    onClick={() =>
+                      setCalCursor(
+                        calMode === "week"
+                          ? new Date(calCursor.getFullYear(), calCursor.getMonth(), calCursor.getDate() + 7)
+                          : new Date(calYear, calMonth + 1, 1)
+                      )
+                    }
                     className="p-1 rounded hover:bg-[#1e293b] text-slate-400"
                   >
                     <ChevronRight className="w-4 h-4" />
@@ -767,6 +819,7 @@ export default function QaHaccp() {
                             <label className="flex items-start gap-2.5 cursor-pointer flex-1">
                               <Checkbox
                                 checked={!!selectedMenus[m.id]}
+                                disabled={!canEditQa}
                                 onCheckedChange={(c) => setSelectedMenus((prev) => ({ ...prev, [m.id]: c === true }))}
                                 className="mt-0.5 border-slate-600 data-[state=checked]:bg-cyan-500 data-[state=checked]:border-cyan-500"
                               />
@@ -824,7 +877,24 @@ export default function QaHaccp() {
                         toast.error("Select at least one menu first.");
                         return;
                       }
-                      const created = selectedMenuList.map(([id]) => ({ id, created_at: new Date().toISOString() }));
+                      const menuLookup = new Map();
+                      cookedGroups.forEach((g) => {
+                        [...g.menus, ...(qcState.customMenus?.[g.code] || [])].forEach((m) => {
+                          menuLookup.set(m.id, { name: m.name, product: g.product, batch: g.batch });
+                        });
+                      });
+                      const created = selectedMenuList.map(([id]) => {
+                        const info = menuLookup.get(id) || { name: id, product: "", batch: "" };
+                        return {
+                          id: `ss-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+                          menu_id: id,
+                          menu_name: info.name,
+                          product: info.product,
+                          batch: info.batch,
+                          status: "Pending",
+                          created_at: new Date().toISOString(),
+                        };
+                      });
                       persistQc({ ...qcState, sensorySheets: [...created, ...(qcState.sensorySheets || [])] });
                       setSelectedMenus({});
                       toast.success(`Created ${created.length} sensory sheet(s).`);
@@ -836,6 +906,64 @@ export default function QaHaccp() {
                 </div>
               )}
             </div>
+            {(qcState.sensorySheets || []).length > 0 && (
+              <div className="pt-3 border-t border-[#1e293b] space-y-2">
+                <p className="text-xs font-medium text-slate-300">
+                  Created sensory sheets ({qcState.sensorySheets.length})
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {qcState.sensorySheets.slice(0, 12).map((sheet) => (
+                    <div
+                      key={sheet.id}
+                      className="flex items-center justify-between gap-2 rounded-lg bg-[#0b1120] border border-[#1e293b] px-3 py-2 text-xs"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-slate-100 font-medium truncate">{sheet.menu_name || sheet.id}</p>
+                        <p className="text-[11px] text-slate-400 truncate">
+                          {[sheet.product, sheet.batch, fmtShortDate(sheet.created_at)].filter(Boolean).join(" · ")}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          disabled={!canEditQa}
+                          onClick={() => {
+                            const nextStatus = sheet.status === "Done" ? "Pending" : "Done";
+                            persistQc({
+                              ...qcState,
+                              sensorySheets: qcState.sensorySheets.map((s) =>
+                                s.id === sheet.id ? { ...s, status: nextStatus } : s
+                              ),
+                            });
+                          }}
+                          className={`px-2 py-0.5 rounded text-[11px] font-medium ${
+                            sheet.status === "Done" ? STATUS_PILL.Done : STATUS_PILL["Report pending"]
+                          }`}
+                        >
+                          {sheet.status || "Pending"}
+                        </button>
+                        {canEditQa && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              persistQc({
+                                ...qcState,
+                                sensorySheets: qcState.sensorySheets.filter((s) => s.id !== sheet.id),
+                              });
+                              toast.success("Sensory sheet removed.");
+                            }}
+                            className="p-1 text-slate-500 hover:text-rose-400"
+                            title="Delete sensory sheet"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Reminders and reports */}
@@ -855,7 +983,9 @@ export default function QaHaccp() {
                       <p className="text-xs font-medium text-slate-100">
                         {cookedGroups[0].product} ({cookedGroups[0].code}) · {cookedGroups[0].batchesCount} batch{cookedGroups[0].batchesCount === 1 ? "" : "es"}
                       </p>
-                      <p className="text-[11px] text-slate-400">Reminder sent 8:00 · test done 9:20</p>
+                      <p className="text-[11px] text-slate-400">
+                        Batch {cookedGroups[0].batch || "—"} · {fmtShortDate(cookedDisplayDate)}
+                      </p>
                     </div>
                     <button
                       type="button"

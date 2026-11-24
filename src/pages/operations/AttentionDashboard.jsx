@@ -6,7 +6,7 @@ import { appRoleOf, appRoleLabel } from "@/lib/permissions";
 import { sweepOverdue } from "@/lib/overdue";
 import { productionLines } from "@/lib/shiftLogConstants";
 import { Button } from "@/components/ui/button";
-import { Factory, ShieldCheck, ClipboardList, Users, ClipboardCheck, TrendingUp, AlertTriangle } from "lucide-react";
+import { Factory, ShieldCheck, ClipboardList, ClipboardCheck, TrendingUp, AlertTriangle } from "lucide-react";
 import KpiCard from "@/components/factoryops/KpiCard";
 import DashboardFilterBar from "@/components/factoryops/DashboardFilterBar";
 import CriticalAttentionTable from "@/components/factoryops/CriticalAttentionTable";
@@ -15,7 +15,7 @@ import TodayScheduleSummary from "@/components/dashboard/TodayScheduleSummary";
 import LossTodayTile from "@/components/yieldloss/LossTodayTile";
 import ProductDataHealth from "@/components/productmaster/ProductDataHealth";
 
-const ENTITIES = ["ProductionLog", "ShiftLog", "Downtime", "QualityDefect", "ProductHold", "HACCPCheck", "StaffingRecord", "DisciplineCase", "Task", "CAPA"];
+const ENTITIES = ["ProductionLog", "ShiftLog", "Downtime", "QualityDefect", "ProductHold", "HACCPCheck", "Task", "CAPA"];
 const VERIFIED = ["Verified", "Resolved", "Released", "Completed"];
 const todayISO = () => new Date().toISOString().slice(0, 10);
 const fmt = (n) => (n || 0).toLocaleString("en-US");
@@ -27,8 +27,6 @@ const EMPTY_DATA = {
   defects: [],
   holds: [],
   haccp: [],
-  staffing: [],
-  discipline: [],
   tasks: [],
   capas: [],
 };
@@ -53,20 +51,18 @@ export default function AttentionDashboard() {
       const q = { shift_date: f.date };
       if (f.shift !== "all") q.shift_type = f.shift;
       const opt = { limit: 200 };
-      const [prod, shift, down, defects, holds, haccp, staffing, discipline, tasks, capas] = await Promise.all([
+      const [prod, shift, down, defects, holds, haccp, tasks, capas] = await Promise.all([
         base44.entities.ProductionLog.filter(q, opt).then((p) => p?.items || []).catch(() => []),
         base44.entities.ShiftLog.filter(q, opt).then((p) => p?.items || []).catch(() => []),
         // Demo / test downtime records never appear on the dashboard.
         base44.entities.Downtime.filter(q, opt).then((p) => (p?.items || []).filter((r) => !r.is_demo)).catch(() => []),
         base44.entities.QualityDefect.filter(q, opt).then((p) => p?.items || []).catch(() => []),
-        base44.entities.ProductHold.filter(q, opt).then((p) => p?.items || []).catch(() => []),
+        base44.entities.ProductHold.filter({ status: { $ne: "Verified" } }, opt).then((p) => p?.items || []).catch(() => []),
         base44.entities.HACCPCheck.filter(q, opt).then((p) => p?.items || []).catch(() => []),
-        base44.entities.StaffingRecord.filter(q, opt).then((p) => p?.items || []).catch(() => []),
-        base44.entities.DisciplineCase.filter(q, opt).then((p) => p?.items || []).catch(() => []),
-        base44.entities.Task.filter(q, opt).then((p) => p?.items || []).catch(() => []),
-        base44.entities.CAPA.filter(q, opt).then((p) => p?.items || []).catch(() => []),
+        base44.entities.Task.list("-created_date", 200).then((p) => (Array.isArray(p) ? p : p?.items || [])).catch(() => []),
+        base44.entities.CAPA.list("-created_date", 200).then((p) => (Array.isArray(p) ? p : p?.items || [])).catch(() => []),
       ]);
-      setData({ prod, shift, down, defects, holds, haccp, staffing, discipline, tasks, capas });
+      setData({ prod, shift, down, defects, holds, haccp, tasks, capas });
     } catch (err) {
       console.warn("Could not load attention dashboard data:", err);
       setData(EMPTY_DATA);
@@ -113,8 +109,6 @@ export default function AttentionDashboard() {
     const defects = scope(d.defects);
     const holds = scope(d.holds);
     const haccp = scope(d.haccp);
-    const staffing = scope(d.staffing);
-    const discipline = scope(d.discipline);
     const tasks = scope(d.tasks);
     const capas = scope(d.capas);
 
@@ -134,12 +128,6 @@ export default function AttentionDashboard() {
     const failedLimits = haccp.filter((r) => r.result === "Fail" && r.status !== "Verified").length;
     const halalDone = haccp.filter((r) => r.halal_verified).length;
     const halalPct = haccp.length > 0 ? Math.round((halalDone / haccp.length) * 100) : 0;
-
-    // Staffing
-    const onShift = staffing.reduce((s, r) => s + (r.actual_headcount || 0), 0);
-    const plannedHeads = staffing.reduce((s, r) => s + (r.planned_headcount || 0), 0);
-    const gaps = staffing.filter((r) => r.gap_logged).length;
-    const openDiscipline = discipline.filter((r) => !isVerified(r)).length;
 
     // Attention Actions (tasks + CAPAs)
     const attention = [...tasks, ...capas];
@@ -165,7 +153,7 @@ export default function AttentionDashboard() {
       return (a.due || "").localeCompare(b.due || "");
     });
 
-    return { actual, target, eff, ordersAtRisk, defectQty, activeHolds, openCapas, haccpOverdue, failedLimits, halalPct, onShift, plannedHeads, gaps, openDiscipline, overdueActions, dueToday, verifiedActions, linesLogged, totalLines, critical };
+    return { actual, target, eff, ordersAtRisk, defectQty, activeHolds, openCapas, haccpOverdue, failedLimits, halalPct, overdueActions, dueToday, verifiedActions, linesLogged, totalLines, critical };
   }, [data, date, shift, line, status]);
 
   if (loading && !data) {
@@ -221,7 +209,7 @@ export default function AttentionDashboard() {
         <PackagingLowStock />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
         <KpiCard
           icon={Factory}
           title="Production"
@@ -231,17 +219,17 @@ export default function AttentionDashboard() {
             { text: `${view.eff.toFixed(1)}% Eff`, tone: "green" },
             { text: `${view.ordersAtRisk} Order${view.ordersAtRisk === 1 ? "" : "s"} At Risk`, tone: "orange" },
           ]}
-          onClick={() => navigate("/shift-log-draft")}
+          onClick={() => navigate("/production-line-logs")}
         />
         <KpiCard
           icon={ClipboardCheck}
-          title="Quality & Holds"
-          value={`${fmt(view.defectQty)} Defects`}
+          title="Quality & CAPA"
+          value={`${fmt(view.openCapas)} Open CAPAs`}
           stats={[
-            { text: `${view.activeHolds} Active Holds`, tone: "red" },
-            { text: `${view.openCapas} Open CAPAs`, tone: "white" },
+            { text: `${view.defectQty} Defects`, tone: "white" },
+            { text: `${view.activeHolds} Active Holds`, tone: view.activeHolds > 0 ? "red" : "green" },
           ]}
-          onClick={() => navigate(`/qa-haccp?tab=holds&status=Open`)}
+          onClick={() => navigate("/capa-tracker")}
         />
         <KpiCard
           icon={ShieldCheck}
@@ -251,17 +239,7 @@ export default function AttentionDashboard() {
             { text: `${view.failedLimits} Failed Limits`, tone: view.failedLimits > 0 ? "red" : "green" },
             { text: `${view.halalPct}% Halal Verified`, tone: "green" },
           ]}
-          onClick={() => navigate(`/qa-haccp?tab=checks&status=Open`)}
-        />
-        <KpiCard
-          icon={Users}
-          title="Staffing"
-          value={`${fmt(view.onShift)} / ${fmt(view.plannedHeads)} On Shift`}
-          stats={[
-            { text: `${view.gaps} Gap${view.gaps === 1 ? "" : "s"} Logged`, tone: view.gaps > 0 ? "orange" : "muted" },
-            { text: `${view.openDiscipline} Open Discipline`, tone: view.openDiscipline > 0 ? "orange" : "muted" },
-          ]}
-          onClick={() => navigate(`/staffing?status=Open`)}
+          onClick={() => navigate("/qa-haccp")}
         />
         <KpiCard
           icon={ClipboardList}
@@ -272,14 +250,14 @@ export default function AttentionDashboard() {
             { text: `${view.dueToday} Due Today`, tone: "white" },
             { text: `${view.verifiedActions} Verified`, tone: "green" },
           ]}
-          onClick={() => navigate(`/task-matrix?status=Overdue`)}
+          onClick={() => navigate("/task-matrix?status=Overdue")}
         />
         <KpiCard
           icon={TrendingUp}
           title="Shift Data Completion"
           value={`${view.linesLogged} / ${view.totalLines} Lines Complete`}
           progress={{ value: view.totalLines > 0 ? (view.linesLogged / view.totalLines) * 100 : 0 }}
-          onClick={() => navigate("/shift-log-draft")}
+          onClick={() => navigate("/production-line-logs")}
         />
       </div>
 

@@ -54,6 +54,28 @@ export default function BarcodeLookup() {
             n === norm
           );
         });
+
+        // Fallback: allow searching directly by batch number
+        if (!prod) {
+          const { data: batchHit } = await supabase
+            .from('batch_records')
+            .select('*')
+            .ilike('batch_number', norm)
+            .eq('deleted', false)
+            .limit(1)
+            .maybeSingle();
+          if (batchHit) {
+            prod =
+              prodList.find((p) => p.id === batchHit.product_id || String(p.product_code || '').toUpperCase() === String(batchHit.product_code || '').toUpperCase()) ||
+              {
+                id: batchHit.product_id || batchHit.id,
+                product_code: batchHit.product_code,
+                product_name: batchHit.product_name,
+                carton_barcode: batchHit.carton_barcode,
+                carton_size: batchHit.pcs_per_carton,
+              };
+          }
+        }
       }
 
       if (!prod) {

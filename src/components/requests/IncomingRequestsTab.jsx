@@ -58,7 +58,7 @@ export default function IncomingRequestsTab({ requests, onReview }) {
                     <span className="text-sm text-[#334155]">{r.approval_type || "—"}</span>
                   )}
                 </TableCell>
-                <TableCell className="text-sm text-[#334155]">{r.needed_by_date || r.requested_datetime || "—"}</TableCell>
+                <TableCell className="text-sm text-[#334155]">{r.needed_by_date || r.needed_by_datetime || r.requested_datetime || "—"}</TableCell>
                 <TableCell><StatusBadge status={r.status} /></TableCell>
                 <TableCell>
                   <Button size="sm" onClick={() => onReview(r)} className="bg-[#0F294A] hover:bg-[#193B68] text-white h-7 text-xs">

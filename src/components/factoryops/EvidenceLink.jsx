@@ -7,17 +7,22 @@ import { Paperclip } from "lucide-react";
 export default function EvidenceLink({ uri, name }) {
   if (!uri) return <span className="text-sm text-[#64748B]">—</span>;
   const view = async () => {
+    const popup = window.open("", "_blank");
     try {
       if (uri.startsWith("data:")) {
         const res = await fetch(uri);
         const blob = await res.blob();
         const blobUrl = URL.createObjectURL(blob);
-        window.open(blobUrl, "_blank");
+        if (popup) popup.location.href = blobUrl;
+        else window.open(blobUrl, "_blank");
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
         return;
       }
       const res = await base44.integrations.Core.CreateFileSignedUrl({ file_uri: uri });
-      window.open(res.signed_url, "_blank");
+      if (popup) popup.location.href = res.signed_url;
+      else window.open(res.signed_url, "_blank");
     } catch {
+      if (popup) popup.close();
       window.alert("Could not open the attachment. Please try again.");
     }
   };

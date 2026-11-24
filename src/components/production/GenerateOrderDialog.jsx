@@ -193,15 +193,33 @@ export default function GenerateOrderDialog({
     setSaving(true);
     try {
       const runningOrders = [...orders];
-      let nextStart = fromLocalInput(`${todayDate || todayStr()}T08:00`);
+      const baseStartIso = fromLocalInput(`${todayDate || todayStr()}T08:00`);
+      const nextStartByTank = new Map();
 
       for (const row of sequence) {
         const orderNumber = nextOrderNumber(runningOrders);
         const minutes = Math.max(30, Math.round(row.cookingHours * 60));
-        const endIso = addMinutes(nextStart, minutes);
+        const tankName = row.machine?.name || row.product.default_machine || "UNASSIGNED";
+        let tankStart = nextStartByTank.get(tankName) || baseStartIso;
+        // Avoid overlapping existing active orders on the same Machine (Tank)
+        const tankDay = String(todayDate || todayStr()).slice(0, 10);
+        const existingOnTank = runningOrders.filter(
+          (o) =>
+            !o.deleted &&
+            o.status !== "Cancelled" &&
+            String(o.machine || "").trim().toLowerCase() === tankName.trim().toLowerCase() &&
+            String(o.planned_start || "").slice(0, 10) === tankDay
+        );
+        for (const ex of existingOnTank) {
+          if (ex.planned_end && new Date(ex.planned_end).getTime() > new Date(tankStart).getTime()) {
+            tankStart = ex.planned_end;
+          }
+        }
+        const endIso = addMinutes(tankStart, minutes);
+        nextStartByTank.set(tankName, endIso);
         const codes = buildBatchCodes({
-          code: row.product.product_code,
-          plannedStart: nextStart,
+          code: row.product.batch_prefix || row.product.product_code,
+          plannedStart: tankStart,
           count: row.batches,
           pattern: settings?.batch_pattern,
         });
@@ -219,7 +237,7 @@ export default function GenerateOrderDialog({
           machine_id: row.machine?.id || "",
           capacity_cph: row.cph,
           due_date: deliveryDate || null,
-          planned_start: nextStart,
+          planned_start: tankStart,
           planned_end: endIso,
           status: "Planned",
           batch_codes: codes,
@@ -235,9 +253,8 @@ export default function GenerateOrderDialog({
           action: "Created",
           recordId: created?.id || "",
           details: `${orderNumber} · ${row.product.product_name} · ${fmtQty(row.cartons)} cartons · ${row.batches} batch(es)`,
-          newValue: `${fmtDateTime(nextStart)} → ${fmtDateTime(endIso)}`,
+          newValue: `${fmtDateTime(tankStart)} → ${fmtDateTime(endIso)}`,
         });
-        nextStart = endIso;
       }
 
       toast({

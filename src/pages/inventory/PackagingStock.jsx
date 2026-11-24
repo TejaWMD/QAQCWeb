@@ -27,29 +27,24 @@ import {
   isPackagingStaff,
   itemStatus,
   loadPackagingSettings,
-  loadProductionOrders,
 } from "@/lib/packaging";
 
 const ITEM_CSV_COLUMNS = [
   { label: "Item Code", key: "item_code" },
-  { label: "Description", key: "description" },
   { label: "Category", key: "category" },
   { label: "Quantity", key: "quantity" },
   { label: "Unit", key: "unit" },
   { label: "Minimum Level", key: "min_level" },
-  { label: "Rack", key: "default_rack" },
-  { label: "Supplier", key: "supplier" },
+  { label: "Qty per Unit", key: "qty_per_unit" },
 ];
 
 export default function PackagingStock() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [items, setItems] = useState([]);
-  const [racks, setRacks] = useState([]);
   const [pendingIds, setPendingIds] = useState(new Set());
   const [settings, setSettings] = useState({ id: "", categories: [], threshold: 0 });
   const [units, setUnits] = useState(DEFAULT_UNITS);
-  const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
@@ -66,15 +61,13 @@ export default function PackagingStock() {
   const load = async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const [itemRows, rackPage, approvalPage, loadedSettings] = await Promise.all([
+      const [itemRows, approvalPage, loadedSettings] = await Promise.all([
         base44.entities.PackagingItem.list("-created_date", 2000),
-        base44.entities.WarehouseRack.filter({ status: "Active" }, { sort: "rack_code", limit: 500 }).catch(() => ({ items: [] })),
         base44.entities.PackagingApproval.filter({ status: "Pending" }, { limit: 500 }).catch(() => ({ items: [] })),
         loadPackagingSettings().catch(() => ({ id: "", categories: [], threshold: 0 })),
       ]);
       const allItems = Array.isArray(itemRows) ? itemRows : itemRows?.items || [];
       setItems(allItems.filter((i) => i.active !== false && !i.deleted));
-      setRacks(rackPage?.items || []);
       setPendingIds(new Set((approvalPage?.items || []).map((a) => a.item_id)));
       setSettings(loadedSettings);
     } catch (e) {
@@ -86,7 +79,6 @@ export default function PackagingStock() {
 
   useEffect(() => {
     load();
-    loadProductionOrders().then(setOrders).catch(() => setOrders([]));
     loadUnitOptions().then((opts) => setUnits(opts.map((o) => o.value))).catch(() => {});
     const unsub = base44.entities.PackagingItem.subscribe?.(() => load(true));
     return () => {
@@ -228,9 +220,7 @@ export default function PackagingStock() {
         </div>
       </div>
 
-      <p className="text-xs font-semibold text-[#0F294A]">Projects</p>
-
-      {/* Search & Filter Row (Matches Picture 13) */}
+      {/* Search & Filter Row */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
         <div className="relative flex-1">
           <Search className="w-4 h-4 text-[#64748B] absolute left-3 top-3" />
@@ -316,7 +306,6 @@ export default function PackagingStock() {
         item={itemDialog.item}
         categories={allCategories}
         units={units}
-        racks={racks}
         onClose={() => setItemDialog({ open: false, item: null })}
         onSaved={(saved) => {
           const wasEdit = !!itemDialog.item;
@@ -330,12 +319,11 @@ export default function PackagingStock() {
           load(true);
         }}
       />
-      <StockInDialog open={!!inItem} item={inItem} items={items} racks={racks} user={user} onClose={() => setInItem(null)} onSaved={load} />
+      <StockInDialog open={!!inItem} item={inItem} items={items} user={user} onClose={() => setInItem(null)} onSaved={load} />
       <StockUseDialog
         open={!!useItem}
         item={useItem}
         user={user}
-        orders={orders}
         threshold={settings.threshold}
         onClose={() => setUseItem(null)}
         onSaved={(result) => {

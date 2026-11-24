@@ -293,6 +293,7 @@ export async function updateUserDetails(
     password: string;
     role: 'admin' | 'staff';
     role_label: string;
+    app_role: string;
     dept: string;
     avatar_initials: string;
     status: string;
@@ -323,6 +324,7 @@ export async function createUserRecord(input: {
   password: string;
   role: 'admin' | 'staff';
   role_label?: string;
+  app_role?: string;
   dept?: string;
   avatar_initials?: string;
   permissions?: string[];
@@ -344,6 +346,7 @@ export async function createUserRecord(input: {
     password: input.password,
     role: input.role,
     role_label: input.role_label?.trim() || (input.role === 'admin' ? 'Administrator' : 'Staff'),
+    ...(input.app_role ? { app_role: input.app_role } : {}),
     dept: input.dept?.trim() || '',
     avatar_initials: initials,
     permissions: input.permissions ?? [],
@@ -383,6 +386,7 @@ export async function setUserRoleAndPermissions(args: {
 }) {
   return updateUserDetails(args.userId, {
     ...(args.role !== undefined ? { role: args.role } : {}),
+    ...(args.app_role !== undefined ? { app_role: args.app_role } : {}),
     ...(args.permissions !== undefined ? { permissions: args.permissions } : {}),
   });
 }

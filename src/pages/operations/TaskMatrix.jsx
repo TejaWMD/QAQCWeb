@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
@@ -65,11 +66,15 @@ const SOURCE_PILL = {
 
 export default function TaskMatrix() {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const role = appRoleOf(user);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedTeam, setSelectedTeam] = useState(() => defaultTeamForRole(role));
-  const [todoFilter, setTodoFilter] = useState("all");
+  const [todoFilter, setTodoFilter] = useState(() => {
+    const st = String(searchParams.get("status") || "").toLowerCase();
+    return st === "overdue" ? "pending" : "all";
+  });
   const [selectedTask, setSelectedTask] = useState(null);
 
   // Add / Edit To-Do Modal
@@ -77,10 +82,10 @@ export default function TaskMatrix() {
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({
     title: "",
-    notes: "Every day",
+    notes: "",
     owner: "QA/QC Team",
     module: "Routine",
-    production_line: "Today",
+    production_line: "",
     shift_date: new Date().toISOString().slice(0, 10),
     due_date: "",
     priority: "Medium",
@@ -116,7 +121,7 @@ export default function TaskMatrix() {
       month: "short",
       year: "numeric",
     });
-    return `${formatted} · Shift A`;
+    return formatted;
   }, []);
 
   const teamStats = useMemo(() => {
@@ -175,10 +180,10 @@ export default function TaskMatrix() {
     setEditingId(null);
     setForm({
       title: "",
-      notes: "Every day",
+      notes: "",
       owner: selectedTeam || "QA/QC Team",
       module: "Routine",
-      production_line: "Today",
+      production_line: "",
       shift_date: new Date().toISOString().slice(0, 10),
       due_date: "",
       priority: "Medium",
@@ -384,7 +389,7 @@ export default function TaskMatrix() {
                       <td className="px-4 py-3">
                         <button type="button" onClick={() => setSelectedTask(t)} className="text-left">
                           <p className="text-xs font-medium text-slate-100">{t.title}</p>
-                          <p className="text-[11px] text-slate-400 mt-0.5">{t.notes || "Every day"}</p>
+                          {t.notes && <p className="text-[11px] text-slate-400 mt-0.5">{t.notes}</p>}
                         </button>
                       </td>
                       <td className="px-4 py-3">
@@ -502,6 +507,7 @@ export default function TaskMatrix() {
                     <SelectItem value="In Progress">Due soon</SelectItem>
                     <SelectItem value="Overdue">Overdue</SelectItem>
                     <SelectItem value="Completed">Done</SelectItem>
+                    <SelectItem value="Verified">Verified</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

@@ -21,11 +21,14 @@ export default function RaiseCapaButton({ onRaised }) {
     if (values.issue_type === "Others" && !String(values.issue_other || "").trim()) {
       throw new Error("Please specify the issue.");
     }
+    const nowIso = new Date().toISOString();
     const created = await base44.entities.CAPA.create({
       ...values,
       issue_other: values.issue_type === "Others" ? values.issue_other.trim() : "",
       status: "Open",
+      status_updated_at: nowIso,
       owner: values.owner || actingUserName(user),
+      created_by: user?.email || user?.id || actingUserName(user),
     });
     try {
       await base44.entities.AuditLog.create({

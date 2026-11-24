@@ -34,20 +34,28 @@ export const CAPA_SOURCES = [
   "Other",
 ];
 
-// Shared by the QA & HACCP "Raise CAPA" button and the CAPA Tracker.
-export const capaFormFields = [
+export const capaFormFieldsForRole = (isSales = false) => [
   { key: "title", label: "CAPA Title", type: "text", required: true },
-  { key: "issue_type", label: "Issue type", badge: "New", type: "select", options: ISSUE_TYPE_OPTIONS, required: true },
   {
-    key: "issue_other",
-    label: "Please specify",
-    badge: "Appears for Others",
-    placeholder: "Type the issue here",
-    type: "textarea",
+    key: "issue_type",
+    label: "Issue type",
+    type: "select",
+    options: isSales ? SALES_VISIBLE_ISSUE_TYPES : ISSUE_TYPE_OPTIONS,
     required: true,
-    showIf: (v) => v.issue_type === OTHERS,
   },
-  { key: "source_module", label: "Source", type: "select", options: CAPA_SOURCES },
+  ...(isSales
+    ? []
+    : [
+        {
+          key: "issue_other",
+          label: "Please specify",
+          placeholder: "Type the issue here",
+          type: "textarea",
+          required: true,
+          showIf: (v) => v.issue_type === OTHERS,
+        },
+      ]),
+  { key: "source_module", label: "Source", type: "select", options: CAPA_SOURCES, default: isSales ? "Customer Complaint" : "" },
   { key: "production_line", label: "Production Line", type: "line", options: productionLines },
   { key: "shift_date", label: "Date Raised", type: "date", required: true },
   { key: "due_date", label: "Due Date", type: "date" },
@@ -59,3 +67,6 @@ export const capaFormFields = [
   { key: "evidence_file", label: "Evidence Attachment", type: "file" },
   { key: "notes", label: "Notes", type: "textarea" },
 ];
+
+// Shared by the QA & HACCP "Raise CAPA" button and the CAPA Tracker.
+export const capaFormFields = capaFormFieldsForRole(false);

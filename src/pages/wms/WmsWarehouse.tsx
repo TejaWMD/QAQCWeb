@@ -75,7 +75,7 @@ export default function WmsWarehouse() {
       supabase.from('wms_stock_items').select('*').eq('deleted', false).neq('status', 'shipped').order('scanned_at', { ascending: false }),
       supabase.from('rack_lines').select('*').eq('deleted', false).order('sort_order'),
       supabase.from('staging_areas').select('*').eq('deleted', false).order('sort_order'),
-      supabase.from('warehouse_racks').select('rack_code').eq('deleted', false).order('rack_code'),
+      supabase.from('warehouse_racks').select('rack_code').eq('deleted', false).eq('status', 'Active').order('rack_code'),
       supabase.from('products').select('*').neq('deleted', true).order('product_code'),
       loadBatchOptions(),
       supabase.from('batch_records').select('batch_number, product_code, product_name, production_date, expiry_date, pcs_per_carton, quantity_cartons, carton_barcode').eq('deleted', false).order('created_at', { ascending: false }).limit(500),
@@ -91,7 +91,8 @@ export default function WmsWarehouse() {
         .from('stock_take_items')
         .select('*')
         .eq('stock_take_id', takeRes.data.id)
-        .order('counted_at', { ascending: false });
+        .eq('deleted', false)
+        .order('created_at', { ascending: false });
       setTakeItems(tItems || []);
     }
     setOpts({
@@ -166,12 +167,12 @@ export default function WmsWarehouse() {
 
     setScanForm((prev) => ({
       ...prev,
-      item_code: resolvedCode,
-      item_name: resolvedName,
+      item_code: resolvedCode || prev.item_code,
+      item_name: resolvedName || prev.item_name,
       batch_number: res.data.batch_number || prev.batch_number,
       production_date: resolvedProdDate || prev.production_date,
       expiry_date: resolvedExpDate || prev.expiry_date,
-      barcode: res.data.gtin || matchedProd?.carton_barcode || '',
+      barcode: res.data.gtin || matchedProd?.carton_barcode || prev.barcode,
       pcs_per_carton: String(resolvedPcsPerCarton),
     }));
 
@@ -183,7 +184,10 @@ export default function WmsWarehouse() {
   };
 
   useHardwareScanner((val) => {
-    if (tab === 'scan') handleQrDecode(val);
+    if (tab === 'scan') {
+      setQrInput(val);
+      handleQrDecode(val);
+    }
   }, tab === 'scan');
 
   const handleSaveScanIn = async (e: React.FormEvent) => {
@@ -232,6 +236,8 @@ export default function WmsWarehouse() {
         item_code: scanForm.item_code,
         item_name: scanForm.item_name,
         batch_number: scanForm.batch_number,
+        manufacturing_date: scanForm.production_date || null,
+        gtin: scanForm.barcode || null,
         expiry_date: scanForm.expiry_date,
         rack: targetRack,
         carton: cartonNum,
@@ -252,6 +258,8 @@ export default function WmsWarehouse() {
       item_code: scanForm.item_code,
       item_name: scanForm.item_name,
       batch_number: scanForm.batch_number,
+      manufacturing_date: scanForm.production_date || null,
+      gtin: scanForm.barcode || null,
       carton: cartonNum,
       pcs_per_carton: pcsPerCartonNum,
       loose_pcs: loosePcsNum,
@@ -312,14 +320,15 @@ export default function WmsWarehouse() {
     const nextCtn = Number(editForm.carton) || 0;
     const nextLoose = Number(editForm.loose_pcs) || 0;
     const nextQty = nextCtn * pcsPerCtn + nextLoose;
+    const nextRack = editForm.rack || DEFAULT_STAGING_AREA;
     const { error } = await supabase
       .from('wms_stock_items')
       .update({
         carton: nextCtn,
         loose_pcs: nextLoose,
         quantity: nextQty,
-        rack: editForm.rack || DEFAULT_STAGING_AREA,
-        status: nextQty <= 0 ? 'shipped' : editTarget.status,
+        rack: nextRack,
+        status: nextQty <= 0 ? 'shipped' : nextRack !== DEFAULT_STAGING_AREA ? 'stored' : 'received',
         updated_at: new Date().toISOString(),
       })
       .eq('id', editTarget.id);
@@ -403,16 +412,14 @@ export default function WmsWarehouse() {
       item_code: takeForm.item_code,
       item_name: takeForm.item_name,
       batch_number: takeForm.batch_number,
-      rack: takeForm.rack || DEFAULT_STAGING_AREA,
-      carton: cartonNum,
+      cartons: cartonNum,
       pcs_per_carton: pcsPerCartonNum,
       loose_pcs: looseNum,
-      quantity: countedQty,
-      counted_at: new Date().toISOString(),
+      total_pcs: countedQty,
     };
     const { data: inserted, error } = await supabase.from('stock_take_items').insert(payload).select().single();
     if (error) return toast.error(error.message);
-    setTakeItems((prev) => [inserted, ...prev]);
+    setTakeItems((prev) => [{ ...inserted, rack: takeForm.rack || DEFAULT_STAGING_AREA }, ...prev]);
     setTakeForm((prev) => ({ ...prev, carton: '', loose_pcs: '' }));
     toast.success(`Counted ${takeForm.item_code} · ${takeForm.batch_number}`);
   };
@@ -460,6 +467,12 @@ export default function WmsWarehouse() {
                   placeholder="Paste or scan QR payload (e.g. 9555721709271 | RNC161026B | RASTO NACHO CHEESE SAUCE 250G | RSC250GX24 | ... | 2026-10-16 | 2027-10-16 | 3)"
                   value={qrInput}
                   onChange={(e) => setQrInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleQrDecode(qrInput);
+                    }
+                  }}
                   className="font-mono text-xs"
                 />
                 <Button type="button" variant="secondary" onClick={() => handleQrDecode(qrInput)}>Decode QR</Button>
@@ -713,6 +726,7 @@ export default function WmsWarehouse() {
                       onValueChange={(v) => setTakeForm({ ...takeForm, rack: v })}
                       options={rackOptions}
                       placeholder="Rack"
+                      allowCustom
                     />
                     <Input
                       type="number"
@@ -835,6 +849,7 @@ export default function WmsWarehouse() {
                 onValueChange={(v) => setEditForm({ ...editForm, rack: v })}
                 options={rackOptions}
                 placeholder="Select rack..."
+                allowCustom
               />
             </div>
           </div>

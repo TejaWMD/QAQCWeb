@@ -33,7 +33,7 @@ export default function ProductionSchedule() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-[#0F294A] text-lg font-semibold">Production Schedule</h2>
-          <p className="text-[#64748B] text-sm mt-1">Drag orders across machines or time slots to reschedule.</p>
+          <p className="text-[#64748B] text-sm mt-1">Drag orders across Machine (Tank) columns or time slots to reschedule.</p>
         </div>
         {canPlanOrders(user) && (
           <Button onClick={() => setGenerateOpen(true)} className={primaryButton}>

@@ -78,8 +78,20 @@ const VIEW_AS_PRESETS = {
 };
 
 // The member's FactoryOps role: "admin" for platform administrators, the stored
-// app role, or null when access comes from individually assigned modules.
-export const appRoleOf = (user) => (isAdminUser(user) ? "admin" : user?.app_role || null);
+// app role, or inferred from role_label / dept when app_role hasn't been set explicitly.
+export const appRoleOf = (user) => {
+  if (!user) return null;
+  if (isAdminUser(user)) return user.view_as_role || "admin";
+  if (user.app_role) return user.app_role;
+  const label = `${user.role_label || ""} ${user.dept || ""}`.toLowerCase();
+  if (/\bsales\b/.test(label)) return "sales";
+  if (/\b(qa|qc|quality|haccp)\b/.test(label)) return "qa_officer";
+  if (/\b(md|managing director|manager|director)\b/.test(label)) return "manager";
+  if (/\bwarehouse\b/.test(label) && /\bsupervisor\b/.test(label)) return "warehouse_supervisor";
+  if (/\bwarehouse\b/.test(label)) return "warehouse_staff";
+  if (/\b(supervisor|planner)\b/.test(label)) return "supervisor";
+  return null;
+};
 
 // Production Manager / MD and Admins can verify closures.
 export const isManagerRole = (user) => ["admin", "manager"].includes(appRoleOf(user));
@@ -117,7 +129,7 @@ export const canAccess = (user, key) => {
   if (!user || !key) return false;
   const moduleDef = MODULES.find((m) => m.key === key);
   if (!moduleDef) return false;
-  if (isAdminUser(user)) return true;
+  if (isAdminUser(user) && !user.view_as_role) return true;
   if (moduleDef.adminOnly) return false;
   const effective = effectiveModuleKeys(user);
   return [key, ...(MODULE_ALIASES[key] || [])].some((k) => effective.includes(k));
