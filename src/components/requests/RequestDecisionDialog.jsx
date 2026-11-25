@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
 import { actingUserName } from "@/lib/permissions";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -6,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Clock, CheckCircle2, XCircle, Undo2, Paperclip } from "lucide-react";
-import { TYPE_STYLES, requestSummary } from "@/lib/requestConstants";
+import { TYPE_STYLES, requestSummary, rowOwnerTeams } from "@/lib/requestConstants";
+import { pushRequestDecisionNotification } from "@/lib/notifications";
 
 const eventStamp = () => {
   const d = new Date();
@@ -85,6 +87,24 @@ export default function RequestDecisionDialog({ open, onOpenChange, request, use
         });
       } catch {
         // An audit write must never block the decision.
+      }
+      if (d.status === "Approved" || d.status === "Rejected") {
+        await pushRequestDecisionNotification({
+          recordId: request.id,
+          status: d.status,
+          summary: requestSummary(request),
+          decidedBy: name,
+          decidedById: user?.id || "",
+          comment: comment.trim(),
+          requesterId: request.requester_id || "",
+          requesterName: request.requester_name || "",
+          owners: rowOwnerTeams(request),
+        });
+        toast.success(
+          `Request ${d.verb} — notification sent${request.requester_name ? ` to ${request.requester_name}` : ""}.`
+        );
+      } else {
+        toast.success(`Request ${d.verb}.`);
       }
       await onSaved?.();
       onOpenChange(false);

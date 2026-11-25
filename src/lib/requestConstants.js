@@ -147,19 +147,86 @@ export const loadFormConfig = async () => {
   return DEFAULT_FORM_CONFIG;
 };
 
-// Which FactoryOps role acts for each owner team.
-const TEAM_COVER = {
-  Maintenance: ["manager", "admin"],
-  "QA/QC Team": ["qa_officer", "manager", "admin"],
-  MD: ["manager", "admin"],
-  Warehouse: ["manager", "admin"],
+// Extract the assigned owner team(s) / person(s) for a Downtime or Request row.
+export const rowOwnerTeams = (row) => {
+  if (!row) return [];
+  if (Array.isArray(row.owners) && row.owners.length > 0) {
+    return row.owners.map((t) => String(t || "").trim()).filter(Boolean);
+  }
+  if (row.owner) {
+    return String(row.owner).split(",").map((s) => s.trim()).filter(Boolean);
+  }
+  return [];
 };
 
-// Owners and admins can act on incoming requests routed to their teams.
-export const canDecideRequests = (user) => ["qa_officer", "manager", "admin"].includes(appRoleOf(user));
+const userMatchesTeam = (user, team) => {
+  if (!user || !team) return false;
+  const t = String(team).trim().toLowerCase();
+  if (!t) return false;
+
+  const myName = String(user.full_name || user.name || "").trim().toLowerCase();
+  const myEmail = String(user.email || "").trim().toLowerCase();
+  if ((myName && t === myName) || (myEmail && t === myEmail)) return true;
+
+  // When an Admin is previewing via "View as", respect that simulated role strictly.
+  if (user.view_as_role) {
+    const v = user.view_as_role;
+    if (t.includes("maintenance")) return v === "maintenance";
+    if (t.includes("qa") || t.includes("qc")) return v === "qa_officer";
+    if (t === "md" || t.includes("managing director") || t.includes("manager")) return v === "manager";
+    if (t.includes("warehouse")) return v === "warehouse_staff" || v === "warehouse_supervisor";
+    return false;
+  }
+
+  const appRole = user.app_role || appRoleOf(user);
+  const label = `${user.role_label || ""} ${user.dept || ""}`.toLowerCase();
+
+  if (t.includes("maintenance")) {
+    return appRole === "maintenance" || /\bmaintenance\b/.test(label);
+  }
+  if (t.includes("qa") || t.includes("qc")) {
+    return appRole === "qa_officer" || /\b(qa|qc|qaqc|quality|haccp)\b|qa\s*\/?\s*qc/.test(label);
+  }
+  if (t === "md" || t.includes("managing director") || t.includes("manager")) {
+    return appRole === "manager" || /\b(md|managing director|director|manager)\b/.test(label);
+  }
+  if (t.includes("warehouse")) {
+    return (
+      appRole === "warehouse_staff" ||
+      appRole === "warehouse_supervisor" ||
+      /\bwarehouse\b/.test(label)
+    );
+  }
+
+  // Custom team name: match against user's department or role label
+  return label.includes(t);
+};
+
+// Owners and team reviewers can view the Incoming Requests tab.
+export const canDecideRequests = (user) => {
+  if (!user) return false;
+  const r = appRoleOf(user);
+  if (["qa_officer", "manager", "admin", "maintenance", "warehouse_supervisor", "warehouse_staff"].includes(r)) {
+    return true;
+  }
+  return OWNER_TEAMS.some((t) => userMatchesTeam(user, t));
+};
 
 export const coversTeam = (user, teams) =>
-  (Array.isArray(teams) ? teams : []).some((t) => (TEAM_COVER[t] || []).includes(appRoleOf(user)));
+  (Array.isArray(teams) ? teams : []).some((t) => userMatchesTeam(user, t));
+
+// Only the assigned owner (matching owner team/person) can change the status of a
+// request or stoppage; for non-downtime Requests, a requester cannot approve their own request.
+export const canChangeRequestStatus = (user, row) => {
+  if (!user || !row) return false;
+  const teams = rowOwnerTeams(row);
+  if (!teams.length) return false;
+  if (!coversTeam(user, teams)) return false;
+  if (row._type !== DOWNTIME_TYPE && row.requester_id && user.id && row.requester_id === user.id) {
+    return false;
+  }
+  return true;
+};
 
 export const statusesForType = (row) => {
   if (row._type === DOWNTIME_TYPE) return DOWNTIME_STATUSES;

@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { MODULES, canAccess, isAdminUser } from "@/lib/permissions";
+import NotificationBell from "@/components/NotificationBell";
 import {
   Radar, Clock, ShieldCheck, ClipboardList, AlertTriangle, ScrollText,
   LayoutDashboard, Users, Upload, Layers,
@@ -183,8 +184,8 @@ export default function FactorySidebar({
       </div>
 
       {user && (
-        <div className={`mt-auto border-t border-[#1e2740] bg-[#0a0e17]/70 ${isCollapsed ? "p-2.5 flex justify-center" : "px-4 py-3.5"}`}>
-          <div className={`flex items-center ${isCollapsed ? "justify-center" : "gap-2.5 min-w-0"}`}>
+        <div className={`mt-auto border-t border-[#1e2740] bg-[#0a0e17]/70 ${isCollapsed ? "p-2.5 flex flex-col items-center gap-2" : "px-4 py-3.5"}`}>
+          <div className={`flex items-center ${isCollapsed ? "flex-col gap-2" : "gap-2.5 min-w-0"}`}>
             <div
               title={isCollapsed ? (user.name || user.full_name || user.email || "User") : undefined}
               className="w-9 h-9 rounded-full bg-[#00e5ff]/15 text-[#00e5ff] ring-1 ring-[#00e5ff]/30 text-xs font-bold flex items-center justify-center shrink-0"
@@ -201,6 +202,7 @@ export default function FactorySidebar({
                 </p>
               </div>
             )}
+            <NotificationBell compact />
           </div>
         </div>
       )}

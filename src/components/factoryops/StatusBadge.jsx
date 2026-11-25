@@ -6,6 +6,8 @@ const STYLES = {
   Submitted: "bg-sky-500/15 text-sky-400 border border-sky-500/30",
   "In Progress": "bg-sky-500/15 text-sky-400 border border-sky-500/30",
   "Under Review": "bg-amber-500/15 text-amber-400 border border-amber-500/30",
+  "Awaiting Approval": "bg-violet-500/15 text-violet-300 border border-violet-500/30",
+  "To Be Discussed": "bg-orange-500/15 text-orange-300 border border-orange-500/30",
   "Pending Verification": "bg-amber-500/15 text-amber-400 border border-amber-500/30",
   "Returned for more info": "bg-amber-500/15 text-amber-400 border border-amber-500/30",
   Completed: "bg-amber-500/15 text-amber-400 border border-amber-500/30",

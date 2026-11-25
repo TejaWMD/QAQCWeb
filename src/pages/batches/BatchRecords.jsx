@@ -152,6 +152,7 @@ export default function BatchRecords() {
         copies,
         data: {
           productName: reprintTarget.product_name,
+          cartonDescription: reprintTarget.carton_description || reprintTarget.product_name,
           productCode: reprintTarget.product_code,
           batchNumber: reprintTarget.batch_number,
           productionDate: reprintTarget.production_date,
@@ -350,8 +351,8 @@ export default function BatchRecords() {
                       batchQrPayload({
                         productCode: viewTarget.product_code,
                         productName: viewTarget.product_name,
+                        cartonDescription: viewTarget.carton_description || viewTarget.product_name,
                         batchNumber: viewTarget.batch_number,
-                        productionDate: viewTarget.production_date,
                         expiryDate: viewTarget.expiry_date,
                         cartonBarcode: viewTarget.carton_barcode,
                       }),

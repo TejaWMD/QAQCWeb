@@ -4,6 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { actingUserName, isAdminUser } from "@/lib/permissions";
 import { eventStamp } from "@/lib/warehouse";
 import { num } from "@/lib/planning";
+import { checkBarcode } from "@/lib/productMaster";
 
 export const LABEL_SETTINGS_KEY = "labels";
 export const ECC_LEVELS = ["L", "M", "Q", "H"];
@@ -130,28 +131,69 @@ export const fmtDay = (dateStr) => {
 export const traceUrlFor = (batchNumber) =>
   `${window.location.origin}${window.location.pathname}#/traceability?batch=${encodeURIComponent(batchNumber || "")}`;
 
-export const batchQrPayload = ({ productCode, productName, batchNumber, productionDate, expiryDate, cartonBarcode } = {}) => {
-  const barcode = String(cartonBarcode || "").trim();
-  const batch = String(batchNumber || "").trim().toUpperCase();
-  const desc = String(productName || "").trim();
+export const batchQrPayload = ({
+  cartonBarcode,
+  productName,
+  cartonDescription,
+  productCode,
+  batchNumber,
+  expiryDate,
+} = {}) => {
+  const barcode = String(cartonBarcode || "").replace(/^\*+/, "").trim();
+  const name = String(productName || "").trim();
+  const desc = String(cartonDescription || productName || "").trim();
   const code = String(productCode || "").trim();
-  const prod = productionDate ? String(productionDate).slice(0, 10) : "";
+  const batch = String(batchNumber || "").trim().toUpperCase();
   const exp = expiryDate ? String(expiryDate).slice(0, 10) : "";
-  return [
-    /^\d{8,14}$/.test(barcode) ? barcode : "",
-    batch,
-    desc,
-    code,
-    prod,
-    exp,
-  ].filter(Boolean).join(" | ");
+  return [barcode, name, desc, code, batch, exp].filter(Boolean).join(" | ");
 };
 
 export const qrImageUrl = (payload, ecc = "M", sizePx = 420) =>
   `https://api.qrserver.com/v1/create-qr-code/?size=${sizePx}x${sizePx}&ecc=${ECC_LEVELS.includes(ecc) ? ecc : "M"}&margin=0&data=${encodeURIComponent(payload || "")}`;
 
-export const barcodeImageUrl = (code) =>
-  `https://bwipjs-api.metafloor.com/?bcid=code128&text=${encodeURIComponent(code || "")}&scale=3&height=12&includetext=false&paddingwidth=0&paddingheight=0&backgroundcolor=ffffff`;
+export const barcodeImageUrl = (code) => {
+  const clean = String(code || "").replace(/^\*+/, "").trim();
+  const useEan13 = clean.length === 13 && checkBarcode(clean).ok;
+  const bcid = useEan13 ? "ean13" : "code128";
+  return `https://bwipjs-api.metafloor.com/?bcid=${bcid}&text=${encodeURIComponent(clean)}&scale=3&height=12&includetext=false&paddingwidth=0&paddingheight=0&backgroundcolor=ffffff`;
+};
+
+// Locked 60x40 mm label placed rotated 90 deg (40x60 mm) in top-left corner of a 150x100 mm landscape page at 300 DPI.
+export const LOCKED_PRINT_TEMPLATE = {
+  pageW: 150,
+  pageH: 100,
+  labelW: 60,
+  labelH: 40,
+  rotateDeg: 90,
+  dpi: 300,
+};
+
+export const buildTemplatePageCanvas = (labelCanvas, template = LOCKED_PRINT_TEMPLATE) => {
+  const { pageW, pageH, labelW, labelH, rotateDeg = 90, dpi = 300 } = template;
+  const mmToPx = dpi / 25.4;
+  const pageCanvas = document.createElement("canvas");
+  pageCanvas.width = Math.round(pageW * mmToPx);
+  pageCanvas.height = Math.round(pageH * mmToPx);
+  const ctx = pageCanvas.getContext("2d");
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+
+  const wPx = Math.round(labelW * mmToPx);
+  const hPx = Math.round(labelH * mmToPx);
+
+  ctx.save();
+  if (rotateDeg === 90) {
+    // Rotated 90 deg clockwise -> occupies 40 x 60 mm (hPx x wPx) in top-left corner (0, 0)
+    ctx.translate(hPx, 0);
+    ctx.rotate(Math.PI / 2);
+    ctx.drawImage(labelCanvas, 0, 0, wPx, hPx);
+  } else {
+    ctx.drawImage(labelCanvas, 0, 0, wPx, hPx);
+  }
+  ctx.restore();
+
+  return pageCanvas;
+};
 
 // Exact page size, no margins, one page per label copy.
 export const printCss = (layout) => `

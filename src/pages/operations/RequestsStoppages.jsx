@@ -6,7 +6,7 @@ import { actingUserName, isAdminUser } from "@/lib/permissions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, Settings2 } from "lucide-react";
+import { Plus, Trash2, Settings2, CheckCircle2, XCircle, X } from "lucide-react";
 import RequestFormDialog from "@/components/requests/RequestFormDialog";
 import FormSettingsDialog from "@/components/requests/FormSettingsDialog";
 import RequestsList from "@/components/requests/RequestsList";
@@ -14,14 +14,25 @@ import IncomingRequestsTab from "@/components/requests/IncomingRequestsTab";
 import RequestDecisionDialog from "@/components/requests/RequestDecisionDialog";
 import { deleteEntityWithCleanup } from "@/lib/deleteIntegrity";
 import {
+  isNotificationForUser,
+  isNotificationRead,
+  loadAllNotifications,
+  markNotificationRead,
+  pushRequestDecisionNotification,
+  subscribeNotifications,
+} from "@/lib/notifications";
+import {
   REQUEST_TYPES,
   DOWNTIME_TYPE,
   DOWNTIME_STATUSES,
   ITEM_STATUSES,
   APPROVAL_STATUSES,
   OPEN_REQUEST_STATUSES,
+  canChangeRequestStatus,
   canDecideRequests,
   coversTeam,
+  requestSummary,
+  rowOwnerTeams,
   DEFAULT_FORM_CONFIG,
   loadFormConfig,
 } from "@/lib/requestConstants";
@@ -50,6 +61,7 @@ export default function RequestsStoppages() {
   const [config, setConfig] = useState(DEFAULT_FORM_CONFIG);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [evidenceFilter, setEvidenceFilter] = useState("all");
+  const [unreadAlerts, setUnreadAlerts] = useState([]);
 
   const load = async (silent = false) => {
     if (!silent) setLoading(true);
@@ -72,6 +84,18 @@ export default function RequestsStoppages() {
   useEffect(() => {
     loadFormConfig().then(setConfig);
   }, []);
+
+  useEffect(() => {
+    const refreshNotifs = async () => {
+      if (!user) return;
+      const list = await loadAllNotifications();
+      setUnreadAlerts(
+        list.filter((n) => isNotificationForUser(n, user) && !isNotificationRead(n, user))
+      );
+    };
+    refreshNotifs();
+    return subscribeNotifications(refreshNotifs);
+  }, [user]);
 
   useEffect(() => {
     const u1 = base44.entities.Downtime.subscribe(() => load(true));
@@ -128,12 +152,43 @@ export default function RequestsStoppages() {
   };
 
   const changeStatus = async (row, status) => {
+    if (!canChangeRequestStatus(user, row)) {
+      toast.error("Only the assigned owner can change the status of this record.");
+      return;
+    }
     try {
       const prev = row.status || "";
       const entity = row._type === DOWNTIME_TYPE ? "Downtime" : "Request";
-      await base44.entities[entity].update(row.id, { status });
+      const deciderName = user?.full_name || user?.name || user?.email || actingUserName(user);
+      const isDecision = status === "Approved" || status === "Rejected";
+      const patch = isDecision && entity === "Request"
+        ? {
+            status,
+            decided_by: deciderName,
+            decided_by_id: user?.id || "",
+            decided_date: new Date().toISOString(),
+          }
+        : { status };
+      await base44.entities[entity].update(row.id, patch);
       await audit("Updated", row.id, `Status changed to "${status}"`, prev, status);
-      toast.success(`Status updated to "${status}".`);
+      if (isDecision && prev !== status) {
+        const summary = entity === "Downtime" ? (row.reason || "Downtime / Stoppage") : requestSummary(row);
+        await pushRequestDecisionNotification({
+          recordId: row.id,
+          status,
+          summary,
+          decidedBy: deciderName,
+          decidedById: user?.id || "",
+          requesterId: row.requester_id || "",
+          requesterName: row.requester_name || row.created_by || "",
+          owners: rowOwnerTeams(row),
+        });
+        toast.success(
+          `Status updated to "${status}" — notification sent${row.requester_name ? ` to ${row.requester_name}` : ""}.`
+        );
+      } else {
+        toast.success(`Status updated to "${status}".`);
+      }
       await load(true);
     } catch (err) {
       toast.error(err?.message || "Failed to update status.");
@@ -197,6 +252,47 @@ export default function RequestsStoppages() {
           </Button>
         </div>
       </div>
+
+      {unreadAlerts.length > 0 && (
+        <div className="space-y-2">
+          {unreadAlerts.slice(0, 5).map((alert) => {
+            const approved = alert.status === "Approved";
+            return (
+              <div
+                key={alert.id}
+                className={`rounded-xl border px-4 py-2.5 flex items-start justify-between gap-3 text-xs ${
+                  approved
+                    ? "bg-emerald-500/10 border-emerald-500/35 text-emerald-200"
+                    : "bg-rose-500/10 border-rose-500/35 text-rose-200"
+                }`}
+              >
+                <div className="flex items-start gap-2.5 min-w-0">
+                  {approved ? (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  ) : (
+                    <XCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                  )}
+                  <div className="min-w-0">
+                    <p className="font-semibold">{alert.title}</p>
+                    <p className="opacity-90 mt-0.5">{alert.message}</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await markNotificationRead(alert.id, user);
+                    setUnreadAlerts((prev) => prev.filter((a) => a.id !== alert.id));
+                  }}
+                  title="Dismiss notification"
+                  className="p-1 rounded hover:bg-white/10 shrink-0"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       <Tabs defaultValue="all">
         <TabsList className="bg-white border border-[#E2E8F0]">

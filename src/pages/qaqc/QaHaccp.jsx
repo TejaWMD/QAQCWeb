@@ -2,19 +2,19 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
 import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
+import { productService } from "@/services/productService";
 import { useAuth } from "@/lib/AuthContext";
-import { appRoleOf } from "@/lib/permissions";
+import { appRoleOf, canAccess } from "@/lib/permissions";
 import RaiseCapaButton from "@/components/qaqc/RaiseCapaButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { ChevronLeft, ChevronRight, Pencil, Plus, Trash2, Upload } from "lucide-react";
 import {
   DEFAULT_HACCP_DOCS,
   DEFAULT_IMPORTANT_DATES,
-  DEFAULT_QC_STATE,
   DEFAULT_RETENTION_SAMPLES,
   loadQaSection,
   saveQaSection,
@@ -34,7 +34,16 @@ const STATUS_PILL = {
   "Due soon": "bg-amber-500/15 text-amber-300 border border-amber-500/30",
   Overdue: "bg-rose-500/15 text-rose-300 border border-rose-500/30",
   Done: "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30",
-  "Report pending": "bg-amber-500/15 text-amber-300 border border-amber-500/30",
+};
+
+const EMPTY_SAMPLE = {
+  product: "",
+  batch_number: "",
+  number_of_sample: "",
+  ph: "",
+  brix: "",
+  keep_until: "",
+  remarks: "",
 };
 
 const fmtShortDate = (iso) => {
@@ -67,49 +76,23 @@ const daysDiff = (targetIso) => {
   return Math.round((t.getTime() - today.getTime()) / 86400000);
 };
 
-function buildSuggestedDishes(key, productName) {
-  const lower = String(productName || "").toLowerCase();
-  if (lower.includes("bbq")) {
-    return [
-      { id: `${key}-1`, name: "BBQ chicken wings", prep: "About 30 min" },
-      { id: `${key}-2`, name: "BBQ beef burger", prep: "About 20 min" },
-      { id: `${key}-3`, name: "BBQ chicken wrap", prep: "About 15 min" },
-    ];
-  }
-  if (lower.includes("nacho") || lower.includes("cheese")) {
-    return [
-      { id: `${key}-1`, name: "Cheese nachos", prep: "About 10 min" },
-      { id: `${key}-2`, name: "Spicy cheese fries", prep: "About 15 min" },
-      { id: `${key}-3`, name: "Spicy cheese hot dog", prep: "About 15 min" },
-    ];
-  }
-  if (lower.includes("tomyam") || lower.includes("tom yam")) {
-    return [
-      { id: `${key}-1`, name: "Tomyam soup", prep: "About 25 min" },
-      { id: `${key}-2`, name: "Nasi goreng tomyam", prep: "About 20 min" },
-      { id: `${key}-3`, name: "Mee goreng tomyam", prep: "About 20 min" },
-    ];
-  }
-  return [
-    { id: `${key}-1`, name: `${productName} cooked dish`, prep: "About 25 min" },
-    { id: `${key}-2`, name: `${productName} dipping test`, prep: "About 15 min" },
-    { id: `${key}-3`, name: `${productName} wrap / side`, prep: "About 15 min" },
-  ];
-}
-
 export default function QaHaccp() {
   const { user } = useAuth();
   const role = appRoleOf(user);
-  // User: QAQC Team ONLY can edit & raise CAPA; MD / Manager can view read-only.
-  const canEditQa = role === "admin" || role === "qa_officer";
+  // QA/QC team & admins (and non-manager staff assigned QA & HACCP) can edit & raise CAPA;
+  // MD / Manager views read-only.
+  const canEditQa =
+    role === "admin" ||
+    role === "qa_officer" ||
+    (role !== "manager" && role !== "sales" && canAccess(user, "qa_haccp"));
   const canRaiseCapa = canEditQa;
 
   const [tab, setTab] = useState("certifications");
   const [docs, setDocs] = useState([]);
   const [dates, setDates] = useState([]);
   const [samples, setSamples] = useState([]);
-  const [qcState, setQcState] = useState(DEFAULT_QC_STATE);
   const [batches, setBatches] = useState([]);
+  const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Calendar state
@@ -132,14 +115,7 @@ export default function QaHaccp() {
   // Modals (Add / Edit Retention Sample)
   const [sampleModalOpen, setSampleModalOpen] = useState(false);
   const [editingSampleId, setEditingSampleId] = useState(null);
-  const [newSample, setNewSample] = useState({ sample_id: "", product: "", batch_number: "", cooked_date: "", location: "", keep_until: "" });
-
-  const [locationTarget, setLocationTarget] = useState(null);
-  const [locationInput, setLocationInput] = useState("");
-
-  const [menuModalOpen, setMenuModalOpen] = useState(false);
-  const [customMenuForm, setCustomMenuForm] = useState({ productCode: "", name: "", prep: "About 20 min" });
-  const [selectedMenus, setSelectedMenus] = useState({});
+  const [newSample, setNewSample] = useState(EMPTY_SAMPLE);
 
   const fileInputRef = useRef(null);
 
@@ -148,17 +124,29 @@ export default function QaHaccp() {
       loadQaSection("docs", DEFAULT_HACCP_DOCS),
       loadQaSection("dates", DEFAULT_IMPORTANT_DATES),
       loadQaSection("samples", DEFAULT_RETENTION_SAMPLES),
-      loadQaSection("qc", DEFAULT_QC_STATE),
       base44.entities.BatchRecord.list("-created_date", 100).catch(() => []),
-    ]).then(([d, dt, smp, qc, br]) => {
+      productService.getActiveProducts().catch(() => []),
+    ]).then(([d, dt, smp, br, prodRows]) => {
       setDocs(Array.isArray(d) ? d : DEFAULT_HACCP_DOCS);
       setDates(Array.isArray(dt) ? dt : DEFAULT_IMPORTANT_DATES);
       setSamples(Array.isArray(smp) ? smp : DEFAULT_RETENTION_SAMPLES);
-      setQcState(qc && typeof qc === "object" ? { ...DEFAULT_QC_STATE, ...qc } : DEFAULT_QC_STATE);
       setBatches(Array.isArray(br) ? br : []);
+      setProducts(Array.isArray(prodRows) ? prodRows.filter((p) => p.active !== false && !p.hidden) : []);
       setLoading(false);
     });
   }, []);
+
+  const productOptions = useMemo(
+    () =>
+      products
+        .filter((p) => p.product_name)
+        .map((p) => ({
+          value: p.product_name,
+          label: p.product_name,
+          sublabel: [p.product_code, p.brand].filter(Boolean).join(" · ") || undefined,
+        })),
+    [products]
+  );
 
   const persistDocs = async (next) => {
     setDocs(next);
@@ -182,14 +170,6 @@ export default function QaHaccp() {
       await saveQaSection("samples", next);
     } catch (err) {
       toast.error(err?.message || "Failed to sync retention samples to database.");
-    }
-  };
-  const persistQc = async (next) => {
-    setQcState(next);
-    try {
-      await saveQaSection("qc", next);
-    } catch (err) {
-      toast.error(err?.message || "Failed to sync QC state to database.");
     }
   };
 
@@ -295,7 +275,7 @@ export default function QaHaccp() {
         toast.error("No valid rows found. Columns expected: document name, PIC, remarks, due date.");
         return;
       }
-      persistDocs([...imported, ...docs]);
+      await persistDocs([...imported, ...docs]);
       toast.success(`Imported ${imported.length} document(s).`);
     } catch (err) {
       toast.error(err?.message || "Failed to import spreadsheet.");
@@ -331,7 +311,6 @@ export default function QaHaccp() {
           product: pName,
           batch: b.batch_number,
           batchesCount: 0,
-          menus: buildSuggestedDishes(prefix, pName),
         });
       }
       byProd.get(key).batchesCount += 1;
@@ -346,12 +325,9 @@ export default function QaHaccp() {
     return latest || yesterdayIso;
   }, [batches, yesterdayIso]);
 
-  const selectedMenuList = Object.entries(selectedMenus).filter(([, checked]) => checked);
-  const needLocationCount = samples.filter((s) => !String(s.location || "").trim()).length;
-
-  const openAddDate = () => {
+  const openAddDate = (presetIso = "") => {
     setEditingDateId(null);
-    setNewDate({ title: "", category: "Document due", date: "" });
+    setNewDate({ title: "", category: "Document due", date: presetIso || "" });
     setDateModalOpen(true);
   };
 
@@ -379,7 +355,7 @@ export default function QaHaccp() {
       pic: doc.pic || "",
       remarks: doc.remarks || "",
       due_date: String(doc.due_date || "").slice(0, 10),
-      status: doc.status || "In progress",
+      status: DOC_STATUSES.includes(doc.status) ? doc.status : "In progress",
     });
     setDocModalOpen(true);
   };
@@ -391,19 +367,20 @@ export default function QaHaccp() {
 
   const openAddSample = () => {
     setEditingSampleId(null);
-    setNewSample({ sample_id: "", product: "", batch_number: "", cooked_date: "", location: "", keep_until: "" });
+    setNewSample(EMPTY_SAMPLE);
     setSampleModalOpen(true);
   };
 
   const openEditSample = (s) => {
     setEditingSampleId(s.id);
     setNewSample({
-      sample_id: s.sample_id || "",
       product: s.product || "",
       batch_number: s.batch_number || "",
-      cooked_date: String(s.cooked_date || "").slice(0, 10),
-      location: s.location || "",
+      number_of_sample: s.number_of_sample ?? "",
+      ph: s.ph ?? "",
+      brix: s.brix ?? "",
       keep_until: String(s.keep_until || "").slice(0, 10),
+      remarks: s.remarks || "",
     });
     setSampleModalOpen(true);
   };
@@ -446,21 +423,20 @@ export default function QaHaccp() {
               </Button>
               <Button
                 size="sm"
-                onClick={openAddDate}
+                onClick={() => openAddDate("")}
                 className="bg-cyan-500/20 border border-cyan-400/50 text-cyan-300 hover:bg-cyan-500/30"
               >
-                Add important date
+                <Plus className="w-3.5 h-3.5 mr-1" /> Add important date
               </Button>
             </>
           )}
           {tab === "control" && canEditQa && (
             <Button
-              variant="outline"
               size="sm"
               onClick={openAddSample}
-              className="bg-[#111827] border-[#293548] text-slate-200 hover:bg-[#1e293b]"
+              className="bg-cyan-500/20 border border-cyan-400/50 text-cyan-300 hover:bg-cyan-500/30"
             >
-              Register sample
+              <Plus className="w-3.5 h-3.5 mr-1" /> Add item
             </Button>
           )}
           {canRaiseCapa && <RaiseCapaButton />}
@@ -592,15 +568,24 @@ export default function QaHaccp() {
                       !cell ? (
                         <div key={`empty-${idx}`} className="h-12 rounded-md bg-[#0b1120]/40" />
                       ) : (
-                        <div key={cell.iso} className="h-12 rounded-md bg-[#0b1120] border border-[#1e293b]/70 p-1.5 flex flex-col justify-between">
+                        <button
+                          key={cell.iso}
+                          type="button"
+                          disabled={!canEditQa}
+                          onClick={() => canEditQa && openAddDate(cell.iso)}
+                          title={canEditQa ? `Add important date on ${fmtLongDate(cell.iso)}` : undefined}
+                          className={`h-12 rounded-md bg-[#0b1120] border border-[#1e293b]/70 p-1.5 flex flex-col justify-between text-left ${
+                            canEditQa ? "hover:border-cyan-400/60 hover:bg-[#132238] cursor-pointer transition-colors" : "cursor-default"
+                          }`}
+                        >
                           <span className="text-[11px] text-slate-300">{cell.day}</span>
-                          <div className="space-y-0.5">
+                          <div className="space-y-0.5 w-full">
                             {cell.evts.slice(0, 2).map((ev) => {
                               const cat = DATE_CATEGORIES.find((c) => c.key === ev.category) || DATE_CATEGORIES[2];
                               return <div key={ev.id} title={`${ev.title} (${ev.category})`} className={`h-1.5 rounded-full ${cat.bar}`} />;
                             })}
                           </div>
-                        </div>
+                        </button>
                       )
                     )}
                   </div>
@@ -618,7 +603,18 @@ export default function QaHaccp() {
             </div>
 
             <div className="rounded-xl bg-[#111827] border border-[#1e293b] p-4 space-y-3">
-              <h3 className="text-sm font-semibold text-white">Upcoming dates</h3>
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="text-sm font-semibold text-white">Upcoming dates</h3>
+                {canEditQa && (
+                  <button
+                    type="button"
+                    onClick={() => openAddDate("")}
+                    className="text-cyan-300 hover:text-cyan-200 inline-flex items-center gap-1 text-xs font-medium"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Add date
+                  </button>
+                )}
+              </div>
               <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
                 {sortedDates.map((item) => {
                   const diff = daysDiff(item.date);
@@ -677,7 +673,18 @@ export default function QaHaccp() {
             <div className="px-4 py-3 border-b border-[#1e293b] space-y-2">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h3 className="text-sm font-semibold text-white">Progress of HACCP documentation</h3>
-                <span className="text-xs text-slate-400">{doneDocsCount} of {docs.length} documents done · {pctDone}%</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-slate-400">{doneDocsCount} of {docs.length} documents done · {pctDone}%</span>
+                  {canEditQa && (
+                    <Button
+                      size="sm"
+                      onClick={openAddDoc}
+                      className="h-7 px-2.5 text-xs bg-cyan-500/20 border border-cyan-400/50 text-cyan-300 hover:bg-cyan-500/30"
+                    >
+                      <Plus className="w-3.5 h-3.5 mr-1" /> Add document
+                    </Button>
+                  )}
+                </div>
               </div>
               <div className="w-full h-1.5 rounded-full bg-[#1e293b] overflow-hidden">
                 <div className="h-full bg-emerald-500 transition-all duration-300" style={{ width: `${pctDone}%` }} />
@@ -703,53 +710,63 @@ export default function QaHaccp() {
                       </td>
                     </tr>
                   )}
-                  {docs.map((doc) => (
-                    <tr key={doc.id} className="hover:bg-[#1e293b]/30">
-                      <td className="px-4 py-2.5 text-slate-100 font-medium">{doc.document_name}</td>
-                      <td className="px-4 py-2.5 text-slate-200 font-medium">{doc.pic || "—"}</td>
-                      <td className="px-4 py-2.5 text-slate-400">{doc.remarks || "—"}</td>
-                      <td className="px-4 py-2.5 text-slate-200 font-medium">{fmtShortDate(doc.due_date)}</td>
-                      <td className="px-4 py-2.5">
-                        {canEditQa ? (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const nextStatus = DOC_STATUSES[(DOC_STATUSES.indexOf(doc.status) + 1) % DOC_STATUSES.length];
-                              persistDocs(docs.map((d) => (d.id === doc.id ? { ...d, status: nextStatus } : d)));
-                            }}
-                            title="Click to cycle status"
-                            className={`px-2 py-0.5 rounded text-[11px] font-medium ${STATUS_PILL[doc.status] || STATUS_PILL["In progress"]}`}
-                          >
-                            {doc.status}
-                          </button>
-                        ) : (
-                          <span className={`px-2 py-0.5 rounded text-[11px] font-medium ${STATUS_PILL[doc.status] || STATUS_PILL["In progress"]}`}>
-                            {doc.status}
-                          </span>
-                        )}
-                      </td>
-                      {canEditQa && (
-                        <td className="px-4 py-2.5 text-right whitespace-nowrap">
-                          <button
-                            type="button"
-                            onClick={() => openEditDoc(doc)}
-                            className="p-1 rounded text-slate-400 hover:text-cyan-300 hover:bg-[#1e293b] mr-1"
-                            title="Edit document"
-                          >
-                            <Pencil className="w-3.5 h-3.5 inline" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => deleteDoc(doc.id)}
-                            className="p-1 rounded text-slate-400 hover:text-rose-400 hover:bg-[#1e293b]"
-                            title="Delete document"
-                          >
-                            <Trash2 className="w-3.5 h-3.5 inline" />
-                          </button>
+                  {docs.map((doc) => {
+                    const currentStatus = DOC_STATUSES.includes(doc.status) ? doc.status : "In progress";
+                    return (
+                      <tr key={doc.id} className="hover:bg-[#1e293b]/30">
+                        <td className="px-4 py-2.5 text-slate-100 font-medium">{doc.document_name}</td>
+                        <td className="px-4 py-2.5 text-slate-200 font-medium">{doc.pic || "—"}</td>
+                        <td className="px-4 py-2.5 text-slate-400">{doc.remarks || "—"}</td>
+                        <td className="px-4 py-2.5 text-slate-200 font-medium">{fmtShortDate(doc.due_date)}</td>
+                        <td className="px-4 py-2.5">
+                          {canEditQa ? (
+                            <Select
+                              value={currentStatus}
+                              onValueChange={(nextStatus) => {
+                                persistDocs(docs.map((d) => (d.id === doc.id ? { ...d, status: nextStatus } : d)));
+                                toast.success(`Status updated to "${nextStatus}".`);
+                              }}
+                            >
+                              <SelectTrigger
+                                className={`h-7 w-[130px] text-[11px] font-medium px-2.5 ${STATUS_PILL[currentStatus] || STATUS_PILL["In progress"]}`}
+                              >
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {DOC_STATUSES.map((st) => (
+                                  <SelectItem key={st} value={st}>{st}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <span className={`px-2 py-0.5 rounded text-[11px] font-medium ${STATUS_PILL[currentStatus] || STATUS_PILL["In progress"]}`}>
+                              {currentStatus}
+                            </span>
+                          )}
                         </td>
-                      )}
-                    </tr>
-                  ))}
+                        {canEditQa && (
+                          <td className="px-4 py-2.5 text-right whitespace-nowrap">
+                            <button
+                              type="button"
+                              onClick={() => openEditDoc(doc)}
+                              className="p-1 rounded text-slate-400 hover:text-cyan-300 hover:bg-[#1e293b] mr-1"
+                              title="Edit document"
+                            >
+                              <Pencil className="w-3.5 h-3.5 inline" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => deleteDoc(doc.id)}
+                              className="p-1 rounded text-slate-400 hover:text-rose-400 hover:bg-[#1e293b]"
+                              title="Delete document"
+                            >
+                              <Trash2 className="w-3.5 h-3.5 inline" />
+                            </button>
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -795,329 +812,86 @@ export default function QaHaccp() {
             </div>
           </div>
 
-          {/* Suggested menu to cook */}
-          <div className="rounded-xl bg-[#111827] border border-[#1e293b] p-4 space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h3 className="text-sm font-semibold text-white">Suggested menu to cook</h3>
-              <span className="text-xs text-slate-400">Dishes made with yesterday&apos;s products · for sensory testing</span>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {cookedGroups.map((g) => {
-                const extraMenus = qcState.customMenus?.[g.code] || [];
-                const allMenus = [...g.menus, ...extraMenus];
-                return (
-                  <div key={g.code} className="space-y-2.5">
-                    <div className="border-b border-[#1e293b] pb-1.5">
-                      <p className="text-xs font-semibold text-cyan-300">{g.product}</p>
-                      <p className="text-[11px] text-slate-400">Batch {g.batch}</p>
-                    </div>
-                    <div className="space-y-2 divide-y divide-[#1e293b]/50">
-                      {allMenus.map((m) => {
-                        const isCustom = String(m.id).startsWith("cm-");
-                        return (
-                          <div key={m.id} className="flex items-start justify-between gap-2 pt-2 first:pt-0">
-                            <label className="flex items-start gap-2.5 cursor-pointer flex-1">
-                              <Checkbox
-                                checked={!!selectedMenus[m.id]}
-                                disabled={!canEditQa}
-                                onCheckedChange={(c) => setSelectedMenus((prev) => ({ ...prev, [m.id]: c === true }))}
-                                className="mt-0.5 border-slate-600 data-[state=checked]:bg-cyan-500 data-[state=checked]:border-cyan-500"
-                              />
-                              <div>
-                                <p className="text-xs font-medium text-slate-100">{m.name}</p>
-                                <p className="text-[11px] text-slate-400">{m.prep}</p>
-                              </div>
-                            </label>
-                            {canEditQa && isCustom && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const filtered = (qcState.customMenus?.[g.code] || []).filter((item) => item.id !== m.id);
-                                  persistQc({
-                                    ...qcState,
-                                    customMenus: { ...(qcState.customMenus || {}), [g.code]: filtered },
-                                  });
-                                  toast.success("Custom menu removed.");
-                                }}
-                                className="p-1 text-slate-500 hover:text-rose-400"
-                                title="Delete custom menu"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </button>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="pt-2 border-t border-[#1e293b] flex flex-wrap items-center justify-between gap-2">
-              <span className="text-xs text-slate-400">
-                {selectedMenuList.length} menu{selectedMenuList.length === 1 ? "" : "s"} selected · a sensory sheet is created for each one
-              </span>
-              {canEditQa && (
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setCustomMenuForm({ productCode: cookedGroups[0]?.code || "CUSTOM", name: "", prep: "About 20 min" });
-                      setMenuModalOpen(true);
-                    }}
-                    className="bg-[#0b1120] border-[#293548] text-slate-200 hover:bg-[#1e293b]"
-                  >
-                    Add your own menu
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={() => {
-                      if (!selectedMenuList.length) {
-                        toast.error("Select at least one menu first.");
-                        return;
-                      }
-                      const menuLookup = new Map();
-                      cookedGroups.forEach((g) => {
-                        [...g.menus, ...(qcState.customMenus?.[g.code] || [])].forEach((m) => {
-                          menuLookup.set(m.id, { name: m.name, product: g.product, batch: g.batch });
-                        });
-                      });
-                      const created = selectedMenuList.map(([id]) => {
-                        const info = menuLookup.get(id) || { name: id, product: "", batch: "" };
-                        return {
-                          id: `ss-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-                          menu_id: id,
-                          menu_name: info.name,
-                          product: info.product,
-                          batch: info.batch,
-                          status: "Pending",
-                          created_at: new Date().toISOString(),
-                        };
-                      });
-                      persistQc({ ...qcState, sensorySheets: [...created, ...(qcState.sensorySheets || [])] });
-                      setSelectedMenus({});
-                      toast.success(`Created ${created.length} sensory sheet(s).`);
-                    }}
-                    className="bg-cyan-500/20 border border-cyan-400/50 text-cyan-300 hover:bg-cyan-500/30"
-                  >
-                    Create sensory sheets
-                  </Button>
-                </div>
-              )}
-            </div>
-            {(qcState.sensorySheets || []).length > 0 && (
-              <div className="pt-3 border-t border-[#1e293b] space-y-2">
-                <p className="text-xs font-medium text-slate-300">
-                  Created sensory sheets ({qcState.sensorySheets.length})
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  {qcState.sensorySheets.slice(0, 12).map((sheet) => (
-                    <div
-                      key={sheet.id}
-                      className="flex items-center justify-between gap-2 rounded-lg bg-[#0b1120] border border-[#1e293b] px-3 py-2 text-xs"
-                    >
-                      <div className="min-w-0">
-                        <p className="text-slate-100 font-medium truncate">{sheet.menu_name || sheet.id}</p>
-                        <p className="text-[11px] text-slate-400 truncate">
-                          {[sheet.product, sheet.batch, fmtShortDate(sheet.created_at)].filter(Boolean).join(" · ")}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <button
-                          type="button"
-                          disabled={!canEditQa}
-                          onClick={() => {
-                            const nextStatus = sheet.status === "Done" ? "Pending" : "Done";
-                            persistQc({
-                              ...qcState,
-                              sensorySheets: qcState.sensorySheets.map((s) =>
-                                s.id === sheet.id ? { ...s, status: nextStatus } : s
-                              ),
-                            });
-                          }}
-                          className={`px-2 py-0.5 rounded text-[11px] font-medium ${
-                            sheet.status === "Done" ? STATUS_PILL.Done : STATUS_PILL["Report pending"]
-                          }`}
-                        >
-                          {sheet.status || "Pending"}
-                        </button>
-                        {canEditQa && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              persistQc({
-                                ...qcState,
-                                sensorySheets: qcState.sensorySheets.filter((s) => s.id !== sheet.id),
-                              });
-                              toast.success("Sensory sheet removed.");
-                            }}
-                            className="p-1 text-slate-500 hover:text-rose-400"
-                            title="Delete sensory sheet"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Reminders and reports */}
-          <div className="rounded-xl bg-[#111827] border border-[#1e293b] p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-white">Reminders and reports</h3>
-              <span className="text-xs text-slate-400">Sent automatically</span>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <p className="text-xs font-medium text-slate-400 border-b border-[#1e293b] pb-1.5">Fat globule test, then report</p>
-                {cookedGroups.length === 0 ? (
-                  <p className="text-xs text-slate-500">No batches from yesterday requiring fat globule testing.</p>
-                ) : (
-                  <div className="flex items-center justify-between rounded-lg bg-[#0b1120] border border-[#1e293b] px-3 py-2.5">
-                    <div>
-                      <p className="text-xs font-medium text-slate-100">
-                        {cookedGroups[0].product} ({cookedGroups[0].code}) · {cookedGroups[0].batchesCount} batch{cookedGroups[0].batchesCount === 1 ? "" : "es"}
-                      </p>
-                      <p className="text-[11px] text-slate-400">
-                        Batch {cookedGroups[0].batch || "—"} · {fmtShortDate(cookedDisplayDate)}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      disabled={!canEditQa}
-                      onClick={() => {
-                        const next = qcState.fatGlobuleStatus === "Done" ? "Report pending" : "Done";
-                        persistQc({ ...qcState, fatGlobuleStatus: next });
-                      }}
-                      className={`px-2 py-0.5 rounded text-[11px] font-medium ${STATUS_PILL[qcState.fatGlobuleStatus] || STATUS_PILL["Report pending"]}`}
-                    >
-                      {qcState.fatGlobuleStatus}
-                    </button>
-                  </div>
-                )}
-              </div>
-              <div className="space-y-2">
-                <p className="text-xs font-medium text-slate-400 border-b border-[#1e293b] pb-1.5">Cooking report, one per batch</p>
-                <div className="space-y-2">
-                  {cookedGroups.length === 0 && <p className="text-xs text-slate-500">No cooking reports due.</p>}
-                  {cookedGroups.map((g) => {
-                    const submitted = qcState.cookingReports?.[g.code] ?? 0;
-                    const done = submitted >= g.batchesCount;
-                    return (
-                      <div key={g.code} className="flex items-center justify-between rounded-lg bg-[#0b1120] border border-[#1e293b] px-3 py-2">
-                        <div>
-                          <p className="text-xs font-medium text-slate-100">{g.product} ({g.code})</p>
-                          <p className="text-[11px] text-slate-400">{submitted} of {g.batchesCount} submitted</p>
-                        </div>
-                        <button
-                          type="button"
-                          disabled={!canEditQa}
-                          onClick={() => {
-                            const nextCount = done ? 0 : submitted + 1;
-                            persistQc({
-                              ...qcState,
-                              cookingReports: { ...(qcState.cookingReports || {}), [g.code]: nextCount },
-                            });
-                          }}
-                          title="Click to update submitted count"
-                          className={`px-2 py-0.5 rounded text-[11px] font-medium ${done ? STATUS_PILL.Done : STATUS_PILL.Overdue}`}
-                        >
-                          {done ? "Done" : "Overdue"}
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Retention sample storage (Matches Picture 3 with Batch no. column) */}
+          {/* Retention sample storage */}
           <div className="rounded-xl bg-[#111827] border border-[#1e293b] overflow-hidden">
             <div className="px-4 py-3 border-b border-[#1e293b] flex flex-wrap items-center justify-between gap-2">
               <h3 className="text-sm font-semibold text-white">Retention sample storage</h3>
-              <span className="text-xs text-slate-400">
-                {samples.length} samples · {needLocationCount} need a location
-              </span>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-slate-400">
+                  {samples.length} sample{samples.length === 1 ? "" : "s"}
+                </span>
+                {canEditQa && (
+                  <Button
+                    size="sm"
+                    onClick={openAddSample}
+                    className="h-7 px-2.5 text-xs bg-cyan-500/20 border border-cyan-400/50 text-cyan-300 hover:bg-cyan-500/30"
+                  >
+                    <Plus className="w-3.5 h-3.5 mr-1" /> Add item
+                  </Button>
+                )}
+              </div>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead className="bg-[#0b1120]/60 text-slate-400 border-b border-[#1e293b]">
                   <tr>
-                    <th className="text-left px-4 py-2.5 font-medium">Sample ID</th>
                     <th className="text-left px-4 py-2.5 font-medium">Product</th>
                     <th className="text-left px-4 py-2.5 font-medium">Batch no.</th>
-                    <th className="text-left px-4 py-2.5 font-medium">Location</th>
+                    <th className="text-left px-4 py-2.5 font-medium">Number of sample</th>
+                    <th className="text-left px-4 py-2.5 font-medium">pH</th>
+                    <th className="text-left px-4 py-2.5 font-medium">Brix</th>
                     <th className="text-left px-4 py-2.5 font-medium">Keep until</th>
-                    <th className="text-left px-4 py-2.5 font-medium">Action</th>
+                    <th className="text-left px-4 py-2.5 font-medium">Remarks</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#1e293b]">
                   {samples.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="px-4 py-6 text-center text-slate-500">
+                      <td colSpan={7} className="px-4 py-6 text-center text-slate-500">
                         No retention samples registered yet.
                       </td>
                     </tr>
                   )}
                   {samples.map((s) => {
-                    const hasLocation = !!String(s.location || "").trim();
-                    const inferredBatch = s.batch_number || String(s.sample_id || "").replace(/-\d+$/, "");
+                    const batchDisplay = s.batch_number || String(s.sample_id || "").replace(/-\d+$/, "");
                     return (
-                      <tr key={s.id} className={`${hasLocation ? "hover:bg-[#1e293b]/30" : "bg-amber-500/[0.06] hover:bg-amber-500/[0.1]"}`}>
-                        <td className="px-4 py-2.5 font-mono text-slate-200">{s.sample_id}</td>
-                        <td className="px-4 py-2.5 text-slate-100">{s.product}</td>
-                        <td className="px-4 py-2.5 font-mono text-slate-300">{inferredBatch || "—"}</td>
-                        <td className="px-4 py-2.5">
-                          {hasLocation ? (
-                            <span className="text-slate-200">{s.location}</span>
-                          ) : (
-                            <span className="px-2 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30 text-[11px]">
-                              Location not set
-                            </span>
-                          )}
+                      <tr key={s.id} className="hover:bg-[#1e293b]/30">
+                        <td className="px-4 py-2.5 text-slate-100 font-medium">{s.product || "—"}</td>
+                        <td className="px-4 py-2.5 font-mono text-slate-300">{batchDisplay || "—"}</td>
+                        <td className="px-4 py-2.5 text-slate-200">
+                          {s.number_of_sample !== undefined && s.number_of_sample !== "" ? s.number_of_sample : "—"}
+                        </td>
+                        <td className="px-4 py-2.5 text-slate-200">
+                          {s.ph !== undefined && s.ph !== "" ? s.ph : "—"}
+                        </td>
+                        <td className="px-4 py-2.5 text-slate-200">
+                          {s.brix !== undefined && s.brix !== "" ? s.brix : "—"}
                         </td>
                         <td className="px-4 py-2.5 text-slate-300">{fmtLongDate(s.keep_until)}</td>
-                        <td className="px-4 py-2.5 whitespace-nowrap">
-                          {canEditQa && (
-                            <div className="inline-flex items-center gap-1.5">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setLocationTarget(s);
-                                  setLocationInput(s.location || "");
-                                }}
-                                className={`px-2.5 py-1 rounded text-[11px] font-medium ${
-                                  hasLocation
-                                    ? "bg-[#1e293b] text-slate-200 hover:bg-[#334155]"
-                                    : "bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 hover:bg-cyan-500/30"
-                                }`}
-                              >
-                                {hasLocation ? "Move" : "Set location"}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => openEditSample(s)}
-                                className="p-1 rounded text-slate-400 hover:text-cyan-300 hover:bg-[#1e293b]"
-                                title="Edit sample"
-                              >
-                                <Pencil className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => deleteSample(s.id)}
-                                className="p-1 rounded text-slate-400 hover:text-rose-400 hover:bg-[#1e293b]"
-                                title="Delete sample"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          )}
+                        <td className="px-4 py-2.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-slate-300">{s.remarks || "—"}</span>
+                            {canEditQa && (
+                              <div className="inline-flex items-center gap-1 shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => openEditSample(s)}
+                                  className="p-1 rounded text-slate-400 hover:text-cyan-300 hover:bg-[#1e293b]"
+                                  title="Edit item"
+                                >
+                                  <Pencil className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => deleteSample(s.id)}
+                                  className="p-1 rounded text-slate-400 hover:text-rose-400 hover:bg-[#1e293b]"
+                                  title="Delete item"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );
@@ -1169,13 +943,13 @@ export default function QaHaccp() {
           <DialogFooter>
             <Button variant="ghost" onClick={() => setDateModalOpen(false)} className="text-slate-400">Cancel</Button>
             <Button
-              onClick={() => {
+              onClick={async () => {
                 if (!newDate.title.trim() || !newDate.date) return toast.error("Title and date are required.");
                 if (editingDateId) {
-                  persistDates(dates.map((d) => (d.id === editingDateId ? { ...d, ...newDate } : d)));
+                  await persistDates(dates.map((d) => (d.id === editingDateId ? { ...d, ...newDate } : d)));
                   toast.success("Important date updated.");
                 } else {
-                  persistDates([...dates, { ...newDate, id: `dt-${Date.now()}` }]);
+                  await persistDates([...dates, { ...newDate, id: `dt-${Date.now()}` }]);
                   toast.success("Important date added.");
                 }
                 setNewDate({ title: "", category: "Document due", date: "" });
@@ -1226,13 +1000,13 @@ export default function QaHaccp() {
           <DialogFooter>
             <Button variant="ghost" onClick={() => setDocModalOpen(false)} className="text-slate-400">Cancel</Button>
             <Button
-              onClick={() => {
+              onClick={async () => {
                 if (!newDoc.document_name.trim()) return toast.error("Document name is required.");
                 if (editingDocId) {
-                  persistDocs(docs.map((d) => (d.id === editingDocId ? { ...d, ...newDoc } : d)));
+                  await persistDocs(docs.map((d) => (d.id === editingDocId ? { ...d, ...newDoc } : d)));
                   toast.success("Document updated.");
                 } else {
-                  persistDocs([{ ...newDoc, id: `doc-${Date.now()}` }, ...docs]);
+                  await persistDocs([{ ...newDoc, id: `doc-${Date.now()}` }, ...docs]);
                   toast.success("Document added.");
                 }
                 setNewDoc({ document_name: "", pic: "", remarks: "", due_date: "", status: "In progress" });
@@ -1247,138 +1021,119 @@ export default function QaHaccp() {
         </DialogContent>
       </Dialog>
 
-      {/* Modal: Register / Edit Retention Sample */}
+      {/* Modal: Add / Edit Retention Sample */}
       <Dialog open={sampleModalOpen} onOpenChange={setSampleModalOpen}>
         <DialogContent className="bg-[#111827] border-[#1e293b] text-slate-100 sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-white">{editingSampleId ? "Edit retention sample" : "Register sample"}</DialogTitle>
+            <DialogTitle className="text-white">{editingSampleId ? "Edit retention sample" : "Add retention sample"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
+            <div className="space-y-1">
+              <label className="text-xs text-slate-400">Product (from Product Master) *</label>
+              <SearchableSelect
+                value={newSample.product}
+                onValueChange={(v) => setNewSample({ ...newSample, product: v })}
+                options={productOptions}
+                placeholder="Select product from Product Master..."
+                searchPlaceholder="Search product name or code..."
+                allowCustom={productOptions.length === 0}
+                clearable
+              />
+            </div>
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
-                <label className="text-xs text-slate-400">Sample ID *</label>
-                <Input value={newSample.sample_id} onChange={(e) => setNewSample({ ...newSample, sample_id: e.target.value.toUpperCase() })} placeholder="e.g. DSJ-291026-01" className="bg-[#0b1120] border-[#293548] text-white" />
+                <label className="text-xs text-slate-400">Batch no.</label>
+                <Input
+                  value={newSample.batch_number}
+                  onChange={(e) => setNewSample({ ...newSample, batch_number: e.target.value.toUpperCase() })}
+                  placeholder="e.g. DSJ291026A"
+                  className="bg-[#0b1120] border-[#293548] text-white"
+                />
               </div>
               <div className="space-y-1">
-                <label className="text-xs text-slate-400">Batch no.</label>
-                <Input value={newSample.batch_number} onChange={(e) => setNewSample({ ...newSample, batch_number: e.target.value.toUpperCase() })} placeholder="e.g. DSJ-291026" className="bg-[#0b1120] border-[#293548] text-white" />
+                <label className="text-xs text-slate-400">Number of sample</label>
+                <Input
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={newSample.number_of_sample}
+                  onChange={(e) => setNewSample({ ...newSample, number_of_sample: e.target.value })}
+                  placeholder="e.g. 2"
+                  className="bg-[#0b1120] border-[#293548] text-white"
+                />
               </div>
             </div>
-            <div className="space-y-1">
-              <label className="text-xs text-slate-400">Product *</label>
-              <Input value={newSample.product} onChange={(e) => setNewSample({ ...newSample, product: e.target.value })} placeholder="Product name" className="bg-[#0b1120] border-[#293548] text-white" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs text-slate-400">Storage location (optional)</label>
-              <Input value={newSample.location} onChange={(e) => setNewSample({ ...newSample, location: e.target.value })} placeholder="e.g. Room A · Rack 1 · Shelf 1" className="bg-[#0b1120] border-[#293548] text-white" />
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <label className="text-xs text-slate-400">pH</label>
+                <Input
+                  type="number"
+                  step="any"
+                  value={newSample.ph}
+                  onChange={(e) => setNewSample({ ...newSample, ph: e.target.value })}
+                  placeholder="e.g. 4.2"
+                  className="bg-[#0b1120] border-[#293548] text-white"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-slate-400">Brix</label>
+                <Input
+                  type="number"
+                  step="any"
+                  value={newSample.brix}
+                  onChange={(e) => setNewSample({ ...newSample, brix: e.target.value })}
+                  placeholder="e.g. 12.5"
+                  className="bg-[#0b1120] border-[#293548] text-white"
+                />
+              </div>
             </div>
             <div className="space-y-1">
               <label className="text-xs text-slate-400">Keep until</label>
-              <Input type="date" value={newSample.keep_until} onChange={(e) => setNewSample({ ...newSample, keep_until: e.target.value })} className="bg-[#0b1120] border-[#293548] text-white" />
+              <Input
+                type="date"
+                value={newSample.keep_until}
+                onChange={(e) => setNewSample({ ...newSample, keep_until: e.target.value })}
+                className="bg-[#0b1120] border-[#293548] text-white"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-slate-400">Remarks</label>
+              <Input
+                value={newSample.remarks}
+                onChange={(e) => setNewSample({ ...newSample, remarks: e.target.value })}
+                placeholder="Optional remarks"
+                className="bg-[#0b1120] border-[#293548] text-white"
+              />
             </div>
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setSampleModalOpen(false)} className="text-slate-400">Cancel</Button>
             <Button
-              onClick={() => {
-                if (!newSample.sample_id.trim() || !newSample.product.trim()) return toast.error("Sample ID and Product are required.");
-                const batchNo = newSample.batch_number.trim() || newSample.sample_id.trim().replace(/-\d+$/, "");
+              onClick={async () => {
+                if (!newSample.product.trim()) return toast.error("Please choose a product.");
+                const record = {
+                  product: newSample.product.trim(),
+                  batch_number: newSample.batch_number.trim().toUpperCase(),
+                  number_of_sample: newSample.number_of_sample === "" ? "" : Number(newSample.number_of_sample),
+                  ph: newSample.ph === "" ? "" : String(newSample.ph).trim(),
+                  brix: newSample.brix === "" ? "" : String(newSample.brix).trim(),
+                  keep_until: newSample.keep_until,
+                  remarks: newSample.remarks.trim(),
+                };
                 if (editingSampleId) {
-                  persistSamples(samples.map((s) => (s.id === editingSampleId ? { ...s, ...newSample, batch_number: batchNo } : s)));
+                  await persistSamples(samples.map((s) => (s.id === editingSampleId ? { ...s, ...record } : s)));
                   toast.success("Retention sample updated.");
                 } else {
-                  persistSamples([{ ...newSample, batch_number: batchNo, id: `smp-${Date.now()}` }, ...samples]);
-                  toast.success("Retention sample registered.");
+                  await persistSamples([{ ...record, id: `smp-${Date.now()}` }, ...samples]);
+                  toast.success("Retention sample added.");
                 }
-                setNewSample({ sample_id: "", product: "", batch_number: "", cooked_date: "", location: "", keep_until: "" });
+                setNewSample(EMPTY_SAMPLE);
                 setEditingSampleId(null);
                 setSampleModalOpen(false);
               }}
               className="bg-cyan-500/20 border border-cyan-400/50 text-cyan-300"
             >
-              {editingSampleId ? "Save changes" : "Register"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Modal: Set / Move Sample Location */}
-      <Dialog open={!!locationTarget} onOpenChange={(o) => !o && setLocationTarget(null)}>
-        <DialogContent className="bg-[#111827] border-[#1e293b] text-slate-100 sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="text-white">{locationTarget?.location ? "Move sample" : "Set sample location"}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-2">
-            <p className="text-xs text-slate-400">{locationTarget?.sample_id} · {locationTarget?.product}</p>
-            <Input
-              value={locationInput}
-              onChange={(e) => setLocationInput(e.target.value)}
-              placeholder="e.g. Room A · Rack 1 · Shelf 1"
-              className="bg-[#0b1120] border-[#293548] text-white"
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setLocationTarget(null)} className="text-slate-400">Cancel</Button>
-            <Button
-              onClick={() => {
-                if (!locationInput.trim()) return toast.error("Enter a location.");
-                persistSamples(samples.map((s) => (s.id === locationTarget.id ? { ...s, location: locationInput.trim() } : s)));
-                setLocationTarget(null);
-                toast.success("Sample location updated.");
-              }}
-              className="bg-cyan-500/20 border border-cyan-400/50 text-cyan-300"
-            >
-              Save location
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Modal: Add Your Own Menu */}
-      <Dialog open={menuModalOpen} onOpenChange={setMenuModalOpen}>
-        <DialogContent className="bg-[#111827] border-[#1e293b] text-slate-100 sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="text-white">Add your own menu</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            {cookedGroups.length > 0 && (
-              <div className="space-y-1">
-                <label className="text-xs text-slate-400">Product</label>
-                <Select value={customMenuForm.productCode} onValueChange={(v) => setCustomMenuForm({ ...customMenuForm, productCode: v })}>
-                  <SelectTrigger className="bg-[#0b1120] border-[#293548] text-white"><SelectValue /></SelectTrigger>
-                  <SelectContent>{cookedGroups.map((g) => <SelectItem key={g.code} value={g.code}>{g.product}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-            )}
-            <div className="space-y-1">
-              <label className="text-xs text-slate-400">Menu dish *</label>
-              <Input value={customMenuForm.name} onChange={(e) => setCustomMenuForm({ ...customMenuForm, name: e.target.value })} placeholder="e.g. Grilled BBQ skewers" className="bg-[#0b1120] border-[#293548] text-white" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs text-slate-400">Prep time</label>
-              <Input value={customMenuForm.prep} onChange={(e) => setCustomMenuForm({ ...customMenuForm, prep: e.target.value })} className="bg-[#0b1120] border-[#293548] text-white" />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setMenuModalOpen(false)} className="text-slate-400">Cancel</Button>
-            <Button
-              onClick={() => {
-                if (!customMenuForm.name.trim()) return toast.error("Menu name is required.");
-                const code = customMenuForm.productCode || cookedGroups[0]?.code || "CUSTOM";
-                const existing = qcState.customMenus?.[code] || [];
-                persistQc({
-                  ...qcState,
-                  customMenus: {
-                    ...(qcState.customMenus || {}),
-                    [code]: [...existing, { id: `cm-${Date.now()}`, name: customMenuForm.name.trim(), prep: customMenuForm.prep }],
-                  },
-                });
-                setMenuModalOpen(false);
-                toast.success("Menu added.");
-              }}
-              className="bg-cyan-500/20 border border-cyan-400/50 text-cyan-300"
-            >
-              Add menu
+              {editingSampleId ? "Save changes" : "Add item"}
             </Button>
           </DialogFooter>
         </DialogContent>

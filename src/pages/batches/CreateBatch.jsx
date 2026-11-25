@@ -17,8 +17,10 @@ import { isPapadamProduct, labelBlock } from "@/lib/productMaster";
 import { actingUserName, isAdminUser } from "@/lib/permissions";
 import {
   DEFAULT_LAYOUTS,
+  LOCKED_PRINT_TEMPLATE,
   barcodeImageUrl,
   batchQrPayload,
+  buildTemplatePageCanvas,
   canEditLabelSettings,
   duplicateOf,
   expiryFor,
@@ -147,10 +149,15 @@ export default function CreateBatch() {
       : baseLayout;
 
   const pcsPerCarton = num(product?.carton_size) || num(product?.pcs_per_carton) || 24;
-  const cartonBarcode = product?.carton_barcode || product?.barcode || "";
+  const cartonBarcode = String(product?.carton_barcode || product?.barcode || "").replace(/^\*+/, "").trim();
+  const productDisplayName = String(product?.recipe_name || product?.product_name || "").trim();
+  const cartonDescription = String(
+    product?.carton_skus?.[0]?.description || product?.product_name_original || product?.product_name || ""
+  ).trim();
 
   const labelData = {
-    productName: product?.product_name || "",
+    productName: productDisplayName,
+    cartonDescription,
     productCode: product?.product_code || "",
     batchNumber,
     productionDate,
@@ -192,6 +199,15 @@ export default function CreateBatch() {
         quantity_cartons: num(quantity),
         pcs_per_carton: pcsPerCarton,
         carton_barcode: cartonBarcode || batch,
+        carton_description: cartonDescription,
+        qr_payload: batchQrPayload({
+          cartonBarcode: cartonBarcode || batch,
+          productName: productDisplayName,
+          cartonDescription,
+          productCode: product.product_code || "",
+          batchNumber: batch,
+          expiryDate,
+        }),
         status: "Active",
         label_layout: layout.id,
         label_layout_name: layout.name,
@@ -240,14 +256,55 @@ export default function CreateBatch() {
     }
   };
 
-  const generatePdf = async () => {
+  const renderLockedPageImage = async () => {
     const el = document.getElementById("saved-label-card");
-    if (!el) return;
-    const canvas = await html2canvas(el, { scale: 3, backgroundColor: "#ffffff", useCORS: true });
-    const imgData = canvas.toDataURL("image/png");
-    const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: [150, 100] });
-    pdf.addImage(imgData, "PNG", 5, 5, 60, 40);
-    pdf.save(`${savedPrintView?.data?.batchNumber || "batch-label"}.pdf`);
+    if (!el) return null;
+    const labelCanvas = await html2canvas(el, {
+      scale: 4,
+      backgroundColor: "#ffffff",
+      useCORS: true,
+      allowTaint: false,
+    });
+    const pageCanvas = buildTemplatePageCanvas(labelCanvas, LOCKED_PRINT_TEMPLATE);
+    return pageCanvas.toDataURL("image/png");
+  };
+
+  const generatePdf = async () => {
+    try {
+      const pageImgData = await renderLockedPageImage();
+      if (!pageImgData) return;
+      const { pageW, pageH } = LOCKED_PRINT_TEMPLATE;
+      const orientation = pageW >= pageH ? "landscape" : "portrait";
+      const pdf = new jsPDF({ orientation, unit: "mm", format: [pageW, pageH] });
+      pdf.addImage(pageImgData, "PNG", 0, 0, pageW, pageH, undefined, "NONE");
+      pdf.save(`${savedPrintView?.data?.batchNumber || "batch-label"}.pdf`);
+    } catch (err) {
+      toast({
+        title: "Could not generate PDF",
+        description: err?.message || "Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handlePrintNow = async () => {
+    try {
+      const pageImgData = await renderLockedPageImage();
+      if (!pageImgData) return;
+      const { pageW, pageH } = LOCKED_PRINT_TEMPLATE;
+      setJob({
+        pageImageUrl: pageImgData,
+        pageWidthMm: pageW,
+        pageHeightMm: pageH,
+        copies: savedPrintView?.copies || 1,
+      });
+    } catch (err) {
+      toast({
+        title: "Could not prepare print sheet",
+        description: err?.message || "Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   if (loading) {
@@ -282,18 +339,7 @@ export default function CreateBatch() {
               <Download className="w-4 h-4 mr-1.5" /> Generate PDF
             </Button>
             <Button
-              onClick={() =>
-                setJob({
-                  ...savedPrintView,
-                  layout: retailStickerLayout
-                    ? { ...activeLayout, width_mm: 60, height_mm: 40 }
-                    : activeLayout,
-                  data: {
-                    ...d,
-                    cartonBarcode: retailTemplate ? d.batchNumber : (d.cartonBarcode || d.batchNumber),
-                  },
-                })
-              }
+              onClick={handlePrintNow}
               className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold"
             >
               <Printer className="w-4 h-4 mr-1.5" /> Print Now
@@ -313,7 +359,7 @@ export default function CreateBatch() {
               <div className="flex items-start justify-between gap-3">
                 <div className="space-y-1 text-xs" style={{ color: "#0f172a" }}>
                   <p className="font-bold text-sm leading-tight uppercase" style={{ color: "#0f172a" }}>
-                    {d.productName}
+                    {d.cartonDescription || d.productName}
                   </p>
                   <p className="font-semibold" style={{ color: "#1e293b" }}>
                     {d.productCode}
@@ -327,17 +373,19 @@ export default function CreateBatch() {
                 <img
                   src={qrImageUrl(batchQrPayload(d), activeLayout.qr_ecc)}
                   alt="QR"
+                  crossOrigin="anonymous"
                   className="w-24 h-24 shrink-0"
                 />
               </div>
               <div className="pt-2 text-center">
                 <img
-                  src={barcodeImageUrl(retailTemplate ? d.batchNumber : (d.cartonBarcode || d.batchNumber))}
+                  src={barcodeImageUrl(d.cartonBarcode || d.batchNumber)}
                   alt="Barcode"
+                  crossOrigin="anonymous"
                   className="w-full h-11 object-contain"
                 />
                 <p className="text-[11px] font-mono tracking-wider mt-0.5" style={{ color: "#334155" }}>
-                  {retailTemplate ? d.batchNumber : (d.cartonBarcode || d.batchNumber)}
+                  {d.cartonBarcode || d.batchNumber}
                 </p>
               </div>
             </div>
@@ -365,9 +413,9 @@ export default function CreateBatch() {
                   className="mt-0.5 data-[state=checked]:bg-[#2563EB] data-[state=checked]:border-[#2563EB]"
                 />
                 <div>
-                  <p className="text-xs font-semibold text-[#0F294A]">Retail EAN-13 + QR Batch Template</p>
+                  <p className="text-xs font-semibold text-[#0F294A]">Retail Carton Barcode + QR Batch Template</p>
                   <p className="text-[11px] text-[#64748B]">
-                    Barcode shows only the batch number as EAN-13; the QR carries the batch number and full batch details.
+                    Barcode shows the carton barcode; the QR carries carton barcode, product name, carton description, item code, batch number, and expiry date.
                   </p>
                 </div>
               </label>
@@ -390,9 +438,9 @@ export default function CreateBatch() {
                   className="mt-0.5 data-[state=checked]:bg-[#2563EB] data-[state=checked]:border-[#2563EB]"
                 />
                 <div>
-                  <p className="text-xs font-semibold text-[#0F294A]">Retail EAN-13 + QR Batch Layout (60mm × 40mm)</p>
+                  <p className="text-xs font-semibold text-[#0F294A]">Retail Carton Barcode + QR Batch Layout (60mm × 40mm)</p>
                   <p className="text-[11px] text-[#64748B]">
-                    60 × 40 mm sticker: QR at the top, EAN-13 batch-number barcode below, batch number beside the barcode.
+                    60 × 40 mm sticker: QR at the top, carton barcode below, rotated 90° in top-left corner of 150 × 100 mm landscape page.
                   </p>
                 </div>
               </label>
@@ -601,12 +649,12 @@ export default function CreateBatch() {
               <div
                 data-logo-badge="true"
                 style={{ backgroundColor: "#ffffff", color: "#0f172a" }}
-                className="rounded-lg border border-slate-200 p-4 shadow-sm w-[280px]"
+                className="rounded-lg border border-slate-200 p-4 shadow-sm w-[300px] space-y-2.5"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="space-y-0.5 text-[11px] min-w-0">
                     <p className="font-bold text-xs leading-tight truncate" style={{ color: "#0f172a" }}>
-                      {product?.product_name || "PRODUCT NAME"}
+                      {cartonDescription || product?.product_name || "PRODUCT NAME"}
                     </p>
                     <p className="font-bold" style={{ color: "#0f172a" }}>
                       {product?.product_code || "ITEM-CODE"}
@@ -621,17 +669,33 @@ export default function CreateBatch() {
                   <img
                     src={qrImageUrl(batchQrPayload(labelData), layout.qr_ecc)}
                     alt="QR Preview"
+                    crossOrigin="anonymous"
                     className="w-16 h-16 shrink-0"
                   />
                 </div>
+                {(cartonBarcode || batchNumber) && (
+                  <div className="pt-1 border-t border-slate-100 text-center">
+                    <img
+                      src={barcodeImageUrl(cartonBarcode || batchNumber)}
+                      alt="Carton Barcode Preview"
+                      crossOrigin="anonymous"
+                      className="w-full h-9 object-contain"
+                    />
+                    <p className="text-[10px] font-mono tracking-wider mt-0.5" style={{ color: "#334155" }}>
+                      {cartonBarcode || batchNumber}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 
             <p className="text-[11px] font-mono text-[#64748B] break-all">
               {[
+                cartonBarcode || "CARTON-BARCODE",
+                productDisplayName || "PRODUCT-NAME",
+                cartonDescription || "CARTON-DESCRIPTION",
+                product?.product_code || "ITEM-CODE",
                 batchNumber || "BATCH-NO",
-                product?.product_name || "PRODUCT",
-                product?.product_code || "CODE",
                 expiryDate || "YYYY-MM-DD",
               ].join(" | ")}
             </p>

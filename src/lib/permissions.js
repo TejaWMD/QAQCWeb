@@ -88,7 +88,8 @@ export const appRoleOf = (user) => {
   if (user.app_role) return user.app_role;
   const label = `${user.role_label || ""} ${user.dept || ""}`.toLowerCase();
   if (/\bsales\b/.test(label)) return "sales";
-  if (/\b(qa|qc|quality|haccp)\b/.test(label)) return "qa_officer";
+  if (/\bmaintenance\b/.test(label)) return "maintenance";
+  if (/\b(qa|qc|qaqc|quality|haccp)\b|qa\s*\/?\s*qc/.test(label)) return "qa_officer";
   if (/\b(md|managing director|manager|director)\b/.test(label)) return "manager";
   if (/\bwarehouse\b/.test(label) && /\bsupervisor\b/.test(label)) return "warehouse_supervisor";
   if (/\bwarehouse\b/.test(label)) return "warehouse_staff";

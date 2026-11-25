@@ -41,7 +41,7 @@ const columns = [
     render: (r) => (r.issue_type === "Others" ? `Others: ${r.issue_other || ""}` : r.issue_type || "—"),
   },
   { key: "source_module", label: "Source" },
-  { key: "production_line", label: "Line" },
+  { key: "production_line", label: "Packaging Line" },
   { key: "shift_date", label: "Raised", render: (r) => fmtDate(r.shift_date) },
   { key: "due_date", label: "Due Date", render: (r) => fmtDate(r.due_date) },
   { key: "owner", label: "Owner" },

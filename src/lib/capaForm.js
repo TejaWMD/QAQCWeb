@@ -1,8 +1,17 @@
-import { productionLines } from "@/lib/shiftLogConstants";
-
 // Issue types for "Raise CAPA" per V3 specification.
 // "Others" is pinned at the bottom and opens a free-text "Please specify" box.
 export const OTHERS = "Others";
+
+export const CAPA_PACKAGING_LINES = [
+  "SPREAD / SEASONING POWDER / CHICKEN STOCK",
+  "MAYO",
+  "HOT SAUCE",
+  "TOMYAM / PASTA POUCH / MANUAL",
+  "SYRUP / CORDIAL / HONEY",
+  "LIME WATER",
+  "PERENCAH / 1KG HOT SAUCE",
+  "PRODUCTION 1 / 2",
+];
 
 export const SALES_VISIBLE_ISSUE_TYPES = [
   "Complaints- sensory",
@@ -56,7 +65,7 @@ export const capaFormFieldsForRole = (isSales = false) => [
         },
       ]),
   { key: "source_module", label: "Source", type: "select", options: CAPA_SOURCES, default: isSales ? "Customer Complaint" : "" },
-  { key: "production_line", label: "Production Line", type: "line", options: productionLines },
+  { key: "production_line", label: "Packaging Line", type: "select", options: CAPA_PACKAGING_LINES },
   { key: "shift_date", label: "Date Raised", type: "date", required: true },
   { key: "due_date", label: "Due Date", type: "date" },
   { key: "description", label: "Problem", type: "textarea" },

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Outlet } from "react-router-dom";
 import { Eye, Menu } from "lucide-react";
 import FactorySidebar from "@/components/factoryops/FactorySidebar";
+import NotificationBell from "@/components/NotificationBell";
 import { useAuth } from "@/lib/AuthContext";
 import { VIEW_AS_ROLES } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
@@ -65,6 +66,7 @@ export default function Layout() {
             </button>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            <NotificationBell compact />
             {user && (
               <div className="w-8 h-8 rounded-full bg-[#00e5ff]/15 text-[#00e5ff] ring-1 ring-[#00e5ff]/30 text-xs font-bold flex items-center justify-center shrink-0">
                 {user.avatar_initials || "U"}

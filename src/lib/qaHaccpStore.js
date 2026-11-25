@@ -48,9 +48,9 @@ export async function saveQaSection(key, payload) {
   } catch {
     // Ignore storage quota error
   }
-  // Persist into both `payload` (if migrated) and existing JSONB column `required.qa_payload`
-  // so Supabase ALWAYS persists QA/HACCP data even before running optional migrations.
-  const recordPatch = { payload, required: { qa_payload: payload } };
+  // Persist inside the existing JSONB column `required.qa_payload`
+  // so Supabase saves cleanly without triggering missing-column retries.
+  const recordPatch = { required: { qa_payload: payload } };
   const page = await base44.entities.FormConfig.filter({ key: storageKey }, { limit: 1 });
   const existing = (page.items || [])[0];
   if (existing?.id) {

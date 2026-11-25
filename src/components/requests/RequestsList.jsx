@@ -5,8 +5,15 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import StatusBadge from "@/components/factoryops/StatusBadge";
-import { Paperclip, Pencil, Trash2 } from "lucide-react";
-import { DOWNTIME_TYPE, ITEM_TYPE, TYPE_STYLES, statusesForType } from "@/lib/requestConstants";
+import { Paperclip, Pencil, Trash2, Lock } from "lucide-react";
+import {
+  DOWNTIME_TYPE,
+  ITEM_TYPE,
+  TYPE_STYLES,
+  canChangeRequestStatus,
+  rowOwnerTeams,
+  statusesForType,
+} from "@/lib/requestConstants";
 
 const DemoBadge = () => (
   <span className="inline-block text-[10px] font-bold tracking-wider bg-amber-50 text-amber-700 border border-amber-300 rounded px-1.5 py-0.5">DEMO</span>
@@ -120,7 +127,7 @@ export default function RequestsList({ rows, loading, user, onStatusChange, onEd
                   )}
                 </TableCell>
                 <TableCell>
-                  {canChangeRecord(user, row) ? (
+                  {canChangeRequestStatus(user, row) ? (
                     <Select value={row.status || statusesForType(row)[0]} onValueChange={(v) => onStatusChange(row, v)}>
                       <SelectTrigger className="h-8 w-[150px] bg-white border-[#E2E8F0] text-[#0F294A] text-xs">
                         <SelectValue />
@@ -132,7 +139,13 @@ export default function RequestsList({ rows, loading, user, onStatusChange, onEd
                       </SelectContent>
                     </Select>
                   ) : (
-                    <StatusBadge status={row.status} />
+                    <div
+                      className="inline-flex items-center gap-1.5"
+                      title={`Only assigned owner (${rowOwnerTeams(row).join(", ") || "Owner"}) can change status`}
+                    >
+                      <StatusBadge status={row.status} />
+                      <Lock className="w-3 h-3 text-[#64748B]" />
+                    </div>
                   )}
                 </TableCell>
                 <TableCell>

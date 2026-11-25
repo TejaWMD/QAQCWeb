@@ -10,6 +10,7 @@ export default function LabelPreview({ layout, data }) {
   const qr = Math.min(layout.qr_mm, height - 3, width * 0.62);
   const portrait = height > width;
   const batch = (data.batchNumber || "").trim().toUpperCase() || "BATCH-NO";
+  const barcodeVal = String(data.cartonBarcode || "").replace(/^\*+/, "").trim() || batch;
   const qrSize = Math.max(6, qr);
 
   return (
@@ -32,7 +33,7 @@ export default function LabelPreview({ layout, data }) {
     >
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: "0.4mm" }}>
         <div style={{ fontWeight: 700, fontSize: `${fontSize * 1.18}pt`, lineHeight: 1.1 }}>
-          {data.productName || "Product name"}
+          {data.cartonDescription || data.productName || "Product name"}
         </div>
         <div>Code: <strong>{data.productCode || "—"}</strong></div>
         <div style={{ fontWeight: 700, wordBreak: "break-all" }}>Batch: {batch}</div>
@@ -40,10 +41,14 @@ export default function LabelPreview({ layout, data }) {
         <div>Exp: {fmtDay(data.expiryDate)}</div>
         <div style={{ marginTop: "auto", paddingTop: "0.6mm" }}>
           <img
-            src={barcodeImageUrl(batch)}
-            alt={`Barcode ${batch}`}
+            src={barcodeImageUrl(barcodeVal)}
+            alt={`Barcode ${barcodeVal}`}
+            crossOrigin="anonymous"
             style={{ display: "block", width: "100%", height: portrait ? "8mm" : "6mm" }}
           />
+          <div style={{ fontSize: `${Math.max(5, fontSize * 0.78)}pt`, textAlign: "center", fontFamily: "monospace" }}>
+            {barcodeVal}
+          </div>
         </div>
       </div>
       <div
@@ -56,8 +61,9 @@ export default function LabelPreview({ layout, data }) {
         }}
       >
         <img
-          src={qrImageUrl(batchQrPayload({ ...data, batchNumber: batch }), layout.qr_ecc)}
+          src={qrImageUrl(batchQrPayload({ ...data, batchNumber: batch, cartonBarcode: barcodeVal }), layout.qr_ecc)}
           alt={`QR ${batch}`}
+          crossOrigin="anonymous"
           style={{ display: "block", width: `${qrSize}mm`, height: `${qrSize}mm` }}
         />
       </div>
