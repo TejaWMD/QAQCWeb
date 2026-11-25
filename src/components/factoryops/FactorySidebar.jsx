@@ -15,7 +15,7 @@ const factoryItems = [
   { key: "attention_dashboard", label: "Attention Dashboard", icon: Radar },
   { key: "downtime", label: "Requests & Stoppages", icon: Clock },
   { key: "qa_haccp", label: "QA & HACCP Safety", icon: ShieldCheck },
-  { key: "qaqc_queries", label: "Query", icon: MessageSquareText },
+  { key: "qaqc_queries", label: "Query Within Depts", icon: MessageSquareText },
   { key: "task_matrix", label: "Supervisor Tasks", icon: ClipboardList },
   { key: "capa_tracker", label: "CAPA Tracker", icon: AlertTriangle, badge: "capa" },
   { key: "audit_trail", label: "Audit Trail", icon: ScrollText },
@@ -34,7 +34,7 @@ const productionItems = [
   { key: "create_batch", label: "Create Batch", icon: Tag },
   { key: "batch_records", label: "Batch Records", icon: History },
   { key: "batch_scan", label: "Barcode Lookup", icon: QrCode },
-  { key: "production_line_logs", label: "Line Logs", icon: LayoutDashboard },
+  { key: "production_line_logs", label: "Daily Packaging Entry", icon: LayoutDashboard },
   { key: "yield_loss", label: "Yield & Loss", icon: Scale },
 ];
 
