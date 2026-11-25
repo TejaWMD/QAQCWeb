@@ -80,7 +80,7 @@ export default function ProductionLineLogs() {
 
       {/* Import CSV Data Modal with Destination Selector */}
       <Dialog open={importOpen} onOpenChange={setImportOpen}>
-        <DialogContent className="bg-white border-[#E2E8F0] text-[#0F294A] max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="bg-white border-[#E2E8F0] text-[#0F294A] max-w-2xl max-h-[90dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-[#0F294A]">Import CSV Data</DialogTitle>
           </DialogHeader>

@@ -179,7 +179,7 @@ export default function PackagingWasteDialog({ open, onClose, settings, movement
           </Field>
         </div>
 
-        <div className={`${panelClass} p-3 grid grid-cols-3 gap-2`}>
+        <div className={`${panelClass} p-3 grid grid-cols-1 sm:grid-cols-3 gap-2.5`}>
           <div><p className={labelClass}>Issued pieces</p><p className="text-[#0F294A] text-sm font-semibold">{usedUnits.toLocaleString("en-US")}</p></div>
           <div><p className={labelClass}>Waste pieces</p><p className="text-[#0F294A] text-sm font-semibold">{summary.waste_units.toLocaleString("en-US")}</p></div>
           <div><p className={labelClass}>Waste %</p><p className={`text-sm font-semibold ${summary.exceeded ? "text-rose-600" : "text-emerald-700"}`}>{summary.waste_pct}%</p></div>

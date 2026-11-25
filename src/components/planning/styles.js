@@ -6,7 +6,7 @@ export const selectClass = "bg-white border-[#E2E8F0] text-[#0F294A]";
 
 export const panelClass = "rounded-xl border border-[#E2E8F0] bg-white shadow-sm";
 
-export const dialogClass = "bg-white border-[#E2E8F0] text-[#0F294A] max-w-2xl max-h-[90vh] overflow-y-auto";
+export const dialogClass = "bg-white border-[#E2E8F0] text-[#0F294A] max-w-2xl max-h-[90dvh] overflow-y-auto";
 
 export const primaryButton = "bg-[#0F294A] hover:bg-[#193B68] text-white font-semibold";
 

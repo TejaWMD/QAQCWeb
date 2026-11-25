@@ -23,7 +23,7 @@ export default function ProductImportReport({ report }) {
         <CheckCircle2 className="w-4 h-4 text-emerald-700" /> {fileName} imported
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
         <Stat label="Rows imported" value={created + updated} tone="text-emerald-700" />
         <Stat label="Created" value={created} tone="text-[#0F294A]" />
         <Stat label="Updated" value={updated} tone="text-[#1D4ED8]" />

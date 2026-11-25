@@ -134,7 +134,7 @@ export default function FillCheckDialog({ open, onClose, products = [], records 
           <DialogTitle className="text-[#0F294A]">New Fill-Weight Check</DialogTitle>
         </DialogHeader>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
           <Field label="Date">
             <Input type="date" value={form.check_date} onChange={(e) => set("check_date", e.target.value)} className={inputClass} />
           </Field>

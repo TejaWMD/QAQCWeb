@@ -805,7 +805,7 @@ export default function UserManagement() {
 
       {/* Add User Dialog */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent className="w-[calc(100%-2rem)] max-w-md max-h-[90vh] overflow-y-auto bg-white border-[#E2E8F0] text-[#0F294A]">
+        <DialogContent className="w-[calc(100%-1.5rem)] max-w-md max-h-[90dvh] overflow-y-auto bg-white border-[#E2E8F0] text-[#0F294A]">
           <DialogHeader>
             <DialogTitle className="text-[#0F294A]">Add Registered User</DialogTitle>
           </DialogHeader>

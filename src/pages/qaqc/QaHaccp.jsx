@@ -905,12 +905,12 @@ export default function QaHaccp() {
 
       {/* Modal: Add / Edit Important Date */}
       <Dialog open={dateModalOpen} onOpenChange={setDateModalOpen}>
-        <DialogContent className="bg-[#111827] border-[#1e293b] text-slate-100 sm:max-w-md">
+        <DialogContent className="bg-[#111827] border-[#1e293b] text-slate-100 sm:max-w-md max-h-[90dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-white">{editingDateId ? "Edit important date" : "Add important date"}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-1">
+          <div className="space-y-3.5">
+            <div className="space-y-1.5">
               <label className="text-xs text-slate-400">Title *</label>
               <Input
                 value={newDate.title}
@@ -919,7 +919,7 @@ export default function QaHaccp() {
                 className="bg-[#0b1120] border-[#293548] text-white"
               />
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <label className="text-xs text-slate-400">Category</label>
               <Select value={newDate.category} onValueChange={(v) => setNewDate({ ...newDate, category: v })}>
                 <SelectTrigger className="bg-[#0b1120] border-[#293548] text-white">
@@ -930,7 +930,7 @@ export default function QaHaccp() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <label className="text-xs text-slate-400">Date *</label>
               <Input
                 type="date"
@@ -940,9 +940,10 @@ export default function QaHaccp() {
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setDateModalOpen(false)} className="text-slate-400">Cancel</Button>
+          <DialogFooter className="pt-2">
+            <Button type="button" variant="outline" onClick={() => setDateModalOpen(false)} className="border-[#293548] bg-transparent text-slate-300 hover:bg-[#1e293b] hover:text-white">Cancel</Button>
             <Button
+              type="button"
               onClick={async () => {
                 if (!newDate.title.trim() || !newDate.date) return toast.error("Title and date are required.");
                 if (editingDateId) {
@@ -956,7 +957,7 @@ export default function QaHaccp() {
                 setEditingDateId(null);
                 setDateModalOpen(false);
               }}
-              className="bg-cyan-500/20 border border-cyan-400/50 text-cyan-300"
+              className="bg-cyan-500/20 border border-cyan-400/50 text-cyan-300 hover:bg-cyan-500/30 font-semibold"
             >
               Save
             </Button>
@@ -966,29 +967,29 @@ export default function QaHaccp() {
 
       {/* Modal: Add / Edit HACCP Document */}
       <Dialog open={docModalOpen} onOpenChange={setDocModalOpen}>
-        <DialogContent className="bg-[#111827] border-[#1e293b] text-slate-100 sm:max-w-md">
+        <DialogContent className="bg-[#111827] border-[#1e293b] text-slate-100 sm:max-w-md max-h-[90dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-white">{editingDocId ? "Edit HACCP document" : "Add HACCP document"}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-1">
+          <div className="space-y-3.5">
+            <div className="space-y-1.5">
               <label className="text-xs text-slate-400">Document name *</label>
               <Input value={newDoc.document_name} onChange={(e) => setNewDoc({ ...newDoc, document_name: e.target.value })} className="bg-[#0b1120] border-[#293548] text-white" />
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <label className="text-xs text-slate-400">PIC</label>
               <Input value={newDoc.pic} onChange={(e) => setNewDoc({ ...newDoc, pic: e.target.value })} placeholder="Person in charge" className="bg-[#0b1120] border-[#293548] text-white" />
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <label className="text-xs text-slate-400">Remarks</label>
               <Input value={newDoc.remarks} onChange={(e) => setNewDoc({ ...newDoc, remarks: e.target.value })} className="bg-[#0b1120] border-[#293548] text-white" />
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
                 <label className="text-xs text-slate-400">Due date</label>
                 <Input type="date" value={newDoc.due_date} onChange={(e) => setNewDoc({ ...newDoc, due_date: e.target.value })} className="bg-[#0b1120] border-[#293548] text-white" />
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <label className="text-xs text-slate-400">Status</label>
                 <Select value={newDoc.status} onValueChange={(v) => setNewDoc({ ...newDoc, status: v })}>
                   <SelectTrigger className="bg-[#0b1120] border-[#293548] text-white"><SelectValue /></SelectTrigger>
@@ -997,9 +998,10 @@ export default function QaHaccp() {
               </div>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setDocModalOpen(false)} className="text-slate-400">Cancel</Button>
+          <DialogFooter className="pt-2">
+            <Button type="button" variant="outline" onClick={() => setDocModalOpen(false)} className="border-[#293548] bg-transparent text-slate-300 hover:bg-[#1e293b] hover:text-white">Cancel</Button>
             <Button
+              type="button"
               onClick={async () => {
                 if (!newDoc.document_name.trim()) return toast.error("Document name is required.");
                 if (editingDocId) {
@@ -1013,7 +1015,7 @@ export default function QaHaccp() {
                 setEditingDocId(null);
                 setDocModalOpen(false);
               }}
-              className="bg-cyan-500/20 border border-cyan-400/50 text-cyan-300"
+              className="bg-cyan-500/20 border border-cyan-400/50 text-cyan-300 hover:bg-cyan-500/30 font-semibold"
             >
               {editingDocId ? "Save changes" : "Add document"}
             </Button>
@@ -1023,12 +1025,12 @@ export default function QaHaccp() {
 
       {/* Modal: Add / Edit Retention Sample */}
       <Dialog open={sampleModalOpen} onOpenChange={setSampleModalOpen}>
-        <DialogContent className="bg-[#111827] border-[#1e293b] text-slate-100 sm:max-w-md">
+        <DialogContent className="bg-[#111827] border-[#1e293b] text-slate-100 sm:max-w-md max-h-[90dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-white">{editingSampleId ? "Edit retention sample" : "Add retention sample"}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-1">
+          <div className="space-y-3.5">
+            <div className="space-y-1.5">
               <label className="text-xs text-slate-400">Product (from Product Master) *</label>
               <SearchableSelect
                 value={newSample.product}
@@ -1040,8 +1042,8 @@ export default function QaHaccp() {
                 clearable
               />
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
                 <label className="text-xs text-slate-400">Batch no.</label>
                 <Input
                   value={newSample.batch_number}
@@ -1050,7 +1052,7 @@ export default function QaHaccp() {
                   className="bg-[#0b1120] border-[#293548] text-white"
                 />
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <label className="text-xs text-slate-400">Number of sample</label>
                 <Input
                   type="number"
@@ -1063,8 +1065,8 @@ export default function QaHaccp() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
                 <label className="text-xs text-slate-400">pH</label>
                 <Input
                   type="number"
@@ -1075,7 +1077,7 @@ export default function QaHaccp() {
                   className="bg-[#0b1120] border-[#293548] text-white"
                 />
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <label className="text-xs text-slate-400">Brix</label>
                 <Input
                   type="number"
@@ -1087,7 +1089,7 @@ export default function QaHaccp() {
                 />
               </div>
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <label className="text-xs text-slate-400">Keep until</label>
               <Input
                 type="date"
@@ -1096,7 +1098,7 @@ export default function QaHaccp() {
                 className="bg-[#0b1120] border-[#293548] text-white"
               />
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <label className="text-xs text-slate-400">Remarks</label>
               <Input
                 value={newSample.remarks}
@@ -1106,9 +1108,10 @@ export default function QaHaccp() {
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setSampleModalOpen(false)} className="text-slate-400">Cancel</Button>
+          <DialogFooter className="pt-2">
+            <Button type="button" variant="outline" onClick={() => setSampleModalOpen(false)} className="border-[#293548] bg-transparent text-slate-300 hover:bg-[#1e293b] hover:text-white">Cancel</Button>
             <Button
+              type="button"
               onClick={async () => {
                 if (!newSample.product.trim()) return toast.error("Please choose a product.");
                 const record = {
@@ -1131,7 +1134,7 @@ export default function QaHaccp() {
                 setEditingSampleId(null);
                 setSampleModalOpen(false);
               }}
-              className="bg-cyan-500/20 border border-cyan-400/50 text-cyan-300"
+              className="bg-cyan-500/20 border border-cyan-400/50 text-cyan-300 hover:bg-cyan-500/30 font-semibold"
             >
               {editingSampleId ? "Save changes" : "Add item"}
             </Button>

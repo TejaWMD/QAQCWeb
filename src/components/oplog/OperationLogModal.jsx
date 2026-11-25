@@ -108,14 +108,14 @@ export default function OperationLogModal({ open, onClose, onSave, editData }) {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[90dvh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{editData ? "Edit Operation Log Entry" : "New Operation Log Entry"}</DialogTitle>
         </DialogHeader>
 
         <div>
-          <h4 className="text-sm font-semibold text-slate-700 mb-2">Shift Details</h4>
-          <div className="grid grid-cols-3 gap-3">
+          <h4 className="text-sm font-semibold text-slate-700 mb-2.5">Shift Details</h4>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             <Field label="Date">
               <Input type="date" value={formData.ot_date} onChange={(e) => update("ot_date", e.target.value)} />
             </Field>
@@ -180,8 +180,8 @@ export default function OperationLogModal({ open, onClose, onSave, editData }) {
         </div>
 
         <div>
-          <h4 className="text-sm font-semibold text-slate-700 mb-2">Timing</h4>
-          <div className="grid grid-cols-3 gap-3">
+          <h4 className="text-sm font-semibold text-slate-700 mb-2.5">Timing</h4>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <Field label="Start">
               <Input type="datetime-local" value={formData.ot_start} onChange={(e) => update("ot_start", e.target.value)} />
             </Field>
@@ -192,7 +192,7 @@ export default function OperationLogModal({ open, onClose, onSave, editData }) {
               <Input type="number" step="0.01" value={formData.hourly_ot_rate} onChange={(e) => update("hourly_ot_rate", e.target.value)} />
             </Field>
           </div>
-          <div className="grid grid-cols-3 gap-2 mt-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mt-3">
             <SummaryItem label="OT Hrs (after 5pm)" value={m.ot_duration_hours.toFixed(2)} />
             <SummaryItem label="OT Man-Hours" value={m.ot_man_hours.toFixed(1)} />
             <SummaryItem label="OT Spend" value={`RM ${m.expenditure_ot_man_hr.toFixed(2)}`} color="text-amber-600" />
@@ -200,8 +200,8 @@ export default function OperationLogModal({ open, onClose, onSave, editData }) {
         </div>
 
         <div>
-          <h4 className="text-sm font-semibold text-slate-700 mb-2">Production Output</h4>
-          <div className="grid grid-cols-4 gap-3">
+          <h4 className="text-sm font-semibold text-slate-700 mb-2.5">Production Output</h4>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <Field label="Planned Qty">
               <Input type="number" value={formData.planned_ot_qty} onChange={(e) => update("planned_ot_qty", e.target.value)} placeholder="—" />
             </Field>
@@ -215,7 +215,7 @@ export default function OperationLogModal({ open, onClose, onSave, editData }) {
               <Input type="number" value={formData.downtime_min} onChange={(e) => update("downtime_min", e.target.value)} />
             </Field>
           </div>
-          <div className="grid grid-cols-3 gap-2 mt-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 mt-3">
             <SummaryItem label="Quality Yield %" value={`${m.ot_quality_yield_pct.toFixed(1)}%`} color={m.ot_quality_yield_pct >= 95 ? "text-green-600" : "text-red-500"} />
             <SummaryItem label="Output Variance" value={m.output_variance.toLocaleString()} color={m.output_variance >= 0 ? "text-green-600" : "text-red-500"} />
             <SummaryItem label="Achievement %" value={`${m.achievement_pct.toFixed(1)}%`} color={m.achievement_pct >= 90 ? "text-green-600" : "text-red-500"} />

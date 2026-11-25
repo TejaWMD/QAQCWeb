@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, X } from "lucide-react";
 import RackSettingsCard from "@/components/warehouse/RackSettingsCard";
@@ -57,7 +57,7 @@ export default function PackagingSettingsDialog({ open, initialTab = "categories
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose?.()}>
-      <DialogContent className="bg-white border-[#E2E8F0] text-[#0F294A] max-h-[88vh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent className="bg-white border-[#E2E8F0] text-[#0F294A] max-h-[90dvh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle className="text-[#0F294A]">Packaging stock settings</DialogTitle>
           <DialogDescription className="text-[#64748B] text-sm">
@@ -66,14 +66,14 @@ export default function PackagingSettingsDialog({ open, initialTab = "categories
         </DialogHeader>
 
         <Tabs defaultValue={initialTab}>
-          <TabsList className="bg-white border border-[#E2E8F0]">
+          <TabsList className="bg-white border border-[#E2E8F0] w-full sm:w-auto grid grid-cols-3 sm:inline-flex">
             <TabsTrigger value="categories">Categories</TabsTrigger>
             <TabsTrigger value="racks">Racks</TabsTrigger>
             <TabsTrigger value="thresholds">Thresholds</TabsTrigger>
           </TabsList>
 
           <TabsContent value="categories" className="mt-3 space-y-3">
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <Input
                 value={newCategory}
                 onChange={(e) => setNewCategory(e.target.value)}
@@ -127,12 +127,12 @@ export default function PackagingSettingsDialog({ open, initialTab = "categories
 
         {error && <p className="text-xs text-rose-600">{error}</p>}
 
-        <div className="flex justify-end gap-2">
-          <Button variant="ghost" onClick={onClose} className="text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F294A]">Close</Button>
-          <Button onClick={save} disabled={saving} className="bg-[#0F294A] hover:bg-[#193B68] text-white font-semibold">
+        <DialogFooter className="pt-2">
+          <Button type="button" variant="outline" onClick={onClose} className="border-[#E2E8F0] text-[#0F294A] hover:bg-[#F1F5F9]">Close</Button>
+          <Button type="button" onClick={save} disabled={saving} className="bg-[#0F294A] hover:bg-[#193B68] text-white font-semibold">
             {saving ? "Saving..." : "Save settings"}
           </Button>
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

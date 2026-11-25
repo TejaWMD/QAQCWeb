@@ -798,51 +798,51 @@ export default function WmsWarehouse() {
 
       {/* Goods Issued Modal */}
       <Dialog open={!!issueTarget} onOpenChange={(o) => !o && setIssueTarget(null)}>
-        <DialogContent className="bg-white border-[#E2E8F0] text-[#0F294A] sm:max-w-md">
+        <DialogContent className="bg-white border-[#E2E8F0] text-[#0F294A] sm:max-w-md max-h-[90dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Goods Issued · {issueTarget?.batch_number}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3 text-sm">
+          <div className="space-y-3.5 text-sm">
             <p className="text-xs text-slate-500">
               {issueTarget?.item_name} ({issueTarget?.item_code}) · Available:{' '}
               {formatQtyBreakdown(Number(issueTarget?.quantity) || 0, Number(issueTarget?.pcs_per_carton) || 24)}
             </p>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
                 <label className="text-xs text-slate-500">Cartons to Issue</label>
                 <Input type="number" min={0} value={issueCartons} onChange={(e) => setIssueCartons(e.target.value)} placeholder="0" />
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <label className="text-xs text-slate-500">Loose Pcs to Issue</label>
                 <Input type="number" min={0} value={issueLoose} onChange={(e) => setIssueLoose(e.target.value)} placeholder="0" />
               </div>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setIssueTarget(null)}>Cancel</Button>
-            <Button onClick={handleIssueStock} className="bg-[#0F294A] hover:bg-[#193B68] text-white">Confirm Issue</Button>
+          <DialogFooter className="pt-2">
+            <Button type="button" variant="outline" onClick={() => setIssueTarget(null)} className="border-[#E2E8F0] text-[#0F294A] hover:bg-[#F1F5F9]">Cancel</Button>
+            <Button type="button" onClick={handleIssueStock} className="bg-[#0F294A] hover:bg-[#193B68] text-white font-semibold">Confirm Issue</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Edit Stock Item Modal */}
       <Dialog open={!!editTarget} onOpenChange={(o) => !o && setEditTarget(null)}>
-        <DialogContent className="bg-white border-[#E2E8F0] text-[#0F294A] sm:max-w-md">
+        <DialogContent className="bg-white border-[#E2E8F0] text-[#0F294A] sm:max-w-md max-h-[90dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Stock · {editTarget?.batch_number}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3 text-sm">
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1">
+          <div className="space-y-3.5 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
                 <label className="text-xs text-slate-500">Cartons</label>
                 <Input type="number" min={0} value={editForm.carton} onChange={(e) => setEditForm({ ...editForm, carton: e.target.value })} />
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <label className="text-xs text-slate-500">Loose Pcs</label>
                 <Input type="number" min={0} value={editForm.loose_pcs} onChange={(e) => setEditForm({ ...editForm, loose_pcs: e.target.value })} />
               </div>
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <label className="text-xs text-slate-500">Rack</label>
               <SearchableSelect
                 value={editForm.rack}
@@ -853,9 +853,9 @@ export default function WmsWarehouse() {
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setEditTarget(null)}>Cancel</Button>
-            <Button onClick={handleSaveEditStock} className="bg-[#0F294A] hover:bg-[#193B68] text-white">Save Changes</Button>
+          <DialogFooter className="pt-2">
+            <Button type="button" variant="outline" onClick={() => setEditTarget(null)} className="border-[#E2E8F0] text-[#0F294A] hover:bg-[#F1F5F9]">Cancel</Button>
+            <Button type="button" onClick={handleSaveEditStock} className="bg-[#0F294A] hover:bg-[#193B68] text-white font-semibold">Save Changes</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

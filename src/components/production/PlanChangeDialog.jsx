@@ -85,7 +85,7 @@ export default function PlanChangeDialog({ open, onClose, order, target, machine
         </DialogHeader>
 
         <div className="space-y-3 text-sm">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <p className={labelClass}>From</p>
               <p className="text-[#64748B]">{order?.machine || "—"}</p>

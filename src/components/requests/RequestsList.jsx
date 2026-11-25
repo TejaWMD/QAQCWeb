@@ -53,7 +53,7 @@ const Details = ({ row }) => {
 };
 
 // One merged table for all three request types, each row tagged with its type.
-export default function RequestsList({ rows, loading, user, onStatusChange, onEdit, onRemove }) {
+export default function RequestsList({ rows, loading, user, onStatusChange, onEdit, onRemove, readOnly = false }) {
   return (
     <div className="bg-white rounded-xl border border-[#E2E8F0]">
       <div className="overflow-x-auto">
@@ -127,7 +127,7 @@ export default function RequestsList({ rows, loading, user, onStatusChange, onEd
                   )}
                 </TableCell>
                 <TableCell>
-                  {canChangeRequestStatus(user, row) ? (
+                  {!readOnly && canChangeRequestStatus(user, row) ? (
                     <Select value={row.status || statusesForType(row)[0]} onValueChange={(v) => onStatusChange(row, v)}>
                       <SelectTrigger className="h-8 w-[150px] bg-white border-[#E2E8F0] text-[#0F294A] text-xs">
                         <SelectValue />
@@ -138,6 +138,8 @@ export default function RequestsList({ rows, loading, user, onStatusChange, onEd
                         ))}
                       </SelectContent>
                     </Select>
+                  ) : readOnly ? (
+                    <StatusBadge status={row.status} />
                   ) : (
                     <div
                       className="inline-flex items-center gap-1.5"
@@ -149,7 +151,7 @@ export default function RequestsList({ rows, loading, user, onStatusChange, onEd
                   )}
                 </TableCell>
                 <TableCell>
-                  {canChangeRecord(user, row) && (
+                  {!readOnly && canChangeRecord(user, row) && (
                     <div className="flex items-center justify-end gap-1">
                       {onEdit && (
                         <Button

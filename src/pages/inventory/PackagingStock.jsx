@@ -357,9 +357,9 @@ export default function PackagingStock() {
               An item with movement history is deactivated instead of deleted, so past movements stay intact.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setDeleting(null)} className="text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F294A]">Cancel</Button>
-            <Button onClick={remove} disabled={busy} className="bg-rose-600 hover:bg-rose-700 text-white">
+          <DialogFooter className="pt-2">
+            <Button type="button" variant="outline" onClick={() => setDeleting(null)} className="border-[#E2E8F0] text-[#0F294A] hover:bg-[#F1F5F9]">Cancel</Button>
+            <Button type="button" onClick={remove} disabled={busy} className="bg-rose-600 hover:bg-rose-700 text-white font-semibold">
               {busy ? "Working..." : "Remove item"}
             </Button>
           </DialogFooter>

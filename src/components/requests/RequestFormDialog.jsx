@@ -526,11 +526,11 @@ export default function RequestFormDialog({ open, onOpenChange, user, config = D
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-white border-[#E2E8F0] text-[#0F294A] max-h-[85vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="bg-white border-[#E2E8F0] text-[#0F294A] max-h-[90dvh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="text-[#0F294A]">{isEdit ? "Edit Request" : "New Request"}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={submit} className="space-y-3">
+        <form onSubmit={submit} className="space-y-4">
           <div className="space-y-1.5">
             <Label className="text-xs text-[#64748B]">
               Request Type <span className="text-rose-600">*</span>
@@ -606,11 +606,11 @@ export default function RequestFormDialog({ open, onOpenChange, user, config = D
           {visibleKeys.map(renderField)}
 
           {error && <p className="text-xs text-rose-600">{error}</p>}
-          <DialogFooter>
-            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="text-[#64748B] hover:text-[#0F294A] hover:bg-[#F1F5F9]">
+          <DialogFooter className="pt-2">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="border-[#E2E8F0] text-[#0F294A] hover:bg-[#F1F5F9]">
               Cancel
             </Button>
-            <Button type="submit" disabled={saving} className="bg-[#0F294A] hover:bg-[#193B68] text-white">
+            <Button type="submit" disabled={saving} className="bg-[#0F294A] hover:bg-[#193B68] text-white font-semibold">
               {saving ? (isEdit ? "Saving..." : "Submitting...") : (isEdit ? "Save Changes" : "Submit Request")}
             </Button>
           </DialogFooter>

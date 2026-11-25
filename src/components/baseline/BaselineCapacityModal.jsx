@@ -70,20 +70,20 @@ export default function BaselineCapacityModal({ open, onClose, onSave, editData 
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-2xl p-0 gap-0 overflow-hidden [&>button:last-of-type]:hidden">
-        <DialogHeader className="bg-gray-900 px-5 py-4 flex flex-row items-center justify-between space-y-0">
+      <DialogContent className="max-w-2xl p-0 gap-0 flex flex-col max-h-[90dvh] overflow-hidden [&>button:last-of-type]:hidden">
+        <DialogHeader className="shrink-0 bg-gray-900 px-4 sm:px-6 py-4 pr-4 sm:pr-6 flex flex-row items-center justify-between space-y-0 border-b border-slate-800">
           <DialogTitle className="text-white flex items-center gap-2 text-base font-semibold">
-            <SlidersHorizontal className="w-5 h-5" />
+            <SlidersHorizontal className="w-5 h-5 shrink-0" />
             {editData ? "Edit Baseline Record" : "New Baseline Record"}
           </DialogTitle>
-          <button onClick={onClose} className="text-white/80 hover:text-white">
+          <button type="button" onClick={onClose} aria-label="Close" className="text-white/80 hover:text-white p-1.5 rounded-md hover:bg-white/10 transition-colors">
             <X className="w-5 h-5" />
           </button>
         </DialogHeader>
 
-        <div className="px-5 py-4 max-h-[60vh] overflow-y-auto">
+        <div className="px-4 sm:px-6 py-4 flex-1 min-h-0 overflow-y-auto">
           <Section title="Product & Line">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <Field label="Product Name">
                 <SearchableSelect
                   value={form.product_name}
@@ -113,14 +113,14 @@ export default function BaselineCapacityModal({ open, onClose, onSave, editData 
           </Section>
 
           <Section title="Packaging Configuration">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <Field label="Packaging Configuration Type"><Input value={form.packaging_config_type} onChange={(e) => set("packaging_config_type", e.target.value)} /></Field>
               <Field label="Next Step"><Input value={form.next_step} onChange={(e) => set("next_step", e.target.value)} /></Field>
             </div>
           </Section>
 
           <Section title="Time & Manpower">
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
               <Field label="Machine Set-up Time (mins)"><Input type="number" value={form.machine_setup_time_min} onChange={(e) => set("machine_setup_time_min", e.target.value)} /></Field>
               <Field label="Acceptable Downtime (mins)"><Input type="number" value={form.acceptable_downtime_min} onChange={(e) => set("acceptable_downtime_min", e.target.value)} /></Field>
               <Field label="Manpower Req (Headcount)"><Input type="number" value={form.manpower_req} onChange={(e) => set("manpower_req", e.target.value)} /></Field>
@@ -128,18 +128,18 @@ export default function BaselineCapacityModal({ open, onClose, onSave, editData 
           </Section>
 
           <Section title="Throughput Rates">
-            <div className="grid grid-cols-2 gap-4 mb-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-3">
               <Field label="Unit Per Cycle (UPC)"><Input value={form.unit_per_cycle} onChange={(e) => set("unit_per_cycle", e.target.value)} placeholder="e.g. 6 units/cycle" /></Field>
               <Field label="Unit Per Minute (UPM)"><Input type="number" value={form.unit_per_minute} onChange={(e) => set("unit_per_minute", e.target.value)} /></Field>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <Field label="Theoretical UPH"><Input type="number" value={form.theoretical_uph} onChange={(e) => set("theoretical_uph", e.target.value)} /></Field>
               <Field label="Adjusted / Estimated UPH"><Input type="number" value={form.adjusted_uph} onChange={(e) => set("adjusted_uph", e.target.value)} /></Field>
             </div>
           </Section>
 
           <Section title="Changeover & Remarks">
-            <div className="grid grid-cols-2 gap-4 mb-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-3">
               <Field label="Changeover Complexity">
                 <Select value={form.changeover_complexity} onValueChange={(v) => set("changeover_complexity", v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
@@ -158,9 +158,9 @@ export default function BaselineCapacityModal({ open, onClose, onSave, editData 
           </Section>
         </div>
 
-        <div className="px-5 py-4 flex justify-end gap-3 border-t border-slate-200">
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSave} disabled={saving} className="bg-sky-600 hover:bg-sky-700 text-white">
+        <div className="shrink-0 px-4 sm:px-6 py-3.5 flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5 border-t border-slate-200">
+          <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+          <Button type="button" onClick={handleSave} disabled={saving} className="bg-sky-600 hover:bg-sky-700 text-white font-semibold">
             {saving ? "Saving..." : "Save Record"}
           </Button>
         </div>

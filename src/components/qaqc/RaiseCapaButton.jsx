@@ -51,7 +51,7 @@ export default function RaiseCapaButton({ onRaised }) {
 
   return (
     <>
-      <Button onClick={() => setOpen(true)} className="bg-amber-500 hover:bg-[#e68a2e] text-[#0F294A] font-semibold">
+      <Button onClick={() => setOpen(true)} className="bg-amber-600 hover:bg-amber-700 text-white font-semibold">
         <AlertTriangle className="w-4 h-4 mr-1.5" /> Raise CAPA
       </Button>
       <AddRecordDialog open={open} onOpenChange={setOpen} title="Raise CAPA" fields={capaFormFields} onSubmit={submit} />

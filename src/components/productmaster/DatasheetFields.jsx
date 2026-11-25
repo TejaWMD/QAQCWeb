@@ -94,7 +94,7 @@ export default function DatasheetFields({ form, set, brands = [], customers = []
         </Field>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
         <Field label="Pcs per Carton">
           <Input type="number" min="0" value={form.carton_size} onChange={(e) => set("carton_size", e.target.value)} className={inputClass} placeholder="12" />
         </Field>
@@ -112,7 +112,7 @@ export default function DatasheetFields({ form, set, brands = [], customers = []
         </Field>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
         <Field label="Batch Code">
           <Input value={form.batch_prefix} onChange={(e) => set("batch_prefix", e.target.value.toUpperCase().slice(0, 6))} className={inputClass} placeholder="RTP" />
         </Field>

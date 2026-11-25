@@ -581,12 +581,12 @@ export default function TaskMatrix() {
 
       {/* Add / Edit To-Do Modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="bg-[#111827] border-[#1e293b] text-slate-100 sm:max-w-md">
+        <DialogContent className="bg-[#111827] border-[#1e293b] text-slate-100 sm:max-w-md max-h-[90dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-white">{editingId ? "Edit to-do" : "Add to-do"}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-1">
+          <div className="space-y-3.5">
+            <div className="space-y-1.5">
               <label className="text-xs text-slate-400">Task *</label>
               <Input
                 value={form.title}
@@ -595,7 +595,7 @@ export default function TaskMatrix() {
                 className="bg-[#0b1120] border-[#293548] text-white"
               />
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <label className="text-xs text-slate-400">Subtitle / Details</label>
               <Input
                 value={form.notes}
@@ -604,8 +604,8 @@ export default function TaskMatrix() {
                 className="bg-[#0b1120] border-[#293548] text-white"
               />
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
                 <label className="text-xs text-slate-400">Member / Owner</label>
                 {canCompileAll ? (
                   <Select value={form.owner} onValueChange={(v) => setForm({ ...form, owner: v })}>
@@ -626,7 +626,7 @@ export default function TaskMatrix() {
                   />
                 )}
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <label className="text-xs text-slate-400">Source</label>
                 <Select value={form.module} onValueChange={(v) => setForm({ ...form, module: v })}>
                   <SelectTrigger className="bg-[#0b1120] border-[#293548] text-white">
@@ -640,8 +640,8 @@ export default function TaskMatrix() {
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
                 <label className="text-xs text-slate-400">Due (Time / Label)</label>
                 <Input
                   value={form.production_line}
@@ -650,7 +650,7 @@ export default function TaskMatrix() {
                   className="bg-[#0b1120] border-[#293548] text-white"
                 />
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <label className="text-xs text-slate-400">Category / Status</label>
                 <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
                   <SelectTrigger className="bg-[#0b1120] border-[#293548] text-white">
@@ -665,13 +665,14 @@ export default function TaskMatrix() {
               </div>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setModalOpen(false)} className="text-slate-400">
+          <DialogFooter className="pt-2">
+            <Button type="button" variant="outline" onClick={() => setModalOpen(false)} className="border-[#293548] bg-transparent text-slate-300 hover:bg-[#1e293b] hover:text-white">
               Cancel
             </Button>
             <Button
+              type="button"
               onClick={handleSaveTask}
-              className="bg-cyan-500/20 border border-cyan-400/50 text-cyan-300 hover:bg-cyan-500/30"
+              className="bg-cyan-500/20 border border-cyan-400/50 text-cyan-300 hover:bg-cyan-500/30 font-semibold"
             >
               {editingId ? "Save changes" : "Add to-do"}
             </Button>

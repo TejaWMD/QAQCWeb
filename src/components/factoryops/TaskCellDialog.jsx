@@ -81,7 +81,7 @@ export default function TaskCellDialog({ task, onOpenChange, onUpdated }) {
           <DialogTitle className="text-[#0F294A]">{task.title}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3 text-sm">
-          <div className="grid grid-cols-2 gap-2 text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
             <div><span className="text-[#64748B]">Supervisor:</span> <span className="text-[#334155]">{task.owner || "Unassigned"}</span></div>
             <div><span className="text-[#64748B]">Module:</span> <span className="text-[#334155]">{task.module || "—"}</span></div>
             <div><span className="text-[#64748B]">Due Date:</span> <span className="text-[#334155]">{task.due_date || "—"}</span></div>
@@ -98,14 +98,14 @@ export default function TaskCellDialog({ task, onOpenChange, onUpdated }) {
             A task can only be closed by uploading evidence. A manager then marks it Verified.
           </p>
         </div>
-        <DialogFooter className="gap-2">
+        <DialogFooter className="sm:flex-wrap gap-2.5 pt-2">
           {task.status === "Open" && canEdit && (
-            <Button disabled={busy} onClick={() => update("In Progress")} className="bg-[#0F294A] hover:bg-[#193B68] text-white">
+            <Button disabled={busy} onClick={() => update("In Progress")} className="bg-[#0F294A] hover:bg-[#193B68] text-white font-semibold">
               <PlayCircle className="w-4 h-4 mr-1" /> Start Task
             </Button>
           )}
           {canEdit && !["Completed", "Verified"].includes(task.status) && (
-            <Button disabled={busy || !hasEvidence} onClick={() => update("Completed")} className="bg-amber-500 hover:bg-amber-600 text-white">
+            <Button disabled={busy || !hasEvidence} onClick={() => update("Completed")} className="bg-amber-600 hover:bg-amber-700 text-white font-semibold">
               <BadgeCheck className="w-4 h-4 mr-1" /> Upload Evidence &amp; Complete
             </Button>
           )}
@@ -113,7 +113,7 @@ export default function TaskCellDialog({ task, onOpenChange, onUpdated }) {
             <Button
               disabled={busy || !hasEvidence || task.status !== "Completed"}
               onClick={() => update("Verified")}
-              className="bg-emerald-500 hover:bg-[#00e08a] text-[#0F294A]"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
             >
               <BadgeCheck className="w-4 h-4 mr-1" /> Mark Verified
             </Button>

@@ -67,9 +67,9 @@ export default function StockCheckDialog({ open, item, user, onClose, onSaved })
           {error && <p className="text-xs text-rose-600">{error}</p>}
         </div>
 
-        <DialogFooter>
-          <Button variant="ghost" onClick={onClose} className="text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F294A]">Cancel</Button>
-          <Button onClick={save} disabled={saving} className="bg-amber-500 hover:bg-[#f58a1f] text-[#0F294A] font-semibold">
+        <DialogFooter className="pt-2">
+          <Button type="button" variant="outline" onClick={onClose} className="border-[#E2E8F0] text-[#0F294A] hover:bg-[#F1F5F9]">Cancel</Button>
+          <Button type="button" onClick={save} disabled={saving} className="bg-amber-600 hover:bg-amber-700 text-white font-semibold">
             {saving ? "Saving..." : "Send for approval"}
           </Button>
         </DialogFooter>

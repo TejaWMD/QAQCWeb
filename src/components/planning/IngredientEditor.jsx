@@ -32,15 +32,17 @@ export default function IngredientEditor({ value = [], onChange, materials = [] 
     <div className="space-y-2">
       {value.length === 0 && <p className="text-xs text-[#64748B]">No ingredients yet.</p>}
       {value.map((row, idx) => (
-        <div key={idx} className="grid grid-cols-[1fr_96px_88px_36px] gap-2 items-center">
-          <SearchableSelect
-            value={row.material_id || row.material_name || ""}
-            onValueChange={(v) => pickMaterial(idx, v)}
-            options={materialOptions}
-            placeholder="Select material..."
-            searchPlaceholder="Search material..."
-            allowCustom
-          />
+        <div key={idx} className="grid grid-cols-[1fr_88px_36px] sm:grid-cols-[1fr_96px_88px_36px] gap-2 items-center">
+          <div className="col-span-3 sm:col-span-1 min-w-0">
+            <SearchableSelect
+              value={row.material_id || row.material_name || ""}
+              onValueChange={(v) => pickMaterial(idx, v)}
+              options={materialOptions}
+              placeholder="Select material..."
+              searchPlaceholder="Search material..."
+              allowCustom
+            />
+          </div>
           <Input
             type="number"
             min="0"

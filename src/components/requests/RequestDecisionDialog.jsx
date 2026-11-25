@@ -120,7 +120,7 @@ export default function RequestDecisionDialog({ open, onOpenChange, request, use
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-white border-[#E2E8F0] text-[#0F294A] max-h-[85vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="bg-white border-[#E2E8F0] text-[#0F294A] max-h-[90dvh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="text-[#0F294A]">Review Request</DialogTitle>
         </DialogHeader>
@@ -164,22 +164,22 @@ export default function RequestDecisionDialog({ open, onOpenChange, request, use
           />
         </div>
         {error && <p className="text-xs text-rose-600">{error}</p>}
-        <DialogFooter className="sm:flex-wrap gap-2">
+        <DialogFooter className="sm:flex-wrap gap-2.5 pt-2">
           {request.status === "Submitted" && (
-            <Button type="button" disabled={saving} onClick={() => decide("Start Review")} className="bg-white border border-[#E2E8F0] text-[#64748B] hover:text-[#0F294A]">
+            <Button type="button" variant="outline" disabled={saving} onClick={() => decide("Start Review")} className="bg-white border-[#E2E8F0] text-[#0F294A] hover:bg-[#F1F5F9]">
               <Clock className="w-4 h-4 mr-1" /> Start Review
             </Button>
           )}
-          <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="text-[#64748B] hover:text-[#0F294A] hover:bg-[#F1F5F9]">
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="border-[#E2E8F0] text-[#0F294A] hover:bg-[#F1F5F9]">
             Cancel
           </Button>
-          <Button type="button" disabled={saving} onClick={() => decide("Approve")} className="bg-emerald-500 hover:bg-[#00e58f] text-[#0F294A]">
+          <Button type="button" disabled={saving} onClick={() => decide("Approve")} className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold">
             <CheckCircle2 className="w-4 h-4 mr-1" /> Approve
           </Button>
-          <Button type="button" disabled={saving} onClick={() => decide("Return")} className="bg-amber-500 hover:bg-[#f58a1f] text-[#0F294A]">
+          <Button type="button" disabled={saving} onClick={() => decide("Return")} className="bg-amber-600 hover:bg-amber-700 text-white font-semibold">
             <Undo2 className="w-4 h-4 mr-1" /> Return
           </Button>
-          <Button type="button" disabled={saving} onClick={() => decide("Reject")} className="bg-rose-600 hover:bg-[#e53939] text-white">
+          <Button type="button" disabled={saving} onClick={() => decide("Reject")} className="bg-rose-600 hover:bg-rose-700 text-white font-semibold">
             <XCircle className="w-4 h-4 mr-1" /> Reject
           </Button>
         </DialogFooter>

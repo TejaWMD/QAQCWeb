@@ -59,7 +59,7 @@ export default function StockUseDialog({ open, item, user, threshold = 0, onClos
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1">
             <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Date *</label>
             <Input type="date" value={form.date} onChange={(e) => set("date", e.target.value)} className={FIELD} />
@@ -68,7 +68,7 @@ export default function StockUseDialog({ open, item, user, threshold = 0, onClos
             <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Quantity *</label>
             <Input type="number" min="0" step="0.001" value={form.quantity} onChange={(e) => set("quantity", e.target.value)} placeholder="0" className={FIELD} />
           </div>
-          <div className="col-span-2 space-y-1">
+          <div className="sm:col-span-2 space-y-1">
             <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Remarks</label>
             <Input value={form.remarks} onChange={(e) => set("remarks", e.target.value)} placeholder="Optional" className={FIELD} />
           </div>
@@ -81,9 +81,9 @@ export default function StockUseDialog({ open, item, user, threshold = 0, onClos
         )}
         {error && <p className="text-xs text-rose-600">{error}</p>}
 
-        <DialogFooter>
-          <Button variant="ghost" onClick={onClose} className="text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F294A]">Cancel</Button>
-          <Button onClick={save} disabled={saving} className="bg-[#0F294A] hover:bg-[#193B68] text-white font-semibold">
+        <DialogFooter className="pt-2">
+          <Button type="button" variant="outline" onClick={onClose} className="border-[#E2E8F0] text-[#0F294A] hover:bg-[#F1F5F9]">Cancel</Button>
+          <Button type="button" onClick={save} disabled={saving} className="bg-[#0F294A] hover:bg-[#193B68] text-white font-semibold">
             {saving ? "Saving..." : needsApproval ? "Send for approval" : "Record use"}
           </Button>
         </DialogFooter>

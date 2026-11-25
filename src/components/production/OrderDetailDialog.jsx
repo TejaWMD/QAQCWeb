@@ -139,7 +139,7 @@ export default function OrderDetailDialog({ order, products = [], recipes = [], 
 
   return (
     <Dialog open onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="bg-white border-[#E2E8F0] text-[#0F294A] max-w-2xl max-h-[92vh] overflow-y-auto">
+      <DialogContent className="bg-white border-[#E2E8F0] text-[#0F294A] max-w-2xl max-h-[90dvh] overflow-y-auto">
         <DialogHeader>
           <div className="flex flex-wrap items-center gap-2">
             <DialogTitle className="text-[#0F294A]">{order.order_number}</DialogTitle>
@@ -192,7 +192,7 @@ export default function OrderDetailDialog({ order, products = [], recipes = [], 
                 </Select>
               </div>
             </div>
-            <div className="flex justify-end gap-2">
+            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
               <Button variant="outline" size="sm" onClick={() => setEditing(false)} className={subtleButton} disabled={busy}>
                 Cancel
               </Button>
@@ -269,19 +269,19 @@ export default function OrderDetailDialog({ order, products = [], recipes = [], 
 
         {order.notes && <p className="text-xs text-[#64748B]">{order.notes}</p>}
 
-        <DialogFooter className="flex-wrap gap-2">
+        <DialogFooter className="sm:flex-wrap gap-2.5 pt-2">
           {confirmDelete ? (
             <>
-              <span className="text-xs text-[#ff8a8a] mr-auto">Move this order to Recently Deleted?</span>
+              <span className="text-xs text-[#ff8a8a] sm:mr-auto self-center">Move this order to Recently Deleted?</span>
               <Button variant="outline" onClick={() => setConfirmDelete(false)} className={subtleButton} disabled={busy}>Keep</Button>
-              <Button onClick={remove} disabled={busy} className="bg-rose-600 hover:bg-[#d93b3b] text-white">
+              <Button onClick={remove} disabled={busy} className="bg-rose-600 hover:bg-[#d93b3b] text-white font-semibold">
                 {busy ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : <Trash2 className="w-4 h-4 mr-1.5" />} Delete
               </Button>
             </>
           ) : (
             <>
               {canDeleteOrders(user) && order.status !== "Completed" && (
-                <Button variant="ghost" onClick={() => setConfirmDelete(true)} className="text-[#ff8a8a] hover:bg-rose-600/10 mr-auto">
+                <Button variant="ghost" onClick={() => setConfirmDelete(true)} className="text-[#ff8a8a] hover:bg-rose-600/10 sm:mr-auto">
                   <Trash2 className="w-4 h-4 mr-1.5" /> Delete
                 </Button>
               )}
@@ -305,7 +305,7 @@ export default function OrderDetailDialog({ order, products = [], recipes = [], 
                   <CheckCircle2 className="w-4 h-4 mr-1.5" /> Finish
                 </Button>
               )}
-              {order.status === "Completed" && <span className="text-xs text-emerald-700 mr-auto">Completed {order.actual_end ? fmtTime(order.actual_end) : ""}</span>}
+              {order.status === "Completed" && <span className="text-xs text-emerald-700 sm:mr-auto self-center">Completed {order.actual_end ? fmtTime(order.actual_end) : ""}</span>}
               <Button variant="outline" onClick={onClose} className={subtleButton}>Close</Button>
             </>
           )}

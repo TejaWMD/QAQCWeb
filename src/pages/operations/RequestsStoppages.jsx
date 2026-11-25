@@ -24,6 +24,7 @@ import {
 import {
   REQUEST_TYPES,
   DOWNTIME_TYPE,
+  ITEM_TYPE,
   DOWNTIME_STATUSES,
   ITEM_STATUSES,
   APPROVAL_STATUSES,
@@ -31,6 +32,7 @@ import {
   canChangeRequestStatus,
   canDecideRequests,
   coversTeam,
+  isPurchaseDeptUser,
   requestSummary,
   rowOwnerTeams,
   DEFAULT_FORM_CONFIG,
@@ -106,32 +108,40 @@ export default function RequestsStoppages() {
     };
   }, []);
 
-  const rows = useMemo(
-    () => [
-      ...downtime.map((d) => ({ ...d, _type: DOWNTIME_TYPE })),
-      ...requests.map((r) => ({ ...r, _type: r.request_type })),
-    ].sort(
+  const purchaseView = isPurchaseDeptUser(user);
+
+  const rows = useMemo(() => {
+    const merged = purchaseView
+      ? requests
+          .filter((r) => r.request_type === ITEM_TYPE && r.status === "Approved")
+          .map((r) => ({ ...r, _type: r.request_type }))
+      : [
+          ...downtime.map((d) => ({ ...d, _type: DOWNTIME_TYPE })),
+          ...requests.map((r) => ({ ...r, _type: r.request_type })),
+        ];
+    return merged.sort(
       (a, b) =>
         (b.shift_date || "").localeCompare(a.shift_date || "") ||
         (b.created_date || "").localeCompare(a.created_date || "")
-    ),
-    [downtime, requests]
-  );
+    );
+  }, [downtime, requests, purchaseView]);
 
   const visible = rows.filter(
     (r) =>
-      (typeFilter === "all" || r._type === typeFilter) &&
-      (statusFilter === "all" || r.status === statusFilter) &&
+      (purchaseView || typeFilter === "all" || r._type === typeFilter) &&
+      (purchaseView || statusFilter === "all" || r.status === statusFilter) &&
       (evidenceFilter === "all" ||
         (evidenceFilter === "has" ? (r.evidence_files || []).length > 0 : (r.evidence_files || []).length === 0))
   );
 
   // Incoming: routed to a team this member covers, still open, and not their own.
-  const incoming = requests.filter(
-    (r) => r.requester_id !== user?.id && coversTeam(user, r.owners) && OPEN_REQUEST_STATUSES.includes(r.status)
-  );
+  const incoming = purchaseView
+    ? []
+    : requests.filter(
+        (r) => r.requester_id !== user?.id && coversTeam(user, r.owners) && OPEN_REQUEST_STATUSES.includes(r.status)
+      );
 
-  const reviewer = canDecideRequests(user);
+  const reviewer = !purchaseView && canDecideRequests(user);
 
   const audit = async (action, recordId, details, oldValue = "", newValue = "") => {
     try {
@@ -250,9 +260,11 @@ export default function RequestsStoppages() {
               <Settings2 className="w-4 h-4 mr-1.5" /> Form Settings
             </Button>
           )}
-          <Button onClick={() => { setEditing(null); setFormOpen(true); }} className="bg-[#0F294A] hover:bg-[#193B68] text-white">
-            <Plus className="w-4 h-4 mr-1.5" /> New Request
-          </Button>
+          {!purchaseView && (
+            <Button onClick={() => { setEditing(null); setFormOpen(true); }} className="bg-[#0F294A] hover:bg-[#193B68] text-white">
+              <Plus className="w-4 h-4 mr-1.5" /> New Request
+            </Button>
+          )}
         </div>
       </div>
 
@@ -300,7 +312,7 @@ export default function RequestsStoppages() {
       <Tabs defaultValue="all">
         <TabsList className="bg-white border border-[#E2E8F0]">
           <TabsTrigger value="all" className="data-[state=active]:bg-[#EBF3FF] data-[state=active]:text-[#1D4ED8] text-[#64748B]">
-            All Requests ({rows.length})
+            {purchaseView ? `Approved Item / Material Requests (${rows.length})` : `All Requests (${rows.length})`}
           </TabsTrigger>
           {reviewer && (
             <TabsTrigger value="incoming" className="data-[state=active]:bg-[#EBF3FF] data-[state=active]:text-[#1D4ED8] text-[#64748B]">
@@ -310,28 +322,36 @@ export default function RequestsStoppages() {
         </TabsList>
         <TabsContent value="all" className="space-y-3 mt-3">
           <div className="flex flex-wrap items-center gap-2">
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="h-8 w-[190px] bg-white border-[#E2E8F0] text-[#0F294A] text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All types</SelectItem>
-                {REQUEST_TYPES.map((t) => (
-                  <SelectItem key={t} value={t}>{t}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="h-8 w-[170px] bg-white border-[#E2E8F0] text-[#0F294A] text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All statuses</SelectItem>
-                {ALL_STATUSES.map((s) => (
-                  <SelectItem key={s} value={s}>{s}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {purchaseView ? (
+              <span className="inline-flex items-center h-8 px-3 rounded-md border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 text-xs font-medium">
+                Purchase Dept View · Approved Item / Material Requests Only
+              </span>
+            ) : (
+              <>
+                <Select value={typeFilter} onValueChange={setTypeFilter}>
+                  <SelectTrigger className="h-8 w-[190px] bg-white border-[#E2E8F0] text-[#0F294A] text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All types</SelectItem>
+                    {REQUEST_TYPES.map((t) => (
+                      <SelectItem key={t} value={t}>{t}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="h-8 w-[170px] bg-white border-[#E2E8F0] text-[#0F294A] text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All statuses</SelectItem>
+                    {ALL_STATUSES.map((s) => (
+                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </>
+            )}
             <Select value={evidenceFilter} onValueChange={setEvidenceFilter}>
               <SelectTrigger className="h-8 w-[160px] bg-white border-[#E2E8F0] text-[#0F294A] text-xs">
                 <SelectValue />
@@ -347,6 +367,7 @@ export default function RequestsStoppages() {
             rows={visible}
             loading={loading}
             user={user}
+            readOnly={purchaseView}
             onStatusChange={changeStatus}
             onEdit={(row) => {
               setEditing(row);

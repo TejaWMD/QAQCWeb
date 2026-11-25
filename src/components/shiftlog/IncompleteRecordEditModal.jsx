@@ -125,12 +125,12 @@ export default function IncompleteRecordEditModal({ record, open, onClose, onSav
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90dvh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-slate-800">Edit Shift Log</DialogTitle>
         </DialogHeader>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
           <Field label="Date">
             <Input type="date" value={form.shift_date} onChange={(e) => set("shift_date", e.target.value)} />
           </Field>
@@ -231,7 +231,7 @@ export default function IncompleteRecordEditModal({ record, open, onClose, onSav
 
         <div>
           <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Task Checklist</p>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-slate-50 border border-slate-200 rounded-lg p-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 bg-slate-50 border border-slate-200 rounded-lg p-3">
             {TASK_CHECKLIST.map((t) => (
               <label key={t.key} className="flex items-center gap-2 cursor-pointer">
                 <Checkbox checked={form[t.key]} onCheckedChange={(c) => set(t.key, c === true)} />

@@ -41,14 +41,14 @@ export default function LabelSettingsDialog({ open, onClose, settings, user, onS
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="bg-white border-[#E2E8F0] text-[#0F294A] max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="bg-white border-[#E2E8F0] text-[#0F294A] max-w-3xl max-h-[90dvh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-[#0F294A]">Label Settings</DialogTitle>
           <p className="text-xs text-[#64748B]">Sizes are in millimetres, the font size in points. Only Admin can change these.</p>
         </DialogHeader>
 
-        <div className="space-y-2">
-          <div className="space-y-1 max-w-xs">
+        <div className="space-y-3">
+          <div className="space-y-1.5 max-w-xs">
             <label className={labelClass}>Default layout for all products</label>
             <Select value={defaultId} onValueChange={setDefaultId}>
               <SelectTrigger className={selectClass}><SelectValue /></SelectTrigger>
@@ -59,22 +59,40 @@ export default function LabelSettingsDialog({ open, onClose, settings, user, onS
           </div>
 
           <div className="rounded-lg border border-[#E2E8F0] overflow-hidden">
-            <div className="hidden sm:grid grid-cols-[1.4fr_repeat(4,0.7fr)_0.7fr] gap-2 px-2 py-1.5 bg-white text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">
+            <div className="hidden sm:grid grid-cols-[1.4fr_repeat(4,0.7fr)_0.7fr] gap-2 px-3 py-2 bg-white text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">
               <span>Layout</span><span>Width mm</span><span>Height mm</span><span>Font pt</span><span>QR mm</span><span>ECC</span>
             </div>
             {layouts.map((layout) => (
-              <div key={layout.id} className="grid grid-cols-2 sm:grid-cols-[1.4fr_repeat(4,0.7fr)_0.7fr] gap-2 px-2 py-1.5 border-t border-[#E2E8F0] items-center">
-                <Input value={layout.name} onChange={(e) => patch(layout.id, "name", e.target.value)} className={`${inputClass} h-8 text-sm`} />
-                <Input type="number" min="20" step="0.5" value={layout.width_mm} onChange={(e) => patch(layout.id, "width_mm", e.target.value)} className={`${inputClass} h-8 text-sm`} />
-                <Input type="number" min="20" step="0.5" value={layout.height_mm} onChange={(e) => patch(layout.id, "height_mm", e.target.value)} className={`${inputClass} h-8 text-sm`} />
-                <Input type="number" min="4" step="0.5" value={layout.font_size} onChange={(e) => patch(layout.id, "font_size", e.target.value)} className={`${inputClass} h-8 text-sm`} />
-                <Input type="number" min="5" step="0.5" value={layout.qr_mm} onChange={(e) => patch(layout.id, "qr_mm", e.target.value)} className={`${inputClass} h-8 text-sm`} />
-                <Select value={layout.qr_ecc || "M"} onValueChange={(v) => patch(layout.id, "qr_ecc", v)}>
-                  <SelectTrigger className={`${selectClass} h-8 text-sm`}><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {ECC_LEVELS.map((level) => <SelectItem key={level} value={level}>{level}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+              <div key={layout.id} className="grid grid-cols-2 sm:grid-cols-[1.4fr_repeat(4,0.7fr)_0.7fr] gap-2.5 p-3 sm:px-3 sm:py-2 border-t border-[#E2E8F0] items-center">
+                <div className="col-span-2 sm:col-span-1 space-y-1">
+                  <span className="sm:hidden text-[10px] uppercase tracking-wider text-[#64748B] font-semibold block">Layout</span>
+                  <Input value={layout.name} onChange={(e) => patch(layout.id, "name", e.target.value)} className={`${inputClass} h-8 text-sm`} />
+                </div>
+                <div className="space-y-1">
+                  <span className="sm:hidden text-[10px] uppercase tracking-wider text-[#64748B] font-semibold block">Width mm</span>
+                  <Input type="number" min="20" step="0.5" value={layout.width_mm} onChange={(e) => patch(layout.id, "width_mm", e.target.value)} className={`${inputClass} h-8 text-sm`} />
+                </div>
+                <div className="space-y-1">
+                  <span className="sm:hidden text-[10px] uppercase tracking-wider text-[#64748B] font-semibold block">Height mm</span>
+                  <Input type="number" min="20" step="0.5" value={layout.height_mm} onChange={(e) => patch(layout.id, "height_mm", e.target.value)} className={`${inputClass} h-8 text-sm`} />
+                </div>
+                <div className="space-y-1">
+                  <span className="sm:hidden text-[10px] uppercase tracking-wider text-[#64748B] font-semibold block">Font pt</span>
+                  <Input type="number" min="4" step="0.5" value={layout.font_size} onChange={(e) => patch(layout.id, "font_size", e.target.value)} className={`${inputClass} h-8 text-sm`} />
+                </div>
+                <div className="space-y-1">
+                  <span className="sm:hidden text-[10px] uppercase tracking-wider text-[#64748B] font-semibold block">QR mm</span>
+                  <Input type="number" min="5" step="0.5" value={layout.qr_mm} onChange={(e) => patch(layout.id, "qr_mm", e.target.value)} className={`${inputClass} h-8 text-sm`} />
+                </div>
+                <div className="space-y-1">
+                  <span className="sm:hidden text-[10px] uppercase tracking-wider text-[#64748B] font-semibold block">ECC</span>
+                  <Select value={layout.qr_ecc || "M"} onValueChange={(v) => patch(layout.id, "qr_ecc", v)}>
+                    <SelectTrigger className={`${selectClass} h-8 text-sm`}><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {ECC_LEVELS.map((level) => <SelectItem key={level} value={level}>{level}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             ))}
           </div>

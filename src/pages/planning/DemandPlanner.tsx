@@ -443,12 +443,12 @@ export default function DemandPlanner() {
       </Card>
 
       <ForecastDialog open={forecastOpen} onOpenChange={(v: boolean) => !v && !savingForecast && setForecastOpen(false)}>
-        <ForecastDialogContent className="sm:max-w-md bg-white">
+        <ForecastDialogContent className="sm:max-w-md bg-white border-[#E2E8F0] text-[#0F294A] max-h-[90dvh] overflow-y-auto">
           <ForecastDialogHeader>
             <ForecastDialogTitle>Set Forecast & Reorder</ForecastDialogTitle>
           </ForecastDialogHeader>
-          <form onSubmit={handleSaveForecast} className="space-y-3">
-            <div className="space-y-1">
+          <form onSubmit={handleSaveForecast} className="space-y-4">
+            <div className="space-y-1.5">
               <label className="text-xs font-medium text-slate-600">Product *</label>
               <SearchableSelect
                 value={forecastForm.product_id}
@@ -467,8 +467,8 @@ export default function DemandPlanner() {
                 searchPlaceholder="Search code or name..."
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
                 <label className="text-xs font-medium text-slate-600">Forecast (Ctns)</label>
                 <Input
                   type="number"
@@ -477,7 +477,7 @@ export default function DemandPlanner() {
                   onChange={(e) => setForecastForm({ ...forecastForm, forecast_quantity: e.target.value })}
                 />
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <label className="text-xs font-medium text-slate-600">Reorder Level</label>
                 <Input
                   type="number"
@@ -486,7 +486,7 @@ export default function DemandPlanner() {
                   onChange={(e) => setForecastForm({ ...forecastForm, reorder_level: e.target.value })}
                 />
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <label className="text-xs font-medium text-slate-600">Buffer Multiplier</label>
                 <Input
                   type="number"
@@ -496,7 +496,7 @@ export default function DemandPlanner() {
                   onChange={(e) => setForecastForm({ ...forecastForm, buffer_percentage: e.target.value })}
                 />
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <label className="text-xs font-medium text-slate-600">Current Stock (Ctns)</label>
                 <Input
                   type="number"
@@ -511,7 +511,7 @@ export default function DemandPlanner() {
               <Button type="button" variant="outline" onClick={() => setForecastOpen(false)} disabled={savingForecast}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={savingForecast}>
+              <Button type="submit" disabled={savingForecast} className="bg-[#0F294A] hover:bg-[#193B68] text-white font-semibold">
                 {savingForecast ? 'Saving...' : 'Save'}
               </Button>
             </ForecastDialogFooter>

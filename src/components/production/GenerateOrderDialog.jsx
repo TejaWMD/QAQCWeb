@@ -272,7 +272,7 @@ export default function GenerateOrderDialog({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="bg-[#F8FAFC] border-[#E2E8F0] text-[#0F294A] max-w-5xl max-h-[92vh] overflow-y-auto">
+      <DialogContent className="bg-[#F8FAFC] border-[#E2E8F0] text-[#0F294A] max-w-5xl max-h-[92dvh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold text-[#0F294A]">Generate Order</DialogTitle>
           <p className="text-xs text-[#64748B]">
@@ -323,9 +323,9 @@ export default function GenerateOrderDialog({
               return (
                 <div
                   key={row.key}
-                  className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end p-3 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC]/60"
+                  className="grid grid-cols-2 md:grid-cols-12 gap-3 items-end p-3 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC]/60"
                 >
-                  <div className="md:col-span-6 space-y-1.5">
+                  <div className="col-span-2 md:col-span-6 space-y-1.5 min-w-0">
                     <label className={labelClass}>Product (Item Description)</label>
                     <SearchableSelect
                       value={row.productId}
@@ -337,7 +337,7 @@ export default function GenerateOrderDialog({
                       clearable
                     />
                   </div>
-                  <div className="md:col-span-2 space-y-1.5">
+                  <div className="col-span-1 md:col-span-2 space-y-1.5">
                     <label className={labelClass}>Cartons Needed</label>
                     <Input
                       type="number"
@@ -348,7 +348,7 @@ export default function GenerateOrderDialog({
                       placeholder="1"
                     />
                   </div>
-                  <div className="md:col-span-2 space-y-1.5">
+                  <div className="col-span-1 md:col-span-2 space-y-1.5">
                     <label className={labelClass}>Priority</label>
                     <button
                       type="button"
@@ -364,7 +364,7 @@ export default function GenerateOrderDialog({
                       {row.critical ? "Critical" : "Normal"}
                     </button>
                   </div>
-                  <div className="md:col-span-1 flex items-center justify-center pb-1.5">
+                  <div className="col-span-1 md:col-span-1 flex items-center md:justify-center pb-1.5">
                     {c?.valid && (
                       c.incomplete ? (
                         <span
@@ -380,7 +380,7 @@ export default function GenerateOrderDialog({
                       )
                     )}
                   </div>
-                  <div className="md:col-span-1 flex justify-end pb-0.5">
+                  <div className="col-span-1 md:col-span-1 flex justify-end pb-0.5">
                     <Button
                       type="button"
                       size="icon"

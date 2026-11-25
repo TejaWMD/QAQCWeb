@@ -110,9 +110,9 @@ export default function StockInDialog({ open, item, items, user, onClose, onSave
 
         {error && <p className="text-xs text-rose-600">{error}</p>}
 
-        <DialogFooter>
-          <Button variant="ghost" onClick={onClose} className="text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F294A]">Cancel</Button>
-          <Button onClick={save} disabled={saving} className="bg-emerald-500 hover:bg-[#00e08a] text-[#0F294A] font-semibold">
+        <DialogFooter className="pt-2">
+          <Button type="button" variant="outline" onClick={onClose} className="border-[#E2E8F0] text-[#0F294A] hover:bg-[#F1F5F9]">Cancel</Button>
+          <Button type="button" onClick={save} disabled={saving} className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold">
             {saving ? "Saving..." : "Record stock in"}
           </Button>
         </DialogFooter>

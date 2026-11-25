@@ -311,7 +311,7 @@ export async function listAllUsers(): Promise<UserProfile[]> {
     .order('created_at', { ascending: true });
 
   if (error) throw new Error(error.message);
-  return (data || []).map(normalizeUser);
+  return (data || []).map((row) => normalizeUser(row));
 }
 
 export async function updateUserPermissions(userId: string, permissions: string[]): Promise<UserProfile> {

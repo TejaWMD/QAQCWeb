@@ -19,8 +19,8 @@ export default function InLineRow({ line, items, racks, defaultRack, onChange, o
           </Button>
         )}
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-        <div className="col-span-2 sm:col-span-3 space-y-1">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+        <div className="sm:col-span-3 space-y-1">
           <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Item *</label>
           <Select
             value={line.item_id || undefined}
@@ -41,7 +41,7 @@ export default function InLineRow({ line, items, racks, defaultRack, onChange, o
           <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Qty {item?.unit ? `(${item.unit})` : ""} *</label>
           <Input type="number" min="0" step="0.001" value={line.quantity} onChange={(e) => onChange({ quantity: e.target.value })} placeholder="0" className={FIELD} />
         </div>
-        <div className="col-span-2 space-y-1">
+        <div className="sm:col-span-2 space-y-1">
           <label className="text-[10px] uppercase tracking-widest text-[#64748B] font-semibold">Remarks</label>
           <Input value={line.remarks} onChange={(e) => onChange({ remarks: e.target.value })} placeholder="Optional" className={FIELD} />
         </div>

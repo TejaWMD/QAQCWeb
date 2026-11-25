@@ -461,7 +461,7 @@ export default function QueryViewer() {
         open={Boolean(selectedQuery)}
         onOpenChange={(open) => !open && setSelectedQuery(null)}
       >
-        <DialogContent className="max-w-2xl bg-[#0e131d] border-[#1e2740] text-white max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl bg-[#0e131d] border-[#1e2740] text-white max-h-[90dvh] overflow-y-auto">
           {selectedQuery && (
             <>
               <DialogHeader>
@@ -544,7 +544,7 @@ export default function QueryViewer() {
                           key={rmk.id || idx}
                           className="bg-[#131926]/60 border border-[#1e2740]/70 rounded-lg p-3 text-xs space-y-1"
                         >
-                          <div className="flex items-center justify-between gap-2 text-[#94a3b8]">
+                          <div className="flex flex-wrap items-center justify-between gap-2 text-[#94a3b8]">
                             <span className="font-semibold text-white">
                               {rmk.authorName || "User"}{" "}
                               <span className="font-normal text-[#64748b]">

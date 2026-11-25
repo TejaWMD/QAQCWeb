@@ -30,17 +30,19 @@ export default function PackagingPerCartonEditor({ value = [], onChange, items =
         <p className="text-xs text-[#64748B]">No packaging items yet. Stock warnings for this product use these quantities.</p>
       )}
       {value.map((row, idx) => (
-        <div key={idx} className="grid grid-cols-[1fr_88px_56px_36px] gap-2 items-center">
-          <Select value={row.item_id || undefined} onValueChange={(v) => pick(idx, v)}>
-            <SelectTrigger className={selectClass}><SelectValue placeholder="Select packaging item" /></SelectTrigger>
-            <SelectContent>
-              {items.map((item) => (
-                <SelectItem key={item.id} value={item.id}>
-                  {item.item_code} · {item.description}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div key={idx} className="grid grid-cols-[1fr_auto_36px] sm:grid-cols-[1fr_88px_56px_36px] gap-2 items-center">
+          <div className="col-span-3 sm:col-span-1 min-w-0">
+            <Select value={row.item_id || undefined} onValueChange={(v) => pick(idx, v)}>
+              <SelectTrigger className={selectClass}><SelectValue placeholder="Select packaging item" /></SelectTrigger>
+              <SelectContent>
+                {items.map((item) => (
+                  <SelectItem key={item.id} value={item.id}>
+                    {item.item_code} · {item.description}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <Input
             type="number"
             min="0"

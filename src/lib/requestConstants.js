@@ -233,9 +233,19 @@ const userMatchesTeam = (user, team) => {
   return dept === t;
 };
 
+// Purchase department users (non-admin) only see Approved Item / Material Requests.
+export const isPurchaseDeptUser = (user) => {
+  if (!user) return false;
+  if (isAdminUser(user) && !user.view_as_role) return false;
+  if (user.view_as_role) return user.view_as_role === "purchase";
+  const dept = String(user.dept || user.department || "").trim().toLowerCase();
+  const roleLabel = String(user.role_label || "").trim().toLowerCase();
+  return /\b(purchase|purchasing|purchaser|procurement)\b/.test(`${dept} ${roleLabel}`);
+};
+
 // Owners and team reviewers can view the Incoming Requests tab.
 export const canDecideRequests = (user) => {
-  if (!user) return false;
+  if (!user || isPurchaseDeptUser(user)) return false;
   return OWNER_TEAMS.some((t) => userMatchesTeam(user, t));
 };
 
@@ -247,7 +257,7 @@ export const coversTeam = (user, teams) =>
 // - QAQC: only users with department = QAQC
 // - Admin: only Admin users
 export const canChangeRequestStatus = (user, row) => {
-  if (!user || !row) return false;
+  if (!user || !row || isPurchaseDeptUser(user)) return false;
   const teams = rowOwnerTeams(row);
   if (!teams.length) return false;
   return coversTeam(user, teams);

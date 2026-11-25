@@ -126,11 +126,11 @@ export default function AddRecordDialog({ open, onOpenChange, title, fields, ini
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-white border-[#E2E8F0] text-[#0F294A] max-h-[85vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="bg-white border-[#E2E8F0] text-[#0F294A] max-h-[90dvh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="text-[#0F294A]">{title}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={submit} className="space-y-3">
+        <form onSubmit={submit} className="space-y-4">
           {fields.filter((f) => (f.showIf ? f.showIf(values) : true)).map((f) => (
             <div key={f.key} className="space-y-1.5">
               {f.type === "checkbox" ? (
@@ -238,11 +238,11 @@ export default function AddRecordDialog({ open, onOpenChange, title, fields, ini
             </div>
           ))}
           {error && <p className="text-xs text-rose-600">{error}</p>}
-          <DialogFooter>
-            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="text-[#64748B] hover:text-[#0F294A] hover:bg-[#F1F5F9]">
+          <DialogFooter className="pt-2">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="border-[#E2E8F0] text-[#0F294A] hover:bg-[#F1F5F9]">
               Cancel
             </Button>
-            <Button type="submit" disabled={saving} className="bg-[#0F294A] hover:bg-[#193B68] text-white">
+            <Button type="submit" disabled={saving} className="bg-[#0F294A] hover:bg-[#193B68] text-white font-semibold">
               {saving ? "Saving..." : initialData ? "Save changes" : "Save"}
             </Button>
           </DialogFooter>

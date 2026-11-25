@@ -101,7 +101,7 @@ export default function ProductImportWizard({ open, onClose, products = [], reci
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && !importing && onClose()}>
-      <DialogContent className="bg-white border-[#E2E8F0] text-[#0F294A] max-w-5xl max-h-[92vh] overflow-y-auto">
+      <DialogContent className="bg-white border-[#E2E8F0] text-[#0F294A] max-w-5xl max-h-[90dvh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-[#0F294A]">Import Product Master</DialogTitle>
           <p className="text-xs text-[#64748B]">CSV or Excel. Rows are matched on Item Code — nothing is ever deleted by an import.</p>
