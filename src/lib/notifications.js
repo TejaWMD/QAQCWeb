@@ -47,6 +47,20 @@ async function resolvePushRecipientIds({
     [decidedById, decidedByPortalId].map((v) => String(v || "").trim()).filter(Boolean)
   );
   const actorEmail = norm(decidedByEmail);
+  const recipientIds = new Set();
+
+  const isActorUser = (u) => {
+    const uid = String(u?.id || "").trim();
+    const uemail = norm(u?.email);
+    return (uid && actorIds.has(uid)) || (actorEmail && uemail && uemail === actorEmail);
+  };
+
+  const addMainAppUserIfEligible = (mainAppUser) => {
+    if (!mainAppUser?.id || !hasQaqcAppAccess(mainAppUser)) return false;
+    if (isActorUser(mainAppUser)) return false;
+    recipientIds.add(String(mainAppUser.id).trim());
+    return true;
+  };
 
   let targetEmail = norm(requesterEmail);
   let targetName = norm(requesterName);
@@ -74,7 +88,6 @@ async function resolvePushRecipientIds({
   }
 
   // 2. Resolve the requester's MainApp user_id (the key stored in push_subscriptions by MainApp PWA)
-  const recipientIds = new Set();
   try {
     let matchedUser = null;
     if (targetEmail) {
@@ -94,24 +107,81 @@ async function resolvePushRecipientIds({
       matchedUser = Array.isArray(data) ? data[0] : null;
     }
 
-    if (matchedUser?.id && hasQaqcAppAccess(matchedUser)) {
-      const isActor =
-        actorIds.has(String(matchedUser.id).trim()) ||
-        (actorEmail && norm(matchedUser.email) === actorEmail);
-      if (!isActor) {
-        recipientIds.add(String(matchedUser.id).trim());
-      }
-    }
+    addMainAppUserIfEligible(matchedUser);
   } catch (err) {
-    console.warn("Could not resolve MainApp user for push notification:", err);
+    console.warn("Could not resolve MainApp requester for push notification:", err);
   }
 
-  // Fallback: if requesterId itself was already a MainApp ID and not the actor
-  if (recipientIds.size === 0 && requesterId && !actorIds.has(String(requesterId).trim())) {
-    recipientIds.add(String(requesterId).trim());
+  // Also include QAQCWeb requesterId directly if not the actor (covers direct QAQCWeb PWA subscriptions)
+  const cleanRequesterId = String(requesterId || "").trim();
+  if (cleanRequesterId && !actorIds.has(cleanRequesterId) && !(actorEmail && targetEmail === actorEmail)) {
+    recipientIds.add(cleanRequesterId);
+  }
+
+  // 3. Resolve all Admins from MainApp's users table so every admin is notified
+  try {
+    const { data: mainAdmins } = await mainAppSupabase
+      .from("users")
+      .select("id, name, email, role, department, status, accessible_apps")
+      .ilike("role", "admin");
+    if (Array.isArray(mainAdmins)) {
+      mainAdmins.forEach((adminUser) => {
+        addMainAppUserIfEligible(adminUser);
+      });
+    }
+  } catch (err) {
+    console.warn("Could not resolve MainApp admins for push notification:", err);
+  }
+
+  // 4. Also include QAQCWeb admins (resolving their MainApp IDs if needed + direct QAQCWeb IDs)
+  try {
+    const { data: qaqcAdmins } = await supabase
+      .from("users")
+      .select("id, name, email, role")
+      .in("role", ["admin", "super_admin"])
+      .eq("deleted", false);
+    if (Array.isArray(qaqcAdmins)) {
+      for (const adminRow of qaqcAdmins) {
+        if (isActorUser(adminRow)) continue;
+        if (adminRow.id) {
+          recipientIds.add(String(adminRow.id).trim());
+        }
+        if (adminRow.email) {
+          const { data: matchedMain } = await mainAppSupabase
+            .from("users")
+            .select("id, name, email, role, department, status, accessible_apps")
+            .ilike("email", norm(adminRow.email))
+            .limit(1);
+          addMainAppUserIfEligible(Array.isArray(matchedMain) ? matchedMain[0] : null);
+        }
+      }
+    }
+  } catch {
+    // Non-blocking lookup
   }
 
   return Array.from(recipientIds);
+}
+
+function formatStatusNotification(status, summary, decidedBy, comment) {
+  const s = String(status || "").trim();
+  const sLower = s.toLowerCase();
+  const iconPrefix =
+    s === "Approved" || s === "Resolved" || s === "Completed" || s === "Fulfilled"
+      ? "✅"
+      : s === "Rejected"
+      ? "❌"
+      : s === "Returned for more info"
+      ? "↩️"
+      : s === "Under Review"
+      ? "👀"
+      : "🔔";
+  const title = s === "Resolved" ? "Stoppage Resolved" : `Request ${s}`;
+  const pushTitle = `${iconPrefix} ${title} (QAQC Web)`;
+  const actor = decidedBy || "Owner";
+  const commentPart = comment ? ` — ${comment}` : "";
+  const message = `${summary || "Request"} status changed to ${sLower} by ${actor}${commentPart}`;
+  return { title, pushTitle, message };
 }
 
 async function dispatchQaqcWebPush({
@@ -139,25 +209,23 @@ async function dispatchQaqcWebPush({
 
     if (recipientUserIds.length === 0) return;
 
-    const iconPrefix = status === "Approved" ? "✅" : "❌";
-    const title = `${iconPrefix} Request ${status} (QAQC Web)`;
-    const body = `${summary || "Your request"} was ${status.toLowerCase()} by ${decidedBy || "Owner"}${comment ? ` — ${comment}` : ""}`;
+    const { pushTitle, message } = formatStatusNotification(status, summary, decidedBy, comment);
 
     const { error } = await managerSupabase.functions.invoke("send-push", {
       body: {
-        event: "QAQC_REQUEST_DECISION",
+        event: "QAQC_REQUEST_STATUS_CHANGED",
         actorId: decidedByPortalId || decidedById || "",
         actorName: decidedBy || "",
         recipientUserIds,
-        title,
-        body,
-        tag: `qaqc-req-${recordId || Date.now()}-${status.toLowerCase()}`,
+        title: pushTitle,
+        body: message,
+        tag: `qaqc-req-${recordId || Date.now()}-${norm(status).replace(/\s+/g, "-")}`,
         data: {
           appId: "qaqc",
           path: "/downtime",
           recordId: recordId || "",
           status,
-          event: "QAQC_REQUEST_DECISION",
+          event: "QAQC_REQUEST_STATUS_CHANGED",
         },
       },
     });
@@ -223,6 +291,12 @@ export function isNotificationForUser(notif, user) {
   const myEmail = norm(user.email);
   const myName = norm(user.full_name || user.name);
 
+  // Never notify the actor who initiated the status change
+  const actorId = String(notif.decided_by_id || notif.actor_id || "").trim();
+  const actorEmail = norm(notif.decided_by_email || notif.actor_email);
+  if (actorId && myId && actorId === myId) return false;
+  if (actorEmail && myEmail && actorEmail === myEmail) return false;
+
   const targetId = String(notif.target_user_id || "").trim();
   const targetName = norm(notif.target_user_name);
   const targetEmail = norm(notif.target_user_email);
@@ -231,8 +305,8 @@ export function isNotificationForUser(notif, user) {
   if (targetEmail && myEmail && targetEmail === myEmail) return true;
   if (targetName && (myName === targetName || myEmail === targetName)) return true;
 
-  // If no explicit target user was stored on a legacy record, notify admins/relevant reviewers
-  if (!targetId && !targetName && !targetEmail && isAdminUser(user)) return true;
+  // Notify admins for all request status changes (and legacy records without explicit target)
+  if (isAdminUser(user) && notif.notify_admins !== false) return true;
 
   return false;
 }
@@ -257,21 +331,24 @@ export async function pushRequestDecisionNotification({
   requesterEmail = "",
   owners = [],
 }) {
-  if (!["Approved", "Rejected"].includes(status)) return null;
+  if (!status) return null;
   try {
     const existing = await loadAllNotifications();
+    const { title, message } = formatStatusNotification(status, summary, decidedBy, comment);
     const item = {
       id: `notif-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-      type: "request_decision",
+      type: "request_status_changed",
       record_id: recordId || "",
       status,
-      title: `Request ${status}`,
-      message: `${summary || "Your request"} was ${status.toLowerCase()} by ${decidedBy || "Owner"}${comment ? ` — ${comment}` : ""}`,
+      title,
+      message,
       decided_by: decidedBy || "",
       decided_by_id: decidedById || "",
+      decided_by_email: decidedByEmail || "",
       target_user_id: requesterId || "",
       target_user_name: requesterName || "",
       target_user_email: requesterEmail || "",
+      notify_admins: true,
       owners: Array.isArray(owners) ? owners : [],
       path: "/downtime",
       created_at: new Date().toISOString(),
@@ -280,8 +357,8 @@ export async function pushRequestDecisionNotification({
     await saveAllNotifications([item, ...existing]);
     window.dispatchEvent(new CustomEvent("wmg:notifications-updated"));
 
-    // Also send background PWA Web Push via MainApp's shared push pipeline
-    void dispatchQaqcWebPush({
+    // Also send background PWA Web Push via shared push pipeline
+    await dispatchQaqcWebPush({
       recordId,
       status,
       summary,
@@ -334,10 +411,34 @@ export async function markAllNotificationsRead(user) {
 
 export function subscribeNotifications(onChange) {
   const handleLocal = () => onChange?.();
+  const handleVisible = () => {
+    if (typeof document === "undefined" || !document.hidden) {
+      onChange?.();
+    }
+  };
+  const handleSwMessage = (event) => {
+    if (event.data?.type === "SW_NOTIFICATION_RECEIVED") {
+      onChange?.();
+    }
+  };
+
   window.addEventListener("wmg:notifications-updated", handleLocal);
+  window.addEventListener("focus", handleLocal);
+  document.addEventListener("visibilitychange", handleVisible);
+  if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
+    navigator.serviceWorker.addEventListener("message", handleSwMessage);
+  }
+  const intervalId = window.setInterval(handleVisible, 10000);
   const unsub = base44.entities.FormConfig.subscribe(() => onChange?.());
+
   return () => {
     window.removeEventListener("wmg:notifications-updated", handleLocal);
+    window.removeEventListener("focus", handleLocal);
+    document.removeEventListener("visibilitychange", handleVisible);
+    if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
+      navigator.serviceWorker.removeEventListener("message", handleSwMessage);
+    }
+    window.clearInterval(intervalId);
     if (typeof unsub === "function") unsub();
   };
 }

@@ -89,7 +89,7 @@ export default function RequestDecisionDialog({ open, onOpenChange, request, use
       } catch {
         // An audit write must never block the decision.
       }
-      if (d.status === "Approved" || d.status === "Rejected") {
+      if (prev !== d.status) {
         await pushRequestDecisionNotification({
           recordId: request.id,
           status: d.status,
@@ -105,7 +105,7 @@ export default function RequestDecisionDialog({ open, onOpenChange, request, use
           owners: rowOwnerTeams(request),
         });
         toast.success(
-          `Request ${d.verb} — notification sent${request.requester_name ? ` to ${request.requester_name}` : ""}.`
+          `Request ${d.verb} — notification sent${request.requester_name ? ` to ${request.requester_name} & admins` : " to admins"}.`
         );
       } else {
         toast.success(`Request ${d.verb}.`);

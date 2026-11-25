@@ -102,9 +102,35 @@ export default function RequestsStoppages() {
   useEffect(() => {
     const u1 = base44.entities.Downtime.subscribe(() => load(true));
     const u2 = base44.entities.Request.subscribe(() => load(true));
+
+    const refreshIfVisible = () => {
+      if (typeof document === "undefined" || !document.hidden) {
+        load(true);
+      }
+    };
+    const onFocus = () => load(true);
+    const onSwMessage = (event) => {
+      if (event.data?.type === "SW_NOTIFICATION_RECEIVED") {
+        load(true);
+      }
+    };
+
+    const intervalId = window.setInterval(refreshIfVisible, 10000);
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", refreshIfVisible);
+    if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
+      navigator.serviceWorker.addEventListener("message", onSwMessage);
+    }
+
     return () => {
       if (typeof u1 === "function") u1();
       if (typeof u2 === "function") u2();
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", refreshIfVisible);
+      if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
+        navigator.serviceWorker.removeEventListener("message", onSwMessage);
+      }
     };
   }, []);
 
@@ -181,7 +207,7 @@ export default function RequestsStoppages() {
         : { status };
       await base44.entities[entity].update(row.id, patch);
       await audit("Updated", row.id, `Status changed to "${status}"`, prev, status);
-      if (isDecision && prev !== status) {
+      if (prev !== status) {
         const summary = entity === "Downtime" ? (row.reason || "Downtime / Stoppage") : requestSummary(row);
         await pushRequestDecisionNotification({
           recordId: row.id,
@@ -197,7 +223,7 @@ export default function RequestsStoppages() {
           owners: rowOwnerTeams(row),
         });
         toast.success(
-          `Status updated to "${status}" — notification sent${row.requester_name ? ` to ${row.requester_name}` : ""}.`
+          `Status updated to "${status}" — notification sent${row.requester_name ? ` to ${row.requester_name} & admins` : " to admins"}.`
         );
       } else {
         toast.success(`Status updated to "${status}".`);
