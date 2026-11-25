@@ -1,6 +1,7 @@
 import React from "react";
 import { base44 } from "@/api/base44Client";
 import { canChangeRecord } from "@/lib/permissions";
+import { fmtDay } from "@/lib/labels";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -111,7 +112,7 @@ export default function RequestsList({ rows, loading, user, onStatusChange, onEd
                   </div>
                 </TableCell>
                 <TableCell className="text-sm text-[#334155]">
-                  {row.shift_date || (row.created_date ? String(row.created_date).slice(0, 10) : "—")}
+                  {fmtDay(row.shift_date || row.created_date)}
                 </TableCell>
                 <TableCell><Details row={row} /></TableCell>
                 <TableCell>

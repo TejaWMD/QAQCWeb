@@ -14,7 +14,7 @@ export const todayStr = (d = new Date()) => {
 
 export const eventStamp = (d = new Date()) => {
   const pad = (n) => String(n).padStart(2, "0");
-  return `${todayStr(d)} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 };
 
 // Admins and Warehouse Supervisors can edit any entry at any time.

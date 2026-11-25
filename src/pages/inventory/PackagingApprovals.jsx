@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CheckCircle2, XCircle, ShieldAlert } from "lucide-react";
 import { canApproveStock, decideApproval, fmtQty } from "@/lib/packaging";
+import { fmtDateTime } from "@/lib/production";
 
 const STATUS_STYLES = {
   Pending: "bg-amber-50 text-amber-700 border-amber-300",
@@ -86,7 +87,7 @@ export default function PackagingApprovals() {
       {a.production_order && <p className="text-xs text-[#64748B]">Order: {a.production_order}{a.production_line ? ` · ${a.production_line}` : ""}</p>}
 
       <p className="text-[11px] text-[#64748B]">
-        Requested by {a.requested_by || "—"} · {(a.requested_date || a.created_date || "").slice(0, 16).replace("T", " ")}
+        Requested by {a.requested_by || "—"} · {fmtDateTime(a.requested_date || a.created_date)}
         {a.decided_by ? ` · ${a.status} by ${a.decided_by}` : ""}
       </p>
       {a.decision_comment && <p className="text-[11px] text-[#64748B]">Comment: {a.decision_comment}</p>}

@@ -2,6 +2,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { AlertTriangle, FolderOpen } from "lucide-react";
+import { fmtDay } from "@/lib/labels";
 
 const STATUS_STYLES = {
   "Overdue": "bg-[#ff4d4d]/15 text-[#ff4d4d]",
@@ -41,7 +42,7 @@ export default function CriticalAttentionTable({ items, onOpen }) {
               </span>
             </div>
             <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[#94a3b8]">
-              <span>{item.module} · {item.owner || "—"} · {item.due || "—"}</span>
+              <span>{item.module} · {item.owner || "—"} · {item.due ? fmtDay(item.due) : "—"}</span>
               <Button
                 size="sm"
                 variant="outline"
@@ -81,7 +82,7 @@ export default function CriticalAttentionTable({ items, onOpen }) {
                 <TableCell className="text-white text-sm font-medium">{item.item}</TableCell>
                 <TableCell className="text-[#cbd5e1] text-sm">{item.module}</TableCell>
                 <TableCell className="text-[#cbd5e1] text-sm">{item.owner || "—"}</TableCell>
-                <TableCell className="text-[#cbd5e1] text-sm">{item.due || "—"}</TableCell>
+                <TableCell className="text-[#cbd5e1] text-sm">{item.due ? fmtDay(item.due) : "—"}</TableCell>
                 <TableCell>
                   <span className={`text-[11px] font-semibold rounded-full px-2.5 py-1 ${STATUS_STYLES[item.status] || STATUS_STYLES["Open"]}`}>
                     {item.status}

@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Layers, Pencil, Plus, Trash2, User } from "lucide-react";
 import TaskCellDialog from "@/components/factoryops/TaskCellDialog";
+import { fmtDay } from "@/lib/labels";
 
 const TEAMS = [
   "QA/QC Team",
@@ -179,9 +180,8 @@ export default function TaskMatrix() {
   const todayHeader = useMemo(() => {
     const now = new Date();
     return now.toLocaleDateString("en-GB", {
-      weekday: "long",
-      day: "numeric",
-      month: "short",
+      day: "2-digit",
+      month: "2-digit",
       year: "numeric",
     });
   }, []);
@@ -511,7 +511,7 @@ export default function TaskMatrix() {
                   const category = normalizeCategory(t.status);
                   const done = category === "Completed";
                   const sourceLabel = t.module === "From production" ? "From production" : "Routine";
-                  const dueLabel = t.production_line || (t.due_date ? String(t.due_date).slice(0, 10) : "Today");
+                  const dueLabel = t.production_line || (t.due_date ? fmtDay(t.due_date) : "Today");
                   const meta = CATEGORY_META[category] || CATEGORY_META.Pending;
                   return (
                     <tr key={t.id} className="hover:bg-[#1e293b]/30">

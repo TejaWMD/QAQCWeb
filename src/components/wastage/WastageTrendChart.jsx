@@ -13,7 +13,7 @@ import {
 
 export default function WastageTrendChart({ data }) {
   const chartData = [...data].reverse().map((d) => ({
-    label: format(d.day, "MMM d"),
+    label: format(d.day, "dd/MM/yyyy"),
     total: d.total,
   }));
   const max = Math.max(...chartData.map((d) => d.total), 0);

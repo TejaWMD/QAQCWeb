@@ -10,6 +10,7 @@ import GenerateOrderDialog from "@/components/production/GenerateOrderDialog";
 import ProductionSettingsDialog from "@/components/production/ProductionSettingsDialog";
 import OrderDetailDialog from "@/components/production/OrderDetailDialog";
 import useProductionData from "@/hooks/useProductionData";
+import { fmtDay } from "@/lib/labels";
 import {
   ORDER_STATUSES, buildRisks, canEditProductionSettings, canPlanOrders, canRunOrders, fmtDateTime, fmtQty, liveOrders,
   localDateStr, logProductionAudit,
@@ -202,7 +203,7 @@ export default function ProductionOrders() {
                       <td className="px-3 py-2 text-[#64748B] whitespace-nowrap text-xs">
                         {fmtDateTime(o.planned_start)}<br />to {fmtDateTime(o.planned_end)}
                         {o.due_date && (
-                          <span className="block text-[10px] text-[#1D4ED8]">Delivery: {String(o.due_date).slice(0, 10)}</span>
+                          <span className="block text-[10px] text-[#1D4ED8]">Delivery: {fmtDay(o.due_date)}</span>
                         )}
                       </td>
                       <td className="px-3 py-2">

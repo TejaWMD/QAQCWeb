@@ -13,7 +13,7 @@ import {
 export default function OTSpendTrendChart({ data }) {
   // data is sorted desc (latest first); chart reads oldest -> newest
   const chartData = [...data].reverse().map((d) => ({
-    label: format(d.day, "MMM d"),
+    label: format(d.day, "dd/MM/yyyy"),
     spend: Number(d.spend.toFixed(2)),
   }));
 

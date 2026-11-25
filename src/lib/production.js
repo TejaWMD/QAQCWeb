@@ -110,7 +110,7 @@ export const fmtTime = (iso) => {
 export const fmtDateTime = (iso) => {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
-  return `${todayStr(d)} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+  return `${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}/${d.getFullYear()} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 };
 
 export const fmtRange = (startIso, endIso) => `${fmtTime(startIso)} – ${fmtTime(endIso)}`;

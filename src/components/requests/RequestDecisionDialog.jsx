@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Clock, CheckCircle2, XCircle, Undo2, Paperclip } from "lucide-react";
 import { TYPE_STYLES, requestSummary, rowOwnerTeams } from "@/lib/requestConstants";
 import { pushRequestDecisionNotification } from "@/lib/notifications";
+import { fmtDay } from "@/lib/labels";
 
 const eventStamp = () => {
   const d = new Date();
@@ -130,7 +131,7 @@ export default function RequestDecisionDialog({ open, onOpenChange, request, use
               {request.request_type}
             </span>
             <span className="text-[#64748B] text-xs">
-              from {request.requester_name || "—"} · {request.shift_date || "—"}
+              from {request.requester_name || "—"} · {request.shift_date ? fmtDay(request.shift_date) : "—"}
             </span>
           </div>
           <p className="text-[#0F294A] font-medium">{requestSummary(request)}</p>

@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Search, Package, History } from 'lucide-react';
+import { fmtDay } from '@/lib/labels';
 
 export default function BarcodeLookup() {
   const [barcode, setBarcode] = useState('');
@@ -199,8 +200,8 @@ export default function BarcodeLookup() {
                 {batches.map((b) => (
                   <tr key={b.id}>
                     <td className="p-3 font-mono font-semibold">{b.batch_number}</td>
-                    <td className="p-3">{b.production_date ? String(b.production_date).slice(0, 10) : '-'}</td>
-                    <td className="p-3">{b.expiry_date ? String(b.expiry_date).slice(0, 10) : '-'}</td>
+                    <td className="p-3">{b.production_date ? fmtDay(b.production_date) : '-'}</td>
+                    <td className="p-3">{b.expiry_date ? fmtDay(b.expiry_date) : '-'}</td>
                     <td className="p-3 text-right">{b.quantity_cartons ?? '-'}</td>
                     <td className="p-3 text-center"><Badge variant="outline">{b.status || 'active'}</Badge></td>
                   </tr>

@@ -12,6 +12,7 @@ import html2canvas from "html2canvas";
 import ProductPicker from "@/components/labels/ProductPicker";
 import LabelPrintSheet from "@/components/labels/LabelPrintSheet";
 import LabelSettingsDialog from "@/components/labels/LabelSettingsDialog";
+import LockedLabelCard from "@/components/labels/LockedLabelCard";
 import { loadProducts, num } from "@/lib/planning";
 import { isPapadamProduct, labelBlock } from "@/lib/productMaster";
 import { actingUserName, isAdminUser } from "@/lib/permissions";
@@ -350,45 +351,7 @@ export default function CreateBatch() {
         <div className="max-w-3xl mx-auto space-y-6">
           {/* Center Label Preview Card */}
           <div className="flex justify-center">
-            <div
-              id="saved-label-card"
-              data-logo-badge="true"
-              style={{ backgroundColor: "#ffffff", color: "#0f172a" }}
-              className="rounded-xl border border-slate-200 p-5 shadow-md w-[380px] space-y-3"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="space-y-1 text-xs" style={{ color: "#0f172a" }}>
-                  <p className="font-bold text-sm leading-tight uppercase" style={{ color: "#0f172a" }}>
-                    {d.cartonDescription || d.productName}
-                  </p>
-                  <p className="font-semibold" style={{ color: "#1e293b" }}>
-                    {d.productCode}
-                  </p>
-                  <p className="font-bold" style={{ color: "#0f172a" }}>
-                    {d.batchNumber}
-                  </p>
-                  <p style={{ color: "#475569" }}>Exp: {fmtDay(d.expiryDate)}</p>
-                  <p style={{ color: "#475569" }}>{d.pcsPerCarton} pcs/carton</p>
-                </div>
-                <img
-                  src={qrImageUrl(batchQrPayload(d), activeLayout.qr_ecc)}
-                  alt="QR"
-                  crossOrigin="anonymous"
-                  className="w-24 h-24 shrink-0"
-                />
-              </div>
-              <div className="pt-2 text-center">
-                <img
-                  src={barcodeImageUrl(d.cartonBarcode || d.batchNumber)}
-                  alt="Barcode"
-                  crossOrigin="anonymous"
-                  className="w-full h-11 object-contain"
-                />
-                <p className="text-[11px] font-mono tracking-wider mt-0.5" style={{ color: "#334155" }}>
-                  {d.cartonBarcode || d.batchNumber}
-                </p>
-              </div>
-            </div>
+            <LockedLabelCard id="saved-label-card" data={d} qrEcc={activeLayout.qr_ecc} />
           </div>
 
           {/* Print Settings Card (Matches Picture 8) */}

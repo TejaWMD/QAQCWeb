@@ -1,6 +1,7 @@
 import React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { fmtQty } from "@/lib/planning";
+import { fmtDay } from "@/lib/labels";
 import { dialogClass } from "@/components/planning/styles";
 
 const STATUS_STYLES = {
@@ -31,7 +32,7 @@ export default function RecipeHistoryDialog({ open, onClose, title, subtitle, ve
                 <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${STATUS_STYLES[v.status] || ""}`}>{v.status}</span>
               </div>
               <p className="text-[11px] text-[#64748B]">
-                {v.created_by || "—"} · {(v.effective_date || v.created_date || "").slice(0, 10)}
+                {v.created_by || "—"} · {fmtDay(v.effective_date || v.created_date)}
                 {v.standard_yield_pct ? ` · std yield ${fmtQty(v.standard_yield_pct)}%` : ""}
               </p>
               <ul className="text-xs text-[#64748B] space-y-0.5">

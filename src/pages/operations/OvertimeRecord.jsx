@@ -224,7 +224,7 @@ export default function OvertimeRecord() {
                       const isMax = d.spend === maxDaySpend && maxDaySpend > 0;
                       return (
                         <tr key={d.day.toISOString()} className={isMax ? "bg-red-50" : "hover:bg-slate-50"}>
-                          <td className="px-4 py-2 text-slate-700 font-medium">{format(d.day, "EEE, MMM d")}</td>
+                          <td className="px-4 py-2 text-slate-700 font-medium">{format(d.day, "dd/MM/yyyy")}</td>
                           <td className="px-4 py-2 text-right text-slate-700">{d.count}</td>
                           <td className="px-4 py-2 text-right text-slate-700">{d.manpower}</td>
                           <td className="px-4 py-2 text-right text-amber-700 font-medium">{d.hours.toFixed(1)}</td>

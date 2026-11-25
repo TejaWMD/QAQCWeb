@@ -14,7 +14,9 @@ export function groupByDate(logs, dateField) {
 export function formatDateHeader(dateStr) {
   if (!dateStr || dateStr === "Undated") return "Undated";
   const clean = String(dateStr).slice(0, 10);
+  const [y, m, dPart] = clean.split("-");
+  if (y && m && dPart && /^\d{4}$/.test(y)) return `${dPart}/${m}/${y}`;
   const d = new Date(`${clean}T00:00:00`);
   if (isNaN(d.getTime())) return dateStr;
-  return d.toLocaleDateString("en-US", { weekday: "short", day: "2-digit", month: "short", year: "numeric" });
+  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" });
 }

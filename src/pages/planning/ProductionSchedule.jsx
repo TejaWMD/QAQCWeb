@@ -11,6 +11,7 @@ import OrderDetailDialog from "@/components/production/OrderDetailDialog";
 import useProductionData from "@/hooks/useProductionData";
 import { todayStr } from "@/lib/warehouse";
 import { canPlanOrders, liveOrders, ordersOnDate } from "@/lib/production";
+import { fmtDay } from "@/lib/labels";
 import { inputClass, selectClass, primaryButton, subtleButton, labelClass } from "@/components/planning/styles";
 
 // Day view: one column per machine, 00:00 to 24:00 down the side.
@@ -82,7 +83,7 @@ export default function ProductionSchedule() {
         />
       )}
 
-      <p className="text-xs text-[#64748B]">{dayOrders.length} order(s) scheduled on {date}</p>
+      <p className="text-xs text-[#64748B]">{dayOrders.length} order(s) scheduled on {fmtDay(date)}</p>
 
       <GenerateOrderDialog
         open={generateOpen}

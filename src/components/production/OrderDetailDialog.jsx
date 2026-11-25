@@ -12,6 +12,7 @@ import {
   fmtDateTime, fmtDuration, fmtQty, fmtRange, fmtTime, logProductionAudit,
 } from "@/lib/production";
 import { activeRecipeFor } from "@/lib/recipeMaster";
+import { fmtDay } from "@/lib/labels";
 import { inputClass, selectClass, primaryButton, subtleButton, labelClass } from "@/components/planning/styles";
 
 const STATUS_STYLES = {
@@ -211,7 +212,7 @@ export default function OrderDetailDialog({ order, products = [], recipes = [], 
             <div><p className={labelClass}>Planned</p><p className="text-[#0F294A] text-xs leading-5">{fmtDateTime(order.planned_start)}</p><p className="text-[11px] text-[#64748B]">to {fmtDateTime(order.planned_end)}</p></div>
             <div><p className={labelClass}>Actual</p><p className="text-[#0F294A] text-xs leading-5">{order.actual_start ? fmtDateTime(order.actual_start) : "not started"}</p><p className="text-[11px] text-[#64748B]">{order.actual_end ? `to ${fmtTime(order.actual_end)}` : ""}</p></div>
             <div><p className={labelClass}>Run time</p><p className="text-[#0F294A] text-xs leading-5">{plannedMins ? fmtDuration(plannedMins) : "—"}</p></div>
-            <div><p className={labelClass}>Delivery Date</p><p className="text-[#0F294A] text-xs leading-5">{order.due_date ? String(order.due_date).slice(0, 10) : "—"}</p></div>
+            <div><p className={labelClass}>Delivery Date</p><p className="text-[#0F294A] text-xs leading-5">{order.due_date ? fmtDay(order.due_date) : "—"}</p></div>
           </div>
         )}
 

@@ -8,7 +8,6 @@ import { todaysSchedule } from "@/lib/batchTrace";
 
 const TILES = [
   { key: "planned", label: "Planned", tone: "text-[#00e5ff] border-[#00e5ff]/25 bg-[#00e5ff]/10" },
-  { key: "inProgress", label: "In Progress", tone: "text-[#ff9f43] border-[#ff9f43]/25 bg-[#ff9f43]/10" },
   { key: "completed", label: "Completed", tone: "text-[#00ff9d] border-[#00ff9d]/25 bg-[#00ff9d]/10" },
   { key: "delayed", label: "Delayed", tone: "text-[#ff4d4d] border-[#ff4d4d]/25 bg-[#ff4d4d]/10" },
 ];
@@ -57,7 +56,7 @@ export default function TodayScheduleSummary() {
         </Link>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
         {TILES.map((tile) => (
           <div key={tile.key} className={`rounded-2xl border px-3.5 py-2.5 ${tile.tone}`}>
             <p className="text-[11px] font-medium opacity-90">{tile.label}</p>

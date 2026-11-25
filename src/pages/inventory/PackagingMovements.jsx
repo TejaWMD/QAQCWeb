@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Download } from "lucide-react";
 import { MOVEMENT_CSV_COLUMNS, MOVEMENT_TYPES, fmtQty, loadPackagingSettings } from "@/lib/packaging";
 import { downloadCsv } from "@/lib/warehouse";
+import { fmtDay } from "@/lib/labels";
 
 const FIELD = "bg-white border-[#E2E8F0] text-[#0F294A]";
 const EMPTY = { from: "", to: "", item: "all", category: "all", type: "all", user: "all" };
@@ -171,7 +172,7 @@ export default function PackagingMovements() {
               )}
               {rows.map((m) => (
                 <TableRow key={m.id} className="border-[#E2E8F0] hover:bg-[#F1F5F9]">
-                  <TableCell className="text-[#64748B] whitespace-nowrap">{m.movement_date || (m.created_date || "").slice(0, 10)}</TableCell>
+                  <TableCell className="text-[#64748B] whitespace-nowrap">{fmtDay(m.movement_date || m.created_date)}</TableCell>
                   <TableCell className="text-[#0F294A] whitespace-nowrap">{m.item_code}</TableCell>
                   <TableCell className={`font-medium whitespace-nowrap ${TYPE_STYLES[m.type] || "text-[#64748B]"}`}>{m.type}</TableCell>
                   <TableCell className="text-right text-[#0F294A] whitespace-nowrap">

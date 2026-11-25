@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import EvidenceUpload from "@/components/factoryops/EvidenceUpload";
 import StatusBadge from "@/components/factoryops/StatusBadge";
 import { PlayCircle, BadgeCheck, Lock } from "lucide-react";
+import { fmtDay } from "@/lib/labels";
 
 const eventStamp = () => {
   const d = new Date();
@@ -84,7 +85,7 @@ export default function TaskCellDialog({ task, onOpenChange, onUpdated }) {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
             <div><span className="text-[#64748B]">Supervisor:</span> <span className="text-[#334155]">{task.owner || "Unassigned"}</span></div>
             <div><span className="text-[#64748B]">Module:</span> <span className="text-[#334155]">{task.module || "—"}</span></div>
-            <div><span className="text-[#64748B]">Due Date:</span> <span className="text-[#334155]">{task.due_date || "—"}</span></div>
+            <div><span className="text-[#64748B]">Due Date:</span> <span className="text-[#334155]">{task.due_date ? fmtDay(task.due_date) : "—"}</span></div>
             <div><span className="text-[#64748B]">Priority:</span> <span className="text-[#334155]">{task.priority || "—"}</span></div>
           </div>
           <div className="flex items-center gap-2">

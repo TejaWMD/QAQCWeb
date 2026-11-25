@@ -3,6 +3,7 @@ import { AlertTriangle, Trash2, Pencil } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import IncompleteRecordEditModal from "./IncompleteRecordEditModal";
+import { fmtDay } from "@/lib/labels";
 
 const TASK_CHECKLIST = [
   { key: "task_filled_packed", label: "Filled & Packed" },
@@ -88,7 +89,7 @@ export default function IncompleteDataAlert({ records, onDelete, onSaved }) {
               <tbody className="divide-y divide-red-100">
                 {incomplete.map(({ record, missing }) => (
                   <tr key={record.id} className="hover:bg-red-100/50">
-                    <td className="px-2 py-1 text-slate-700 whitespace-nowrap">{record.shift_date || "—"}</td>
+                    <td className="px-2 py-1 text-slate-700 whitespace-nowrap">{record.shift_date ? fmtDay(record.shift_date) : "—"}</td>
                     <td className="px-2 py-1 text-slate-700 whitespace-nowrap">{record.production_line || "—"}</td>
                     <td className="px-2 py-1 text-slate-700">{record.product_name || "—"}</td>
                     <td className="px-2 py-1">

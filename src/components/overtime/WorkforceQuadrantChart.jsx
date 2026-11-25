@@ -27,7 +27,7 @@ export default function WorkforceQuadrantChart({ data }) {
       ...d,
       x: d.manpower || 0,
       y: Number(d.hours.toFixed(1)),
-      dateLabel: format(d.day, "MMM d"),
+      dateLabel: format(d.day, "dd/MM/yyyy"),
     }))
     .sort((a, b) => b.y - a.y);
 

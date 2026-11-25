@@ -17,6 +17,7 @@ import { SearchableSelect } from '@/components/ui/searchable-select';
 import { toast } from 'sonner';
 import { QrCode, ClipboardCheck, Download, Plus, Pencil, Trash2, ArrowUpFromLine } from 'lucide-react';
 import { loadBatchOptions } from '@/lib/masterOptions';
+import { fmtDay } from '@/lib/labels';
 
 export default function WmsWarehouse() {
   const [tab, setTab] = useState('scan');
@@ -498,7 +499,7 @@ export default function WmsWarehouse() {
                   </div>
                   <div>
                     <span className="text-slate-500 block">Prod / Expiry</span>
-                    <span>{decodedSummary.production_date ? `${decodedSummary.production_date} → ` : ''}{decodedSummary.expiry_date || '—'}</span>
+                    <span>{decodedSummary.production_date ? `${fmtDay(decodedSummary.production_date)} → ` : ''}{decodedSummary.expiry_date ? fmtDay(decodedSummary.expiry_date) : '—'}</span>
                   </div>
                 </div>
               )}
@@ -617,7 +618,7 @@ export default function WmsWarehouse() {
                         <td className="p-3 font-medium text-[#0F294A]">{item.item_name || '—'}</td>
                         <td className="p-3 font-mono text-xs text-slate-600">{item.item_code}</td>
                         <td className="p-3 font-mono font-semibold text-[#1D4ED8]">{item.batch_number}</td>
-                        <td className="p-3 text-slate-600">{item.expiry_date ? String(item.expiry_date).slice(0, 10) : '—'}</td>
+                        <td className="p-3 text-slate-600">{item.expiry_date ? fmtDay(item.expiry_date) : '—'}</td>
                         <td className="p-3"><Badge variant="outline">{item.rack || DEFAULT_STAGING_AREA}</Badge></td>
                         <td className="p-3 text-right font-mono font-medium">
                           {formatQtyBreakdown(Number(item.quantity) || 0, Number(item.pcs_per_carton) || 24)}

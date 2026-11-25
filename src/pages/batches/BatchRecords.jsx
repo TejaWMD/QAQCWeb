@@ -8,9 +8,21 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Download, Eye, Pencil, Printer, Search, Trash2 } from "lucide-react";
+import html2canvas from "html2canvas";
 import LabelPrintSheet from "@/components/labels/LabelPrintSheet";
+import LockedLabelCard from "@/components/labels/LockedLabelCard";
 import ReprintDialog from "@/components/labels/ReprintDialog";
-import { barcodeImageUrl, batchQrPayload, fmtDay, layoutOfRecord, loadBatchRecords, logLabelAudit, qrImageUrl } from "@/lib/labels";
+import {
+  LOCKED_PRINT_TEMPLATE,
+  barcodeImageUrl,
+  batchQrPayload,
+  buildTemplatePageCanvas,
+  fmtDay,
+  layoutOfRecord,
+  loadBatchRecords,
+  logLabelAudit,
+  qrImageUrl,
+} from "@/lib/labels";
 import { fmtQty } from "@/lib/production";
 import { actingUserName } from "@/lib/permissions";
 import { downloadCsv, todayStr } from "@/lib/warehouse";
@@ -39,6 +51,7 @@ export default function BatchRecords() {
   const [editForm, setEditForm] = useState({ quantity_cartons: "", production_date: "", expiry_date: "", status: "Active" });
   const [busy, setBusy] = useState(false);
   const [job, setJob] = useState(null);
+  const [printDraft, setPrintDraft] = useState(null);
 
   const reload = useCallback(async () => {
     const rows = await loadBatchRecords();
@@ -147,8 +160,9 @@ export default function BatchRecords() {
         details: `Batch ${reprintTarget.batch_number} reprinted for ${reprintTarget.product_name} · ${copies} label(s)`,
       });
       setRecords((list) => list.map((r) => (r.id === reprintTarget.id ? { ...r, reprints, print_count: nextPrintCount } : r)));
-      setJob({
-        layout: layoutOfRecord(reprintTarget),
+      const layout = layoutOfRecord(reprintTarget);
+      setPrintDraft({
+        qrEcc: layout.qr_ecc || reprintTarget.qr_ecc || "M",
         copies,
         data: {
           productName: reprintTarget.product_name,
@@ -169,6 +183,60 @@ export default function BatchRecords() {
       setBusy(false);
     }
   };
+
+  useEffect(() => {
+    if (!printDraft) return undefined;
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      const el = document.getElementById("reprint-label-card");
+      if (!el || cancelled) return;
+      const images = Array.from(el.querySelectorAll("img"));
+      await Promise.race([
+        Promise.all(
+          images.map((img) =>
+            img.complete
+              ? Promise.resolve()
+              : new Promise((resolve) => {
+                  img.onload = resolve;
+                  img.onerror = resolve;
+                })
+          )
+        ),
+        new Promise((resolve) => setTimeout(resolve, 3000)),
+      ]);
+      if (cancelled) return;
+      try {
+        const labelCanvas = await html2canvas(el, {
+          scale: 4,
+          backgroundColor: "#ffffff",
+          useCORS: true,
+          allowTaint: false,
+        });
+        if (cancelled) return;
+        const pageCanvas = buildTemplatePageCanvas(labelCanvas, LOCKED_PRINT_TEMPLATE);
+        const pageImageUrl = pageCanvas.toDataURL("image/png");
+        const { pageW, pageH } = LOCKED_PRINT_TEMPLATE;
+        setJob({
+          pageImageUrl,
+          pageWidthMm: pageW,
+          pageHeightMm: pageH,
+          copies: printDraft.copies,
+        });
+      } catch (err) {
+        toast({
+          title: "Could not prepare print sheet",
+          description: err?.message || "Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        if (!cancelled) setPrintDraft(null);
+      }
+    }, 50);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [printDraft, toast]);
 
   return (
     <div className="min-h-screen bg-[#F6F8FC] p-4 md:p-6 space-y-4">
@@ -463,6 +531,12 @@ export default function BatchRecords() {
         onClose={() => setReprintTarget(null)}
         onConfirm={reprint}
       />
+
+      {printDraft && (
+        <div style={{ position: "fixed", left: "-10000px", top: 0 }} aria-hidden="true">
+          <LockedLabelCard id="reprint-label-card" data={printDraft.data} qrEcc={printDraft.qrEcc} />
+        </div>
+      )}
 
       <LabelPrintSheet job={job} onDone={() => setJob(null)} />
     </div>

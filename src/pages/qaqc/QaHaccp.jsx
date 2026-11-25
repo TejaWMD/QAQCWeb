@@ -24,8 +24,13 @@ const DATE_CATEGORIES = [
   { key: "Audit or drill", dot: "bg-cyan-400", bar: "bg-cyan-400/85", label: "Audit or drill" },
   { key: "Certification", dot: "bg-violet-400", bar: "bg-violet-400/85", label: "Certification" },
   { key: "Document due", dot: "bg-amber-400", bar: "bg-amber-400/85", label: "Document due" },
-  { key: "Visit or training", dot: "bg-emerald-400", bar: "bg-emerald-400/85", label: "Visit or training" },
+  { key: "Visit", dot: "bg-emerald-400", bar: "bg-emerald-400/85", label: "Visit" },
+  { key: "Training", dot: "bg-sky-400", bar: "bg-sky-400/85", label: "Training" },
 ];
+
+const categoryMeta = (key) =>
+  DATE_CATEGORIES.find((c) => c.key === key) ||
+  (key === "Visit or training" ? DATE_CATEGORIES[3] : DATE_CATEGORIES[2]);
 
 const DOC_STATUSES = ["In progress", "Due soon", "Overdue", "Done"];
 
@@ -48,24 +53,17 @@ const EMPTY_SAMPLE = {
 
 const fmtShortDate = (iso) => {
   if (!iso) return "—";
-  const d = new Date(`${String(iso).slice(0, 10)}T00:00:00`);
-  if (Number.isNaN(d.getTime())) return String(iso);
-  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+  const clean = String(iso).slice(0, 10);
+  const [y, m, d] = clean.split("-");
+  if (y && m && d) return `${d}/${m}/${y}`;
+  const dt = new Date(iso);
+  if (Number.isNaN(dt.getTime())) return String(iso);
+  return dt.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" });
 };
 
-const fmtLongDate = (iso) => {
-  if (!iso) return "—";
-  const d = new Date(`${String(iso).slice(0, 10)}T00:00:00`);
-  if (Number.isNaN(d.getTime())) return String(iso);
-  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-};
+const fmtLongDate = fmtShortDate;
 
-const fmtWeekdayDate = (iso) => {
-  if (!iso) return "—";
-  const d = new Date(`${String(iso).slice(0, 10)}T00:00:00`);
-  if (Number.isNaN(d.getTime())) return String(iso);
-  return d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short", year: "numeric" });
-};
+const fmtWeekdayDate = fmtShortDate;
 
 const daysDiff = (targetIso) => {
   if (!targetIso) return null;
@@ -543,7 +541,7 @@ export default function QaHaccp() {
                     <p className="text-xs text-slate-500 py-4 text-center">No scheduled events in agenda.</p>
                   )}
                   {sortedDates.map((d) => {
-                    const cat = DATE_CATEGORIES.find((c) => c.key === d.category) || DATE_CATEGORIES[2];
+                    const cat = categoryMeta(d.category);
                     return (
                       <div key={d.id} className="flex items-center justify-between rounded-lg bg-[#0b1120] border border-[#1e293b] px-3 py-2 text-xs">
                         <div className="flex items-center gap-2">
@@ -581,7 +579,7 @@ export default function QaHaccp() {
                           <span className="text-[11px] text-slate-300">{cell.day}</span>
                           <div className="space-y-0.5 w-full">
                             {cell.evts.slice(0, 2).map((ev) => {
-                              const cat = DATE_CATEGORIES.find((c) => c.key === ev.category) || DATE_CATEGORIES[2];
+                              const cat = categoryMeta(ev.category);
                               return <div key={ev.id} title={`${ev.title} (${ev.category})`} className={`h-1.5 rounded-full ${cat.bar}`} />;
                             })}
                           </div>

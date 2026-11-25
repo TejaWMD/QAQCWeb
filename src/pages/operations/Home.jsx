@@ -14,6 +14,7 @@ import DowntimeByLineChart from "@/components/dashboard/DowntimeByLineChart";
 import DowntimeParetoChart from "@/components/dashboard/DowntimeParetoChart";
 import { buildEfficiencyData, buildDowntimeData } from "@/lib/dashboardMetrics";
 import PackagingAtRisk from "@/components/packaging/PackagingAtRisk";
+import { fmtDay } from "@/lib/labels";
 
 export default function Home() {
   const [logs, setLogs] = useState([]);
@@ -232,7 +233,7 @@ export default function Home() {
                     return (
                       <tr key={l.id} className="hover:bg-slate-50">
                           <td className="px-4 py-3 text-slate-700 font-medium">
-                            {l.shift_date ? new Date(`${String(l.shift_date).slice(0, 10)}T00:00:00`).toLocaleDateString("en-US", { day: "2-digit", month: "short" }) : "—"}
+                            {l.shift_date ? fmtDay(l.shift_date) : "—"}
                           </td>
                           <td className="px-4 py-3 text-slate-700">{l.production_line?.split(" - ")[0]}</td>
                           <td className="px-4 py-3 text-slate-600 max-w-xs truncate">{l.product_name || "—"}</td>
