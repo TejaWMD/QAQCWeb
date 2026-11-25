@@ -95,9 +95,12 @@ export default function RequestDecisionDialog({ open, onOpenChange, request, use
           summary: requestSummary(request),
           decidedBy: name,
           decidedById: user?.id || "",
+          decidedByPortalId: user?.portal_user_id || "",
+          decidedByEmail: user?.email || "",
           comment: comment.trim(),
           requesterId: request.requester_id || "",
           requesterName: request.requester_name || "",
+          requesterEmail: request.requester_email || "",
           owners: rowOwnerTeams(request),
         });
         toast.success(

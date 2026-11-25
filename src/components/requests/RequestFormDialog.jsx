@@ -30,6 +30,7 @@ import {
   LABELLING_TYPE,
   PURCHASE_TYPE,
   TYPE_FIELDS,
+  normalizeOwnerTeams,
 } from "@/lib/requestConstants";
 
 const eventStamp = () => {
@@ -157,11 +158,11 @@ export default function RequestFormDialog({ open, onOpenChange, user, config = D
           init[k] = initialRecord[k];
         }
       });
-      const recOwners = Array.isArray(initialRecord.owners) && initialRecord.owners.length
-        ? initialRecord.owners
-        : initialRecord.owner
-          ? String(initialRecord.owner).split(",").map((s) => s.trim()).filter(Boolean)
-          : [];
+      const recOwners = normalizeOwnerTeams(
+        Array.isArray(initialRecord.owners) && initialRecord.owners.length
+          ? initialRecord.owners
+          : initialRecord.owner || []
+      );
       init.owners = recOwners;
       setValues(init);
       setExistingEvidence(Array.isArray(initialRecord.evidence_files) ? initialRecord.evidence_files : []);
@@ -181,7 +182,7 @@ export default function RequestFormDialog({ open, onOpenChange, user, config = D
   const requiredKeys = config.required?.[type] || DEFAULT_REQUIRED[type];
   const requesterName = user?.full_name || user?.email || "";
 
-  // Labelling / Packaging Error requests are always routed to the QA/QC Team.
+  // Labelling / Packaging Error requests are always routed to QAQC.
   const qaForced = type === APPROVAL_TYPE && values.approval_type === LABELLING_TYPE;
 
   // Changing the Request Type clears the hidden fields but keeps common ones (owners & shift_date).
@@ -200,13 +201,13 @@ export default function RequestFormDialog({ open, onOpenChange, user, config = D
   const setApprovalType = (v) => {
     setValues((prev) => {
       const owners = [...(prev.owners || [])];
-      if (v === LABELLING_TYPE && !owners.includes("QA/QC Team")) owners.push("QA/QC Team");
+      if (v === LABELLING_TYPE && !owners.includes("QAQC")) owners.push("QAQC");
       return { ...prev, approval_type: v, owners };
     });
   };
 
   const toggleOwner = (team, checked) => {
-    if (qaForced && team === "QA/QC Team" && !checked) return;
+    if (qaForced && team === "QAQC" && !checked) return;
     setValues((v) => ({
       ...v,
       owners: checked ? [...(v.owners || []), team] : (v.owners || []).filter((t) => t !== team),
@@ -283,15 +284,15 @@ export default function RequestFormDialog({ open, onOpenChange, user, config = D
       }
 
       // Auto-routing rules.
-      const owners = [...(values.owners || [])];
-      if (qaForced && !owners.includes("QA/QC Team")) owners.push("QA/QC Team");
+      const owners = normalizeOwnerTeams(values.owners || []);
+      if (qaForced && !owners.includes("QAQC")) owners.push("QAQC");
       if (
         type === APPROVAL_TYPE &&
         values.approval_type === PURCHASE_TYPE &&
         (values.purchase_amount || 0) > (config.purchase_md_limit || 500) &&
-        !owners.includes("MD")
+        !owners.includes("Admin")
       ) {
-        owners.push("MD");
+        owners.push("Admin");
       }
 
       // Only the visible fields of the selected type are saved.
@@ -381,9 +382,9 @@ export default function RequestFormDialog({ open, onOpenChange, user, config = D
             hold_qty: values.qty_produced || 0,
             hold_reason: `Labelling / Packaging Error — ${values.description || "under review"}`.slice(0, 200),
             held_by: requesterName,
-            owner: "QA/QC Team",
+            owner: "QAQC",
             status: "Open",
-            notes: "Automatically held from the approval request until QA/QC decides.",
+            notes: "Automatically held from the approval request until QAQC decides.",
           });
           await audit("Created", hold?.id, "Affected product automatically placed on Hold (Labelling / Packaging Error)");
         } catch {
@@ -563,14 +564,14 @@ export default function RequestFormDialog({ open, onOpenChange, user, config = D
                   <Checkbox
                     checked={(values.owners || []).includes(t)}
                     onCheckedChange={(c) => toggleOwner(t, c === true)}
-                    disabled={qaForced && t === "QA/QC Team"}
+                    disabled={qaForced && t === "QAQC"}
                   />
                   {t}
                 </label>
               ))}
             </div>
             {qaForced && (
-              <p className="text-[10px] text-[#64748B]">Labelling / Packaging Error requests are always routed to the QA/QC Team.</p>
+              <p className="text-[10px] text-[#64748B]">Labelling / Packaging Error requests are always routed to QAQC.</p>
             )}
           </div>
 

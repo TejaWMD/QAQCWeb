@@ -117,11 +117,11 @@ export default function RequestsList({ rows, loading, user, onStatusChange, onEd
                 <TableCell>
                   {row._type === DOWNTIME_TYPE ? (
                     <span className="text-sm text-[#334155]">
-                      {(row.owners || []).length ? row.owners.join(", ") : row.owner || "—"}
+                      {rowOwnerTeams(row).join(", ") || "—"}
                     </span>
                   ) : (
                     <div>
-                      <p className="text-sm text-[#334155]">{(row.owners || []).join(", ") || "—"}</p>
+                      <p className="text-sm text-[#334155]">{rowOwnerTeams(row).join(", ") || "—"}</p>
                       <p className="text-[#64748B] text-xs">by {row.requester_name || "—"}</p>
                     </div>
                   )}

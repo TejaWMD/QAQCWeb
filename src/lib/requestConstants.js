@@ -2,7 +2,7 @@
 // teams, per-type form fields, status flows, form-config defaults, and who
 // may act on incoming requests.
 import { base44 } from "@/api/base44Client";
-import { appRoleOf } from "@/lib/permissions";
+import { isAdminUser } from "@/lib/permissions";
 
 export const REQUEST_TYPES = ["Downtime / Stoppage", "Item / Material Request", "Approval Request"];
 export const DOWNTIME_TYPE = REQUEST_TYPES[0];
@@ -12,7 +12,41 @@ export const APPROVAL_TYPE = REQUEST_TYPES[2];
 export const DOWNTIME_CATEGORIES = ["Mechanical", "Electrical", "Material Shortage", "Changeover", "Quality Hold", "Staffing", "Other"];
 export const DOWNTIME_STATUSES = ["Open", "Resolved"];
 
-export const OWNER_TEAMS = ["Maintenance", "QA/QC Team", "MD", "Warehouse"];
+export const OWNER_TEAMS = ["Maintenance", "QAQC", "Admin"];
+
+// Normalize legacy owner labels ("QA/QC Team", "MD") and drop removed "Warehouse".
+export const normalizeOwnerTeam = (team) => {
+  const raw = String(team || "").trim();
+  if (!raw) return "";
+  const lower = raw.toLowerCase();
+  if (lower.includes("warehouse")) return "";
+  if (lower.includes("maintenance")) return "Maintenance";
+  if (lower === "qaqc" || lower.includes("qa/qc") || lower.includes("qa qc") || lower === "qa" || lower === "qc") {
+    return "QAQC";
+  }
+  if (lower === "md" || lower === "admin" || lower.includes("managing director")) {
+    return "Admin";
+  }
+  return raw;
+};
+
+export const normalizeOwnerTeams = (teams) => {
+  const arr = Array.isArray(teams)
+    ? teams
+    : typeof teams === "string"
+      ? teams.split(",")
+      : [];
+  const seen = new Set();
+  const out = [];
+  for (const item of arr) {
+    const normalized = normalizeOwnerTeam(item);
+    if (normalized && !seen.has(normalized)) {
+      seen.add(normalized);
+      out.push(normalized);
+    }
+  }
+  return out;
+};
 export const URGENCIES = ["Normal", "Urgent", "Line stopped"];
 export const ITEM_CATEGORIES = ["Tools & Equipment", "Spare Part", "Packaging", "Raw Material", "PPE", "Cleaning Supplies", "Other"];
 export const APPROVAL_TYPES = [
@@ -140,7 +174,14 @@ export const loadFormConfig = async () => {
   try {
     const page = await base44.entities.FormConfig.filter({ key: CONFIG_KEY }, { limit: 1 });
     const record = page.items?.[0];
-    if (record) return { ...DEFAULT_FORM_CONFIG, ...record };
+    if (record) {
+      const merged = { ...DEFAULT_FORM_CONFIG, ...record };
+      const normalizedOwners = normalizeOwnerTeams(merged.owner_teams);
+      return {
+        ...merged,
+        owner_teams: normalizedOwners.length ? normalizedOwners : OWNER_TEAMS,
+      };
+    }
   } catch {
     // Fall back to defaults when the config cannot be read.
   }
@@ -151,81 +192,65 @@ export const loadFormConfig = async () => {
 export const rowOwnerTeams = (row) => {
   if (!row) return [];
   if (Array.isArray(row.owners) && row.owners.length > 0) {
-    return row.owners.map((t) => String(t || "").trim()).filter(Boolean);
+    return normalizeOwnerTeams(row.owners);
   }
   if (row.owner) {
-    return String(row.owner).split(",").map((s) => s.trim()).filter(Boolean);
+    return normalizeOwnerTeams(row.owner);
   }
   return [];
 };
 
 const userMatchesTeam = (user, team) => {
   if (!user || !team) return false;
-  const t = String(team).trim().toLowerCase();
+  const canonical = normalizeOwnerTeam(team);
+  const t = (canonical || String(team)).trim().toLowerCase();
   if (!t) return false;
 
-  const myName = String(user.full_name || user.name || "").trim().toLowerCase();
-  const myEmail = String(user.email || "").trim().toLowerCase();
-  if ((myName && t === myName) || (myEmail && t === myEmail)) return true;
-
-  // When an Admin is previewing via "View as", respect that simulated role strictly.
-  if (user.view_as_role) {
-    const v = user.view_as_role;
-    if (t.includes("maintenance")) return v === "maintenance";
-    if (t.includes("qa") || t.includes("qc")) return v === "qa_officer";
-    if (t === "md" || t.includes("managing director") || t.includes("manager")) return v === "manager";
-    if (t.includes("warehouse")) return v === "warehouse_staff" || v === "warehouse_supervisor";
-    return false;
-  }
-
-  const appRole = user.app_role || appRoleOf(user);
-  const label = `${user.role_label || ""} ${user.dept || ""}`.toLowerCase();
-
+  // Maintenance is general for now — any signed-in user can edit/change status.
   if (t.includes("maintenance")) {
-    return appRole === "maintenance" || /\bmaintenance\b/.test(label);
-  }
-  if (t.includes("qa") || t.includes("qc")) {
-    return appRole === "qa_officer" || /\b(qa|qc|qaqc|quality|haccp)\b|qa\s*\/?\s*qc/.test(label);
-  }
-  if (t === "md" || t.includes("managing director") || t.includes("manager")) {
-    return appRole === "manager" || /\b(md|managing director|director|manager)\b/.test(label);
-  }
-  if (t.includes("warehouse")) {
-    return (
-      appRole === "warehouse_staff" ||
-      appRole === "warehouse_supervisor" ||
-      /\bwarehouse\b/.test(label)
-    );
+    return true;
   }
 
-  // Custom team name: match against user's department or role label
-  return label.includes(t);
+  // QAQC: only users whose department is QAQC can change status.
+  if (t === "qaqc" || t.includes("qa") || t.includes("qc")) {
+    if (user.view_as_role) {
+      return user.view_as_role === "qa_officer";
+    }
+    const dept = String(user.dept || user.department || "").trim().toLowerCase();
+    return dept === "qaqc" || dept === "qa/qc" || dept === "qa & qc";
+  }
+
+  // Admin (formerly MD): only Admin users can change status.
+  if (t === "admin" || t === "md" || t.includes("managing director")) {
+    if (user.view_as_role) {
+      return false;
+    }
+    return isAdminUser(user);
+  }
+
+  // Fallback for any custom team name
+  const dept = String(user.dept || user.department || "").trim().toLowerCase();
+  return dept === t;
 };
 
 // Owners and team reviewers can view the Incoming Requests tab.
 export const canDecideRequests = (user) => {
   if (!user) return false;
-  const r = appRoleOf(user);
-  if (["qa_officer", "manager", "admin", "maintenance", "warehouse_supervisor", "warehouse_staff"].includes(r)) {
-    return true;
-  }
   return OWNER_TEAMS.some((t) => userMatchesTeam(user, t));
 };
 
 export const coversTeam = (user, teams) =>
-  (Array.isArray(teams) ? teams : []).some((t) => userMatchesTeam(user, t));
+  normalizeOwnerTeams(teams).some((t) => userMatchesTeam(user, t));
 
-// Only the assigned owner (matching owner team/person) can change the status of a
-// request or stoppage; for non-downtime Requests, a requester cannot approve their own request.
+// Only the assigned owner can change the status of a request or stoppage:
+// - Maintenance: any signed-in user
+// - QAQC: only users with department = QAQC
+// - Admin: only Admin users
 export const canChangeRequestStatus = (user, row) => {
   if (!user || !row) return false;
   const teams = rowOwnerTeams(row);
   if (!teams.length) return false;
-  if (!coversTeam(user, teams)) return false;
-  if (row._type !== DOWNTIME_TYPE && row.requester_id && user.id && row.requester_id === user.id) {
-    return false;
-  }
-  return true;
+  return coversTeam(user, teams);
 };
 
 export const statusesForType = (row) => {

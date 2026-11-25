@@ -160,7 +160,7 @@ export default function FormSettingsDialog({ open, onOpenChange, config = DEFAUL
               ))}
             </div>
             <div className="space-y-1 pt-1">
-              <Label className="text-xs text-[#64748B]">Purchase / Spending goes to the MD above this amount</Label>
+              <Label className="text-xs text-[#64748B]">Purchase / Spending goes to Admin above this amount</Label>
               <Input
                 type="number"
                 value={mdLimit}

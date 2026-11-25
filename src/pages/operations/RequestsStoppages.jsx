@@ -179,8 +179,11 @@ export default function RequestsStoppages() {
           summary,
           decidedBy: deciderName,
           decidedById: user?.id || "",
+          decidedByPortalId: user?.portal_user_id || "",
+          decidedByEmail: user?.email || "",
           requesterId: row.requester_id || "",
           requesterName: row.requester_name || row.created_by || "",
+          requesterEmail: row.requester_email || "",
           owners: rowOwnerTeams(row),
         });
         toast.success(

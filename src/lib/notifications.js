@@ -1,10 +1,174 @@
+import { createClient } from "@supabase/supabase-js";
 import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
+import { managerSupabase } from "@/lib/managerSupabase";
 import { isAdminUser } from "@/lib/permissions";
+
+const MAIN_APP_SUPABASE_URL =
+  import.meta.env.VITE_MAIN_APP_SUPABASE_URL ||
+  "https://omkpwhlvidwyhdivqpoe.supabase.co";
+const MAIN_APP_SUPABASE_ANON_KEY =
+  import.meta.env.VITE_MAIN_APP_SUPABASE_ANON_KEY ||
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ta3B3aGx2aWR3eWhkaXZxcG9lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ1MzA3OTAsImV4cCI6MjExMDEwNjc5MH0.SQJg3p_400dPWFp_DZgfOAR-Y96OSarc2xCuoyoBHJw";
+
+// Read-only MainApp client used only to resolve MainApp user IDs & app access for PWA Web Push.
+const mainAppSupabase = createClient(MAIN_APP_SUPABASE_URL, MAIN_APP_SUPABASE_ANON_KEY, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+    detectSessionInUrl: false,
+  },
+});
 
 const STORAGE_KEY = "wmg_user_notifications";
 const MAX_NOTIFICATIONS = 150;
 
 const norm = (v) => String(v || "").trim().toLowerCase();
+
+function hasQaqcAppAccess(mainAppUser) {
+  if (!mainAppUser) return false;
+  if (norm(mainAppUser.status) === "inactive") return false;
+  if (norm(mainAppUser.role) === "admin") return true;
+  if (Array.isArray(mainAppUser.accessible_apps) && mainAppUser.accessible_apps.includes("qaqc")) {
+    return true;
+  }
+  return false;
+}
+
+async function resolvePushRecipientIds({
+  requesterId = "",
+  requesterName = "",
+  requesterEmail = "",
+  decidedById = "",
+  decidedByPortalId = "",
+  decidedByEmail = "",
+}) {
+  const actorIds = new Set(
+    [decidedById, decidedByPortalId].map((v) => String(v || "").trim()).filter(Boolean)
+  );
+  const actorEmail = norm(decidedByEmail);
+
+  let targetEmail = norm(requesterEmail);
+  let targetName = norm(requesterName);
+
+  // 1. If we don't have the requester's email yet, look it up in QAQCWeb's users table
+  if (!targetEmail && (requesterId || targetName)) {
+    try {
+      let query = supabase
+        .from("users")
+        .select("id, name, email")
+        .eq("deleted", false)
+        .limit(1);
+      if (requesterId) {
+        query = query.eq("id", requesterId);
+      } else {
+        query = query.ilike("name", requesterName.trim());
+      }
+      const { data } = await query;
+      const row = Array.isArray(data) ? data[0] : null;
+      if (row?.email) targetEmail = norm(row.email);
+      if (!targetName && row?.name) targetName = norm(row.name);
+    } catch {
+      // Non-blocking lookup
+    }
+  }
+
+  // 2. Resolve the requester's MainApp user_id (the key stored in push_subscriptions by MainApp PWA)
+  const recipientIds = new Set();
+  try {
+    let matchedUser = null;
+    if (targetEmail) {
+      const { data } = await mainAppSupabase
+        .from("users")
+        .select("id, name, email, role, department, status, accessible_apps")
+        .ilike("email", targetEmail)
+        .limit(1);
+      matchedUser = Array.isArray(data) ? data[0] : null;
+    }
+    if (!matchedUser && targetName) {
+      const { data } = await mainAppSupabase
+        .from("users")
+        .select("id, name, email, role, department, status, accessible_apps")
+        .ilike("name", requesterName.trim())
+        .limit(1);
+      matchedUser = Array.isArray(data) ? data[0] : null;
+    }
+
+    if (matchedUser?.id && hasQaqcAppAccess(matchedUser)) {
+      const isActor =
+        actorIds.has(String(matchedUser.id).trim()) ||
+        (actorEmail && norm(matchedUser.email) === actorEmail);
+      if (!isActor) {
+        recipientIds.add(String(matchedUser.id).trim());
+      }
+    }
+  } catch (err) {
+    console.warn("Could not resolve MainApp user for push notification:", err);
+  }
+
+  // Fallback: if requesterId itself was already a MainApp ID and not the actor
+  if (recipientIds.size === 0 && requesterId && !actorIds.has(String(requesterId).trim())) {
+    recipientIds.add(String(requesterId).trim());
+  }
+
+  return Array.from(recipientIds);
+}
+
+async function dispatchQaqcWebPush({
+  recordId,
+  status,
+  summary,
+  decidedBy,
+  decidedById = "",
+  decidedByPortalId = "",
+  decidedByEmail = "",
+  comment = "",
+  requesterId = "",
+  requesterName = "",
+  requesterEmail = "",
+}) {
+  try {
+    const recipientUserIds = await resolvePushRecipientIds({
+      requesterId,
+      requesterName,
+      requesterEmail,
+      decidedById,
+      decidedByPortalId,
+      decidedByEmail,
+    });
+
+    if (recipientUserIds.length === 0) return;
+
+    const iconPrefix = status === "Approved" ? "✅" : "❌";
+    const title = `${iconPrefix} Request ${status} (QAQC Web)`;
+    const body = `${summary || "Your request"} was ${status.toLowerCase()} by ${decidedBy || "Owner"}${comment ? ` — ${comment}` : ""}`;
+
+    const { error } = await managerSupabase.functions.invoke("send-push", {
+      body: {
+        event: "QAQC_REQUEST_DECISION",
+        actorId: decidedByPortalId || decidedById || "",
+        actorName: decidedBy || "",
+        recipientUserIds,
+        title,
+        body,
+        tag: `qaqc-req-${recordId || Date.now()}-${status.toLowerCase()}`,
+        data: {
+          appId: "qaqc",
+          path: "/downtime",
+          recordId: recordId || "",
+          status,
+          event: "QAQC_REQUEST_DECISION",
+        },
+      },
+    });
+
+    if (error) {
+      console.warn("QAQC Web Push dispatch error:", error.message);
+    }
+  } catch (err) {
+    console.warn("QAQC Web Push dispatch failed:", err);
+  }
+}
 
 function readLocal() {
   try {
@@ -85,6 +249,8 @@ export async function pushRequestDecisionNotification({
   summary,
   decidedBy,
   decidedById = "",
+  decidedByPortalId = "",
+  decidedByEmail = "",
   comment = "",
   requesterId = "",
   requesterName = "",
@@ -113,6 +279,22 @@ export async function pushRequestDecisionNotification({
     };
     await saveAllNotifications([item, ...existing]);
     window.dispatchEvent(new CustomEvent("wmg:notifications-updated"));
+
+    // Also send background PWA Web Push via MainApp's shared push pipeline
+    void dispatchQaqcWebPush({
+      recordId,
+      status,
+      summary,
+      decidedBy,
+      decidedById,
+      decidedByPortalId,
+      decidedByEmail,
+      comment,
+      requesterId,
+      requesterName,
+      requesterEmail,
+    });
+
     return item;
   } catch (err) {
     console.warn("Could not save notification:", err);

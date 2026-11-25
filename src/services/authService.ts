@@ -3,7 +3,32 @@ import { supabase } from '@/api/supabaseClient';
 const LEGACY_AUTH_STORAGE_KEY = 'qaqc_auth_user_id';
 const SSO_SESSION_USER_KEY = 'qaqc_sso_user_id';
 const SSO_PORTAL_URL_KEY = 'qaqc_sso_portal_url';
+const SSO_PORTAL_META_KEY = 'qaqc_sso_portal_meta';
 export const DEFAULT_PORTAL_URL = 'https://tejawmd.github.io/MainApp/';
+
+interface StoredPortalMeta {
+  id?: string;
+  department?: string;
+  role?: string;
+  role_label?: string;
+}
+
+function readStoredPortalMeta(): StoredPortalMeta | null {
+  try {
+    const raw = sessionStorage.getItem(SSO_PORTAL_META_KEY);
+    return raw ? (JSON.parse(raw) as StoredPortalMeta) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredPortalMeta(meta: StoredPortalMeta): void {
+  try {
+    sessionStorage.setItem(SSO_PORTAL_META_KEY, JSON.stringify(meta));
+  } catch {
+    // ignore storage errors
+  }
+}
 
 export interface SsoPayload {
   id?: string;
@@ -25,12 +50,14 @@ export interface PortalAuthResult {
 
 export interface UserProfile {
   id: string;
+  portal_user_id?: string;
   name: string;
   full_name: string;
   email: string;
   role: 'admin' | 'staff' | 'super_admin' | 'user';
   role_label?: string;
   dept?: string;
+  department?: string;
   avatar_initials?: string;
   app_role?: string;
   line?: string;
@@ -38,7 +65,7 @@ export interface UserProfile {
   status: 'active' | 'pending' | 'approved' | 'suspended';
 }
 
-function normalizeUser(row: any): UserProfile {
+function normalizeUser(row: any, portalMeta?: StoredPortalMeta | null): UserProfile {
   const name = row.name || row.full_name || row.email || 'User';
   const initials =
     row.avatar_initials ||
@@ -50,14 +77,22 @@ function normalizeUser(row: any): UserProfile {
       .join('') ||
     'U';
 
+  const effectiveRole =
+    portalMeta?.role === 'admin'
+      ? 'admin'
+      : row.role || 'staff';
+  const effectiveDept = String(portalMeta?.department || row.dept || '').trim();
+
   return {
     id: row.id,
+    portal_user_id: portalMeta?.id || undefined,
     name,
     full_name: name,
     email: row.email || '',
-    role: row.role || 'staff',
-    role_label: row.role_label || (row.role === 'admin' ? 'Administrator' : 'Staff'),
-    dept: row.dept || '',
+    role: effectiveRole,
+    role_label: portalMeta?.role_label || row.role_label || (effectiveRole === 'admin' ? 'Administrator' : 'Staff'),
+    dept: effectiveDept,
+    department: effectiveDept,
     avatar_initials: initials,
     app_role: row.app_role || undefined,
     line: row.line || undefined,
@@ -69,6 +104,7 @@ function normalizeUser(row: any): UserProfile {
 function clearStoredSessions(): void {
   try {
     sessionStorage.removeItem(SSO_SESSION_USER_KEY);
+    sessionStorage.removeItem(SSO_PORTAL_META_KEY);
   } catch {
     // ignore storage errors
   }
@@ -205,13 +241,21 @@ export async function authenticateFromPortalSso(): Promise<PortalAuthResult> {
       return { status: 'suspended', profile: normalizeUser(row) };
     }
 
+    const portalMeta: StoredPortalMeta = {
+      id: ssoPayload.id || '',
+      department: ssoPayload.department || '',
+      role: ssoPayload.role || '',
+      role_label: ssoPayload.role_label || '',
+    };
+    writeStoredPortalMeta(portalMeta);
+
     try {
       sessionStorage.setItem(SSO_SESSION_USER_KEY, row.id);
     } catch {
       // ignore storage errors
     }
 
-    return { status: 'authenticated', profile: normalizeUser(row) };
+    return { status: 'authenticated', profile: normalizeUser(row, portalMeta) };
   }
 
   // No token in URL: check active per-tab SSO session (only persists inside the launched tab/iframe)
@@ -243,7 +287,7 @@ export async function authenticateFromPortalSso(): Promise<PortalAuthResult> {
     return { status: 'suspended', profile: normalizeUser(row) };
   }
 
-  return { status: 'authenticated', profile: normalizeUser(row) };
+  return { status: 'authenticated', profile: normalizeUser(row, readStoredPortalMeta()) };
 }
 
 export async function loginWithEmailPassword(_email: string, _password: string): Promise<UserProfile> {
