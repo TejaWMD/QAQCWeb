@@ -45,7 +45,15 @@ const laneLayout = (list) => {
 const Hours = () => (
   <>
     {HOURS.map((h) => (
-      <div key={h} className="absolute left-0 right-0 border-t border-[#E2E8F0]" style={{ top: h * HOUR_PX }} />
+      <React.Fragment key={h}>
+        <div className="absolute left-0 right-0 border-t border-[#E2E8F0]" style={{ top: h * HOUR_PX }} />
+        {h < 24 && (
+          <div
+            className="absolute left-0 right-0 border-t border-dashed border-[#F1F5F9] pointer-events-none"
+            style={{ top: h * HOUR_PX + HOUR_PX / 2 }}
+          />
+        )}
+      </React.Fragment>
     ))}
   </>
 );
@@ -82,16 +90,36 @@ export default function ScheduleGrid({ machines = [], orders = [], dateStr, onOp
   return (
     <div className="rounded-xl border border-[#E2E8F0] bg-white overflow-auto max-h-[72vh]">
       <div className="flex min-w-max">
-        <div className="w-24 shrink-0 sticky left-0 z-30 bg-white border-r border-[#E2E8F0]">
-          <div className="h-11 sticky top-0 z-30 bg-[#F8FAFC] border-b border-[#E2E8F0] px-2 flex items-center">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#64748B]">Machine (Tank)</span>
+        <div className="w-24 shrink-0 sticky left-0 z-30 bg-[#F8FAFC] border-r border-[#E2E8F0]">
+          <div className="h-11 sticky top-0 z-30 bg-[#F8FAFC] border-b border-[#E2E8F0] px-2 flex items-center justify-between">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#64748B]">Time</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">Tank</span>
           </div>
-          <div className="relative" style={{ height: TOTAL_PX }}>
-            {HOURS.map((h) => (
-              <div key={h} className="absolute left-0 right-0 border-t border-[#E2E8F0]" style={{ top: h * HOUR_PX }}>
-                <span className="absolute right-1 -top-2 text-[10px] text-[#64748B]">{String(h).padStart(2, "0")}:00</span>
-              </div>
-            ))}
+          <div className="py-3">
+            <div className="relative" style={{ height: TOTAL_PX }}>
+              {HOURS.map((h) => (
+                <React.Fragment key={h}>
+                  <div
+                    className="absolute left-0 right-0 flex items-center justify-end pr-2 -translate-y-1/2"
+                    style={{ top: h * HOUR_PX }}
+                  >
+                    <span className="px-1.5 py-0.5 rounded bg-white border border-[#E2E8F0]/80 text-[11px] font-semibold tabular-nums text-[#334155] leading-none shadow-[0_1px_1px_rgba(15,41,74,0.03)]">
+                      {String(h).padStart(2, "0")}:00
+                    </span>
+                    <span className="w-1.5 h-px bg-[#CBD5E1] ml-1 shrink-0" />
+                  </div>
+                  {h < 24 && (
+                    <div
+                      className="absolute right-0 flex items-center justify-end -translate-y-1/2 pointer-events-none"
+                      style={{ top: h * HOUR_PX + HOUR_PX / 2 }}
+                    >
+                      <span className="text-[9px] font-medium tabular-nums text-[#94A3B8] mr-1.5">:30</span>
+                      <span className="w-1 h-px bg-[#E2E8F0]" />
+                    </div>
+                  )}
+                </React.Fragment>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -104,13 +132,14 @@ export default function ScheduleGrid({ machines = [], orders = [], dateStr, onOp
                 <span className="text-xs font-semibold text-[#0F294A] truncate" title={machine.name}>{machine.name}</span>
                 {maintenance && <Wrench className="w-3 h-3 text-rose-600 shrink-0" />}
               </div>
-              <div
-                className={`relative ${maintenance ? "bg-rose-600/5" : ""} ${hoverMachine === machine.name ? "bg-[#EBF3FF]" : ""}`}
-                style={{ height: TOTAL_PX }}
-                onDragOver={(e) => { e.preventDefault(); setHoverMachine(machine.name); }}
-                onDragLeave={() => setHoverMachine("")}
-                onDrop={(e) => onDrop(e, machine)}
-              >
+              <div className={`py-3 ${maintenance ? "bg-rose-600/5" : ""} ${hoverMachine === machine.name ? "bg-[#EBF3FF]" : ""}`}>
+                <div
+                  className="relative"
+                  style={{ height: TOTAL_PX }}
+                  onDragOver={(e) => { e.preventDefault(); setHoverMachine(machine.name); }}
+                  onDragLeave={() => setHoverMachine("")}
+                  onDrop={(e) => onDrop(e, machine)}
+                >
                 <Hours />
                 {placed.map(({ order, startMin, endMin, lane, conflict }) => {
                   const widthPct = 100 / lanes;
@@ -155,6 +184,7 @@ export default function ScheduleGrid({ machines = [], orders = [], dateStr, onOp
                     </React.Fragment>
                   );
                 })}
+                </div>
               </div>
             </div>
           );
