@@ -38,7 +38,7 @@ function statusOfBatch(record) {
   return "Active";
 }
 
-export default function BatchRecords() {
+export default function BatchRecords({ embedded = false }) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [records, setRecords] = useState([]);
@@ -239,15 +239,17 @@ export default function BatchRecords() {
   }, [printDraft, toast]);
 
   return (
-    <div className="min-h-screen bg-[#F6F8FC] p-4 md:p-6 space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="text-[#0F294A] text-xl font-bold">All Batches</h2>
-          <p className="text-[#64748B] text-sm mt-0.5">View and manage all stock batches</p>
-        </div>
+    <div className={embedded ? "space-y-4" : "min-h-screen bg-[#F6F8FC] p-4 md:p-6 space-y-4"}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        {!embedded ? (
+          <h2 className="text-[#0F294A] text-xl font-bold">Batch Records</h2>
+        ) : (
+          <p className="text-xs text-[#64748B]">{rows.length} / {records.length} batches</p>
+        )}
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
+            size="sm"
             onClick={() => {
               setJob(null);
               setTimeout(() => window.print(), 50);
@@ -255,10 +257,10 @@ export default function BatchRecords() {
             className={subtleButton}
             disabled={rows.length === 0}
           >
-            <Printer className="w-4 h-4 mr-1.5" /> Print List
+            <Printer className="w-3.5 h-3.5 mr-1.5" /> Print
           </Button>
-          <Button variant="outline" onClick={exportCsv} className={subtleButton} disabled={rows.length === 0}>
-            <Download className="w-4 h-4 mr-1.5" /> Export CSV
+          <Button variant="outline" size="sm" onClick={exportCsv} className={subtleButton} disabled={rows.length === 0}>
+            <Download className="w-3.5 h-3.5 mr-1.5" /> Export
           </Button>
         </div>
       </div>
