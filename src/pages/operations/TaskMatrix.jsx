@@ -113,7 +113,7 @@ function taskBelongsToUser(task, user) {
   return false;
 }
 
-export default function TaskMatrix() {
+export default function TaskMatrix({ embedded = false } = {}) {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const canCompileAll = isCompiledViewer(user);
@@ -359,7 +359,7 @@ export default function TaskMatrix() {
   const isCompiledActive = viewMode === "compiled" && canCompileAll;
 
   return (
-    <div className="min-h-screen bg-[#0b1120] text-slate-100 p-4 md:p-6 space-y-4">
+    <div className={embedded ? "space-y-4" : "min-h-screen bg-[#0b1120] text-slate-100 p-4 md:p-6 space-y-4"}>
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>

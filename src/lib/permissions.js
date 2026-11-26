@@ -20,9 +20,10 @@ export const MODULES = [
   { key: "wastage_records", label: "Wastage Record", path: "/wastage-logs", description: "Packaging material wastage records" },
   { key: "baseline_capacity", label: "Baseline Capacity", path: "/baseline-capacity", description: "Line capacity, setup and staffing baselines" },
   { key: "downtime", label: "Requests & Stoppages", path: "/downtime", description: "Downtime stoppages, item/material and approval requests" },
-  { key: "qa_haccp", label: "QA & HACCP Safety", path: "/qa-haccp", description: "Food safety checks, defects and product holds" },
+  { key: "qa_haccp", label: "QA & HACCP Safety", path: "/qa-haccp", description: "Food safety checks, HACCP docs, quality control and supervisor tasks" },
+  { key: "positive_release", label: "Product Positive Release", path: "/positive-release", description: "QR scan-in, parameter control check, remarks and positive release" },
   { key: "qaqc_queries", label: "Query", path: "/queries", description: "Read-only view of QAQC queries involving Muttha from the Manager Dashboard" },
-  { key: "task_matrix", label: "Supervisor Task Matrix", path: "/task-matrix", description: "Supervisor attention tasks and verification" },
+  { key: "task_matrix", label: "Supervisor Task Matrix", path: "/task-matrix", description: "Supervisor attention tasks and verification (inside QA & HACCP Safety)" },
   { key: "capa_tracker", label: "Unified CAPA Tracker", path: "/capa-tracker", description: "Corrective and preventive actions" },
   { key: "audit_trail", label: "Audit Trail Log", path: "/audit-trail", description: "Chronological record of actions across modules" },
   { key: "wms_warehouse", label: "Finished Goods WMS", path: "/wms", description: "QR scan-in and warehouse stock" },
@@ -49,10 +50,10 @@ export const isAdminUser = (user) => user?.role === "admin" || user?.role === "s
 // role keep whatever modules were assigned to them individually.
 export const APP_ROLES = [
   { key: "operator", label: "Operator / Line Leader", preset: ["shift_log", "downtime", "production_orders", "production_schedule", "create_batch", "yield_loss"] },
-  { key: "supervisor", label: "Supervisor", preset: ["task_matrix", "shift_log", "downtime", "product_master", "production_orders", "production_schedule", "create_batch", "yield_loss"] },
-  { key: "qa_officer", label: "QA Officer", preset: ["qa_haccp", "task_matrix", "capa_tracker", "product_master", "recipe_master", "yield_loss"] },
+  { key: "supervisor", label: "Supervisor", preset: ["qa_haccp", "task_matrix", "positive_release", "shift_log", "downtime", "product_master", "production_orders", "production_schedule", "create_batch", "yield_loss"] },
+  { key: "qa_officer", label: "QA Officer", preset: ["qa_haccp", "positive_release", "task_matrix", "capa_tracker", "product_master", "recipe_master", "yield_loss"] },
   { key: "warehouse_staff", label: "Warehouse Staff", preset: ["wms_warehouse", "packaging_stock"] },
-  { key: "warehouse_supervisor", label: "Warehouse Supervisor", preset: ["wms_warehouse", "packaging_stock"] },
+  { key: "warehouse_supervisor", label: "Warehouse Supervisor", preset: ["wms_warehouse", "positive_release", "packaging_stock"] },
   { key: "sales", label: "Sales Team", preset: ["capa_tracker"] },
   { key: "manager", label: "Production Manager / MD", preset: MANAGER_PRESET_KEYS },
 ];
@@ -121,6 +122,7 @@ const MODULE_ALIASES = {
   production_line_logs: ["dashboard", "operation_record", "overtime_record", "wastage_records", "baseline_capacity", "activity_logs"],
   create_batch: ["batch_records"],
   packaging_stock: ["packaging_movements", "packaging_approvals"],
+  qa_haccp: ["task_matrix"],
 };
 
 // True when modules have been assigned explicitly (an empty assignment means no access).

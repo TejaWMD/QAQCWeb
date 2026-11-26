@@ -8,6 +8,13 @@ export const DEFAULT_IMPORTANT_DATES = [];
 
 export const DEFAULT_RETENTION_SAMPLES = [];
 
+export const DEFAULT_WEEKLY_VERIFICATION = {
+  customDocs: [],
+  checks: {},
+};
+
+export const DEFAULT_POSITIVE_RELEASES = [];
+
 export const DEFAULT_QC_STATE = {
   customMenus: {},
   sensorySheets: [],

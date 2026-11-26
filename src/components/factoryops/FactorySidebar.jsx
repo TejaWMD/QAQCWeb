@@ -5,9 +5,9 @@ import { useAuth } from "@/lib/AuthContext";
 import { MODULES, canAccess, isAdminUser } from "@/lib/permissions";
 import NotificationBell from "@/components/NotificationBell";
 import {
-  Radar, Clock, ShieldCheck, ClipboardList, AlertTriangle, ScrollText,
+  Radar, Clock, ShieldCheck, AlertTriangle, ScrollText,
   LayoutDashboard, Users, Upload, Layers,
-  Package, FlaskConical, ListChecks,
+  Package, PackageCheck, FlaskConical, ListChecks,
   CalendarDays, Trash2, Tag, Scale, X, PanelLeftClose, PanelLeftOpen, TrendingUp, ShoppingCart, LayoutGrid, QrCode, MessageSquareText
 } from "lucide-react";
 
@@ -15,8 +15,8 @@ const factoryItems = [
   { key: "attention_dashboard", label: "Attention Dashboard", icon: Radar },
   { key: "downtime", label: "Requests & Stoppages", icon: Clock },
   { key: "qa_haccp", label: "QA & HACCP Safety", icon: ShieldCheck },
+  { key: "positive_release", label: "Product Positive Release", icon: PackageCheck },
   { key: "qaqc_queries", label: "Query Within Depts", icon: MessageSquareText },
-  { key: "task_matrix", label: "Supervisor Tasks", icon: ClipboardList },
   { key: "capa_tracker", label: "CAPA Tracker", icon: AlertTriangle, badge: "capa" },
   { key: "audit_trail", label: "Audit Trail", icon: ScrollText },
 ];

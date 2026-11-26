@@ -215,7 +215,7 @@ export default function AttentionDashboard() {
             { text: `${view.dueToday} Due Today`, tone: "white" },
             { text: `${view.verifiedActions} Verified`, tone: "green" },
           ]}
-          onClick={() => navigate("/task-matrix?status=Overdue")}
+          onClick={() => navigate("/qa-haccp?tab=tasks&status=Overdue")}
         />
       </div>
 

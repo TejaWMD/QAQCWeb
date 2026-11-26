@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { Toaster as SonnerToaster } from "@/components/ui/sonner"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
-import { HashRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
+import { HashRouter as Router, Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import ScrollToTop from './components/ScrollToTop';
@@ -13,7 +13,6 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 const Home = lazy(() => import('./pages/operations/Home'));
 const AttentionDashboard = lazy(() => import('./pages/operations/AttentionDashboard'));
 const RequestsStoppages = lazy(() => import('./pages/operations/RequestsStoppages'));
-const TaskMatrix = lazy(() => import('./pages/operations/TaskMatrix'));
 const OvertimeRecord = lazy(() => import('./pages/operations/OvertimeRecord'));
 const OperationLogs = lazy(() => import('./pages/operations/OperationLogs'));
 const WastageLogs = lazy(() => import('./pages/operations/WastageLogs'));
@@ -34,6 +33,7 @@ const Traceability = lazy(() => import('./pages/batches/Traceability'));
 
 // QA / QC & Loss Control
 const QaHaccp = lazy(() => import('./pages/qaqc/QaHaccp'));
+const ProductPositiveRelease = lazy(() => import('./pages/qaqc/ProductPositiveRelease'));
 const QueryViewer = lazy(() => import('./pages/qaqc/QueryViewer'));
 const CapaTracker = lazy(() => import('./pages/qaqc/CapaTracker'));
 const YieldLoss = lazy(() => import('./pages/qaqc/YieldLoss'));
@@ -57,6 +57,13 @@ const RecentlyDeletedOrders = lazy(() => import('./pages/admin/RecentlyDeletedOr
 import Layout from './components/Layout';
 import ModuleGuard from './components/ModuleGuard';
 import AccessGate from './components/AccessGate';
+
+const TaskMatrixRedirect = () => {
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  params.set("tab", "tasks");
+  return <Navigate to={`/qa-haccp?${params.toString()}`} replace />;
+};
 
 const PageFallback = () => (
   <div className="flex items-center justify-center min-h-[60vh]">
@@ -88,8 +95,9 @@ const AuthenticatedApp = () => {
           <Route path="/operations-overview" element={<Home />} />
           <Route path="/downtime" element={<RequestsStoppages />} />
           <Route path="/qa-haccp" element={<QaHaccp />} />
+          <Route path="/positive-release" element={<ProductPositiveRelease />} />
           <Route path="/queries" element={<QueryViewer />} />
-          <Route path="/task-matrix" element={<TaskMatrix />} />
+          <Route path="/task-matrix" element={<TaskMatrixRedirect />} />
           <Route path="/capa-tracker" element={<CapaTracker />} />
           <Route path="/audit-trail" element={<AuditTrailLog />} />
           <Route path="/users" element={<UserManagement />} />

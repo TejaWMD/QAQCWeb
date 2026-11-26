@@ -1,13 +1,16 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import * as XLSX from "xlsx";
 import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
 import { productService } from "@/services/productService";
 import { useAuth } from "@/lib/AuthContext";
-import { appRoleOf, canAccess } from "@/lib/permissions";
+import { actingUserName, appRoleOf, canAccess } from "@/lib/permissions";
 import RaiseCapaButton from "@/components/qaqc/RaiseCapaButton";
+import TaskMatrix from "@/pages/operations/TaskMatrix";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SearchableSelect } from "@/components/ui/searchable-select";
@@ -16,6 +19,7 @@ import {
   DEFAULT_HACCP_DOCS,
   DEFAULT_IMPORTANT_DATES,
   DEFAULT_RETENTION_SAMPLES,
+  DEFAULT_WEEKLY_VERIFICATION,
   loadQaSection,
   saveQaSection,
 } from "@/lib/qaHaccpStore";
@@ -25,7 +29,7 @@ const DATE_CATEGORIES = [
   { key: "Certification", dot: "bg-violet-400", bar: "bg-violet-400/85", label: "Certification" },
   { key: "Document due", dot: "bg-amber-400", bar: "bg-amber-400/85", label: "Document due" },
   { key: "Visit", dot: "bg-emerald-400", bar: "bg-emerald-400/85", label: "Visit" },
-  { key: "Training", dot: "bg-sky-400", bar: "bg-sky-400/85", label: "Training" },
+  { key: "Training", dot: "bg-pink-400", bar: "bg-pink-400/85", label: "Training" },
 ];
 
 const categoryMeta = (key) =>
@@ -74,8 +78,27 @@ const daysDiff = (targetIso) => {
   return Math.round((t.getTime() - today.getTime()) / 86400000);
 };
 
+const getWeekStartMonday = (refDate = new Date()) => {
+  const d = new Date(refDate.getFullYear(), refDate.getMonth(), refDate.getDate());
+  const dow = (d.getDay() + 6) % 7; // Mon=0 .. Sun=6
+  d.setDate(d.getDate() - dow);
+  return d;
+};
+
+const toIsoLocal = (d) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+const formatWeekRange = (mondayDate) => {
+  const sun = new Date(mondayDate);
+  sun.setDate(mondayDate.getDate() + 6);
+  return `${fmtShortDate(toIsoLocal(mondayDate))} – ${fmtShortDate(toIsoLocal(sun))}`;
+};
+
+const VALID_TABS = ["certifications", "control", "tasks"];
+
 export default function QaHaccp() {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const role = appRoleOf(user);
   // QA/QC team & admins (and non-manager staff assigned QA & HACCP) can edit & raise CAPA;
   // MD / Manager views read-only.
@@ -85,10 +108,28 @@ export default function QaHaccp() {
     (role !== "manager" && role !== "sales" && canAccess(user, "qa_haccp"));
   const canRaiseCapa = canEditQa;
 
-  const [tab, setTab] = useState("certifications");
+  const requestedTab = searchParams.get("tab");
+  const [tab, setTab] = useState(() => (VALID_TABS.includes(requestedTab) ? requestedTab : "certifications"));
+
+  useEffect(() => {
+    if (requestedTab && VALID_TABS.includes(requestedTab) && requestedTab !== tab) {
+      setTab(requestedTab);
+    }
+  }, [requestedTab]);
+
+  const handleTabChange = (nextTab) => {
+    setTab(nextTab);
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.set("tab", nextTab);
+    if (nextTab !== "tasks") nextParams.delete("status");
+    setSearchParams(nextParams, { replace: true });
+  };
+
   const [docs, setDocs] = useState([]);
   const [dates, setDates] = useState([]);
   const [samples, setSamples] = useState([]);
+  const [weeklyData, setWeeklyData] = useState(DEFAULT_WEEKLY_VERIFICATION);
+  const [weekMonday, setWeekMonday] = useState(() => getWeekStartMonday(new Date()));
   const [batches, setBatches] = useState([]);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -110,6 +151,11 @@ export default function QaHaccp() {
   const [editingDocId, setEditingDocId] = useState(null);
   const [newDoc, setNewDoc] = useState({ document_name: "", pic: "", remarks: "", due_date: "", status: "In progress" });
 
+  // Modals (Add / Edit Weekly Verified Document)
+  const [weeklyDocModalOpen, setWeeklyDocModalOpen] = useState(false);
+  const [editingWeeklyDocId, setEditingWeeklyDocId] = useState(null);
+  const [newWeeklyDoc, setNewWeeklyDoc] = useState({ document_name: "", pic: "", remarks: "" });
+
   // Modals (Add / Edit Retention Sample)
   const [sampleModalOpen, setSampleModalOpen] = useState(false);
   const [editingSampleId, setEditingSampleId] = useState(null);
@@ -122,12 +168,21 @@ export default function QaHaccp() {
       loadQaSection("docs", DEFAULT_HACCP_DOCS),
       loadQaSection("dates", DEFAULT_IMPORTANT_DATES),
       loadQaSection("samples", DEFAULT_RETENTION_SAMPLES),
+      loadQaSection("weekly_verification", DEFAULT_WEEKLY_VERIFICATION),
       base44.entities.BatchRecord.list("-created_date", 100).catch(() => []),
       productService.getActiveProducts().catch(() => []),
-    ]).then(([d, dt, smp, br, prodRows]) => {
+    ]).then(([d, dt, smp, wk, br, prodRows]) => {
       setDocs(Array.isArray(d) ? d : DEFAULT_HACCP_DOCS);
       setDates(Array.isArray(dt) ? dt : DEFAULT_IMPORTANT_DATES);
       setSamples(Array.isArray(smp) ? smp : DEFAULT_RETENTION_SAMPLES);
+      setWeeklyData(
+        wk && typeof wk === "object"
+          ? {
+              customDocs: Array.isArray(wk.customDocs) ? wk.customDocs : [],
+              checks: wk.checks && typeof wk.checks === "object" ? wk.checks : {},
+            }
+          : DEFAULT_WEEKLY_VERIFICATION
+      );
       setBatches(Array.isArray(br) ? br : []);
       setProducts(Array.isArray(prodRows) ? prodRows.filter((p) => p.active !== false && !p.hidden) : []);
       setLoading(false);
@@ -169,6 +224,98 @@ export default function QaHaccp() {
     } catch (err) {
       toast.error(err?.message || "Failed to sync retention samples to database.");
     }
+  };
+  const persistWeeklyData = async (next) => {
+    setWeeklyData(next);
+    try {
+      await saveQaSection("weekly_verification", next);
+    } catch (err) {
+      toast.error(err?.message || "Failed to sync weekly document verification to database.");
+    }
+  };
+
+  // Weekly verified documents (includes ALL HACCP docs + custom weekly docs)
+  const weekKey = toIsoLocal(weekMonday);
+  const weekChecks = weeklyData.checks?.[weekKey] || {};
+  const allWeeklyDocs = useMemo(() => {
+    const fromHaccp = docs.map((d) => ({
+      id: `haccp:${d.id}`,
+      rawId: d.id,
+      document_name: d.document_name,
+      pic: d.pic || "",
+      defaultRemarks: d.remarks || "",
+      source: "HACCP",
+    }));
+    const fromCustom = (weeklyData.customDocs || []).map((d) => ({
+      id: `weekly:${d.id}`,
+      rawId: d.id,
+      document_name: d.document_name,
+      pic: d.pic || "",
+      defaultRemarks: d.remarks || "",
+      source: "Weekly",
+    }));
+    return [...fromHaccp, ...fromCustom];
+  }, [docs, weeklyData.customDocs]);
+
+  const verifiedWeeklyCount = allWeeklyDocs.filter((d) => Boolean(weekChecks[d.id]?.verified)).length;
+  const weeklyPct = allWeeklyDocs.length ? Math.round((verifiedWeeklyCount / allWeeklyDocs.length) * 100) : 0;
+
+  const toggleWeeklyVerify = async (docRow) => {
+    if (!canEditQa) return;
+    const prevEntry = weekChecks[docRow.id] || {};
+    const nextVerified = !prevEntry.verified;
+    const nextWeekChecks = {
+      ...weekChecks,
+      [docRow.id]: {
+        ...prevEntry,
+        verified: nextVerified,
+        verified_by: nextVerified ? actingUserName(user) || user?.name || user?.email || "QA/QC" : "",
+        verified_at: nextVerified ? new Date().toISOString() : "",
+      },
+    };
+    await persistWeeklyData({
+      ...weeklyData,
+      checks: { ...(weeklyData.checks || {}), [weekKey]: nextWeekChecks },
+    });
+    toast.success(nextVerified ? `"${docRow.document_name}" verified for this week.` : `"${docRow.document_name}" marked pending.`);
+  };
+
+  const updateWeeklyRemark = async (docRow, remarkText) => {
+    if (!canEditQa) return;
+    const prevEntry = weekChecks[docRow.id] || {};
+    const nextWeekChecks = {
+      ...weekChecks,
+      [docRow.id]: {
+        ...prevEntry,
+        remarks: remarkText,
+      },
+    };
+    await persistWeeklyData({
+      ...weeklyData,
+      checks: { ...(weeklyData.checks || {}), [weekKey]: nextWeekChecks },
+    });
+  };
+
+  const openAddWeeklyDoc = () => {
+    setEditingWeeklyDocId(null);
+    setNewWeeklyDoc({ document_name: "", pic: "", remarks: "" });
+    setWeeklyDocModalOpen(true);
+  };
+
+  const openEditWeeklyDoc = (docRow) => {
+    setEditingWeeklyDocId(docRow.rawId);
+    setNewWeeklyDoc({
+      document_name: docRow.document_name || "",
+      pic: docRow.pic || "",
+      remarks: docRow.defaultRemarks || "",
+    });
+    setWeeklyDocModalOpen(true);
+  };
+
+  const deleteWeeklyDoc = async (rawId) => {
+    const nextCustom = (weeklyData.customDocs || []).filter((d) => d.id !== rawId);
+    await persistWeeklyData({ ...weeklyData, customDocs: nextCustom });
+    toast.success("Weekly document removed.");
   };
 
   // KPI metrics
@@ -441,11 +588,11 @@ export default function QaHaccp() {
         </div>
       </div>
 
-      {/* Two Tabs */}
-      <div className="flex items-center gap-6 border-b border-[#1e293b]">
+      {/* Three Tabs */}
+      <div className="flex flex-wrap items-center gap-6 border-b border-[#1e293b]">
         <button
           type="button"
-          onClick={() => setTab("certifications")}
+          onClick={() => handleTabChange("certifications")}
           className={`pb-2.5 text-sm font-medium border-b-2 transition-colors ${
             tab === "certifications" ? "border-cyan-400 text-cyan-300" : "border-transparent text-slate-400 hover:text-slate-200"
           }`}
@@ -454,12 +601,21 @@ export default function QaHaccp() {
         </button>
         <button
           type="button"
-          onClick={() => setTab("control")}
+          onClick={() => handleTabChange("control")}
           className={`pb-2.5 text-sm font-medium border-b-2 transition-colors ${
             tab === "control" ? "border-cyan-400 text-cyan-300" : "border-transparent text-slate-400 hover:text-slate-200"
           }`}
         >
           Quality Control
+        </button>
+        <button
+          type="button"
+          onClick={() => handleTabChange("tasks")}
+          className={`pb-2.5 text-sm font-medium border-b-2 transition-colors ${
+            tab === "tasks" ? "border-cyan-400 text-cyan-300" : "border-transparent text-slate-400 hover:text-slate-200"
+          }`}
+        >
+          Supervisor Tasks
         </button>
       </div>
 
@@ -781,6 +937,190 @@ export default function QaHaccp() {
               <span className="text-slate-500">Import accepts .xlsx or .csv with columns: document name, PIC, remarks, due date</span>
             </div>
           </div>
+
+          {/* Documents verified weekly (incl. all HACCP documents) */}
+          <div className="rounded-xl bg-[#111827] border border-[#1e293b] overflow-hidden">
+            <div className="px-4 py-3 border-b border-[#1e293b] space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <h3 className="text-sm font-semibold text-white">Documents verified weekly</h3>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    Includes all HACCP documents above plus any additional weekly verification records
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="inline-flex items-center gap-1 rounded-lg bg-[#0b1120] border border-[#1e293b] px-1.5 py-1 text-xs">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setWeekMonday((prev) => new Date(prev.getFullYear(), prev.getMonth(), prev.getDate() - 7))
+                      }
+                      className="p-0.5 rounded hover:bg-[#1e293b] text-slate-400 hover:text-white"
+                      title="Previous week"
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5" />
+                    </button>
+                    <span className="px-1.5 text-[11px] font-medium text-slate-200 whitespace-nowrap">
+                      {formatWeekRange(weekMonday)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setWeekMonday((prev) => new Date(prev.getFullYear(), prev.getMonth(), prev.getDate() + 7))
+                      }
+                      className="p-0.5 rounded hover:bg-[#1e293b] text-slate-400 hover:text-white"
+                      title="Next week"
+                    >
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setWeekMonday(getWeekStartMonday(new Date()))}
+                      className="ml-1 px-1.5 py-0.5 rounded text-[10px] text-cyan-300 hover:bg-[#1e293b]"
+                    >
+                      This week
+                    </button>
+                  </div>
+                  <span className="text-xs text-slate-400">
+                    {verifiedWeeklyCount} of {allWeeklyDocs.length} verified · {weeklyPct}%
+                  </span>
+                  {canEditQa && (
+                    <Button
+                      size="sm"
+                      onClick={openAddWeeklyDoc}
+                      className="h-7 px-2.5 text-xs bg-cyan-500/20 border border-cyan-400/50 text-cyan-300 hover:bg-cyan-500/30"
+                    >
+                      <Plus className="w-3.5 h-3.5 mr-1" /> Add weekly document
+                    </Button>
+                  )}
+                </div>
+              </div>
+              <div className="w-full h-1.5 rounded-full bg-[#1e293b] overflow-hidden">
+                <div className="h-full bg-emerald-500 transition-all duration-300" style={{ width: `${weeklyPct}%` }} />
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead className="bg-[#0b1120]/60 text-slate-400 border-b border-[#1e293b]">
+                  <tr>
+                    <th className="w-10 px-4 py-2.5 text-center font-medium">Done</th>
+                    <th className="text-left px-4 py-2.5 font-medium">Document name</th>
+                    <th className="text-left px-4 py-2.5 font-medium">Source</th>
+                    <th className="text-left px-4 py-2.5 font-medium">PIC</th>
+                    <th className="text-left px-4 py-2.5 font-medium">Status</th>
+                    <th className="text-left px-4 py-2.5 font-medium">Verified by / date</th>
+                    <th className="text-left px-4 py-2.5 font-medium">Weekly remarks</th>
+                    {canEditQa && <th className="text-right px-4 py-2.5 font-medium">Actions</th>}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#1e293b]">
+                  {allWeeklyDocs.length === 0 && (
+                    <tr>
+                      <td colSpan={canEditQa ? 8 : 7} className="px-4 py-6 text-center text-slate-500">
+                        No weekly documents yet. Add HACCP documents above or click &ldquo;+ Add weekly document&rdquo;.
+                      </td>
+                    </tr>
+                  )}
+                  {allWeeklyDocs.map((row) => {
+                    const entry = weekChecks[row.id] || {};
+                    const isVerified = Boolean(entry.verified);
+                    const remarkVal = entry.remarks !== undefined ? entry.remarks : row.defaultRemarks;
+                    return (
+                      <tr key={row.id} className="hover:bg-[#1e293b]/30">
+                        <td className="px-4 py-2.5 text-center">
+                          <Checkbox
+                            checked={isVerified}
+                            disabled={!canEditQa}
+                            onCheckedChange={() => toggleWeeklyVerify(row)}
+                            className="border-slate-600 data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500"
+                          />
+                        </td>
+                        <td className={`px-4 py-2.5 font-medium ${isVerified ? "text-slate-300" : "text-slate-100"}`}>
+                          {row.document_name}
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <span
+                            className={`px-2 py-0.5 rounded text-[10px] font-medium ${
+                              row.source === "HACCP"
+                                ? "bg-cyan-500/15 text-cyan-300 border border-cyan-500/30"
+                                : "bg-violet-500/15 text-violet-300 border border-violet-500/30"
+                            }`}
+                          >
+                            {row.source}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2.5 text-slate-200">{row.pic || "—"}</td>
+                        <td className="px-4 py-2.5">
+                          <span
+                            className={`px-2 py-0.5 rounded text-[11px] font-medium ${
+                              isVerified
+                                ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30"
+                                : "bg-amber-500/15 text-amber-300 border border-amber-500/30"
+                            }`}
+                          >
+                            {isVerified ? "Verified" : "Pending"}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2.5 text-slate-400 whitespace-nowrap">
+                          {isVerified ? (
+                            <span>
+                              {entry.verified_by || "QA/QC"} · {fmtShortDate(entry.verified_at)}
+                            </span>
+                          ) : (
+                            "—"
+                          )}
+                        </td>
+                        <td className="px-4 py-2.5 min-w-[180px]">
+                          {canEditQa ? (
+                            <Input
+                              defaultValue={remarkVal}
+                              key={`${weekKey}-${row.id}-${remarkVal}`}
+                              onBlur={(e) => {
+                                const val = e.target.value.trim();
+                                if (val !== (remarkVal || "").trim()) {
+                                  updateWeeklyRemark(row, val);
+                                }
+                              }}
+                              placeholder="Add weekly remark..."
+                              className="h-7 text-xs bg-[#0b1120] border-[#293548] text-slate-200"
+                            />
+                          ) : (
+                            <span className="text-slate-400">{remarkVal || "—"}</span>
+                          )}
+                        </td>
+                        {canEditQa && (
+                          <td className="px-4 py-2.5 text-right whitespace-nowrap">
+                            {row.source === "Weekly" ? (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => openEditWeeklyDoc(row)}
+                                  className="p-1 rounded text-slate-400 hover:text-cyan-300 hover:bg-[#1e293b] mr-1"
+                                  title="Edit weekly document"
+                                >
+                                  <Pencil className="w-3.5 h-3.5 inline" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => deleteWeeklyDoc(row.rawId)}
+                                  className="p-1 rounded text-slate-400 hover:text-rose-400 hover:bg-[#1e293b]"
+                                  title="Delete weekly document"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5 inline" />
+                                </button>
+                              </>
+                            ) : (
+                              <span className="text-[10px] text-slate-500">From HACCP</span>
+                            )}
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       )}
 
@@ -901,6 +1241,9 @@ export default function QaHaccp() {
         </div>
       )}
 
+      {/* TAB 3: Supervisor Tasks */}
+      {tab === "tasks" && <TaskMatrix embedded />}
+
       {/* Modal: Add / Edit Important Date */}
       <Dialog open={dateModalOpen} onOpenChange={setDateModalOpen}>
         <DialogContent className="bg-[#111827] border-[#1e293b] text-slate-100 sm:max-w-md max-h-[90dvh] overflow-y-auto">
@@ -1016,6 +1359,80 @@ export default function QaHaccp() {
               className="bg-cyan-500/20 border border-cyan-400/50 text-cyan-300 hover:bg-cyan-500/30 font-semibold"
             >
               {editingDocId ? "Save changes" : "Add document"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal: Add / Edit Weekly Verified Document */}
+      <Dialog open={weeklyDocModalOpen} onOpenChange={setWeeklyDocModalOpen}>
+        <DialogContent className="bg-[#111827] border-[#1e293b] text-slate-100 sm:max-w-md max-h-[90dvh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-white">
+              {editingWeeklyDocId ? "Edit weekly document" : "Add weekly verified document"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3.5">
+            <div className="space-y-1.5">
+              <label className="text-xs text-slate-400">Document name *</label>
+              <Input
+                value={newWeeklyDoc.document_name}
+                onChange={(e) => setNewWeeklyDoc({ ...newWeeklyDoc, document_name: e.target.value })}
+                placeholder="e.g. CCP Monitoring Log, Sanitation Verification"
+                className="bg-[#0b1120] border-[#293548] text-white"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs text-slate-400">PIC</label>
+              <Input
+                value={newWeeklyDoc.pic}
+                onChange={(e) => setNewWeeklyDoc({ ...newWeeklyDoc, pic: e.target.value })}
+                placeholder="Person in charge"
+                className="bg-[#0b1120] border-[#293548] text-white"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs text-slate-400">Default remarks</label>
+              <Input
+                value={newWeeklyDoc.remarks}
+                onChange={(e) => setNewWeeklyDoc({ ...newWeeklyDoc, remarks: e.target.value })}
+                placeholder="Optional notes"
+                className="bg-[#0b1120] border-[#293548] text-white"
+              />
+            </div>
+          </div>
+          <DialogFooter className="pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setWeeklyDocModalOpen(false)}
+              className="border-[#293548] bg-transparent text-slate-300 hover:bg-[#1e293b] hover:text-white"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={async () => {
+                if (!newWeeklyDoc.document_name.trim()) return toast.error("Document name is required.");
+                const currentCustom = weeklyData.customDocs || [];
+                if (editingWeeklyDocId) {
+                  const nextCustom = currentCustom.map((d) =>
+                    d.id === editingWeeklyDocId ? { ...d, ...newWeeklyDoc } : d
+                  );
+                  await persistWeeklyData({ ...weeklyData, customDocs: nextCustom });
+                  toast.success("Weekly document updated.");
+                } else {
+                  const nextCustom = [{ ...newWeeklyDoc, id: `wkdoc-${Date.now()}` }, ...currentCustom];
+                  await persistWeeklyData({ ...weeklyData, customDocs: nextCustom });
+                  toast.success("Weekly document added.");
+                }
+                setNewWeeklyDoc({ document_name: "", pic: "", remarks: "" });
+                setEditingWeeklyDocId(null);
+                setWeeklyDocModalOpen(false);
+              }}
+              className="bg-cyan-500/20 border border-cyan-400/50 text-cyan-300 hover:bg-cyan-500/30 font-semibold"
+            >
+              {editingWeeklyDocId ? "Save changes" : "Add document"}
             </Button>
           </DialogFooter>
         </DialogContent>
