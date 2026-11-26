@@ -4,9 +4,8 @@ import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { appRoleOf, appRoleLabel } from "@/lib/permissions";
 import { sweepOverdue } from "@/lib/overdue";
-import { productionLines } from "@/lib/shiftLogConstants";
 import { Button } from "@/components/ui/button";
-import { Factory, ShieldCheck, ClipboardList, ClipboardCheck, TrendingUp, AlertTriangle } from "lucide-react";
+import { ClipboardList, ClipboardCheck, AlertTriangle } from "lucide-react";
 import KpiCard from "@/components/factoryops/KpiCard";
 import DashboardFilterBar from "@/components/factoryops/DashboardFilterBar";
 import CriticalAttentionTable from "@/components/factoryops/CriticalAttentionTable";
@@ -15,18 +14,15 @@ import TodayScheduleSummary from "@/components/dashboard/TodayScheduleSummary";
 import LossTodayTile from "@/components/yieldloss/LossTodayTile";
 import ProductDataHealth from "@/components/productmaster/ProductDataHealth";
 
-const ENTITIES = ["ProductionLog", "ShiftLog", "Downtime", "QualityDefect", "ProductHold", "HACCPCheck", "Task", "CAPA"];
+const ENTITIES = ["Downtime", "QualityDefect", "ProductHold", "Task", "CAPA"];
 const VERIFIED = ["Verified", "Resolved", "Released", "Completed"];
 const todayISO = () => new Date().toISOString().slice(0, 10);
 const fmt = (n) => (n || 0).toLocaleString("en-US");
 
 const EMPTY_DATA = {
-  prod: [],
-  shift: [],
   down: [],
   defects: [],
   holds: [],
-  haccp: [],
   tasks: [],
   capas: [],
 };
@@ -51,18 +47,14 @@ export default function AttentionDashboard() {
       const q = { shift_date: f.date };
       if (f.shift !== "all") q.shift_type = f.shift;
       const opt = { limit: 200 };
-      const [prod, shift, down, defects, holds, haccp, tasks, capas] = await Promise.all([
-        base44.entities.ProductionLog.filter(q, opt).then((p) => p?.items || []).catch(() => []),
-        base44.entities.ShiftLog.filter(q, opt).then((p) => p?.items || []).catch(() => []),
-        // Demo / test downtime records never appear on the dashboard.
+      const [down, defects, holds, tasks, capas] = await Promise.all([
         base44.entities.Downtime.filter(q, opt).then((p) => (p?.items || []).filter((r) => !r.is_demo)).catch(() => []),
         base44.entities.QualityDefect.filter(q, opt).then((p) => p?.items || []).catch(() => []),
         base44.entities.ProductHold.filter({ status: { $ne: "Verified" } }, opt).then((p) => p?.items || []).catch(() => []),
-        base44.entities.HACCPCheck.filter(q, opt).then((p) => p?.items || []).catch(() => []),
         base44.entities.Task.list("-created_date", 200).then((p) => (Array.isArray(p) ? p : p?.items || [])).catch(() => []),
         base44.entities.CAPA.list("-created_date", 200).then((p) => (Array.isArray(p) ? p : p?.items || [])).catch(() => []),
       ]);
-      setData({ prod, shift, down, defects, holds, haccp, tasks, capas });
+      setData({ down, defects, holds, tasks, capas });
     } catch (err) {
       console.warn("Could not load attention dashboard data:", err);
       setData(EMPTY_DATA);
@@ -72,7 +64,6 @@ export default function AttentionDashboard() {
   };
 
   useEffect(() => {
-    // Anything past its due date automatically becomes "Overdue" so it shows up here.
     sweepOverdue().catch(() => {}).finally(() => load());
   }, [filters.date, filters.shift]);
 
@@ -98,54 +89,51 @@ export default function AttentionDashboard() {
       if (status === "all") return true;
       if (status === "Verified") return isVerified(r);
       if (status === "Overdue") return isOverdue(r, today) || r.status === "Overdue";
-      return !isVerified(r) && !isOverdue(r, today); // Open
+      return !isVerified(r) && !isOverdue(r, today);
     };
     const scope = (list) => (list || []).filter((r) => matchesScope(r) && matchesStatus(r));
 
-    const prod = scope(d.prod);
-    const shift = (d.shift || []).filter((r) => matchesScope(r));
-    const combinedProd = prod.length > 0 ? prod : shift;
     const down = scope(d.down);
     const defects = scope(d.defects);
     const holds = scope(d.holds);
-    const haccp = scope(d.haccp);
     const tasks = scope(d.tasks);
     const capas = scope(d.capas);
 
-    // Production
-    const actual = combinedProd.reduce((s, r) => s + (r.actual_output || 0), 0);
-    const target = combinedProd.reduce((s, r) => s + (r.planned_qty || 0), 0);
-    const eff = target > 0 ? (actual / target) * 100 : 0;
-    const ordersAtRisk = prod.filter((r) => r.order_status === "at_risk").length;
-
-    // Quality & Holds
     const defectQty = defects.reduce((s, r) => s + (r.defect_qty || 0), 0);
     const activeHolds = holds.filter(isActiveHold).length;
     const openCapas = capas.filter((r) => !isVerified(r)).length;
 
-    // Food Safety / HACCP
-    const haccpOverdue = haccp.filter((r) => isOverdue(r, today) || r.status === "Overdue").length;
-    const failedLimits = haccp.filter((r) => r.result === "Fail" && r.status !== "Verified").length;
-    const halalDone = haccp.filter((r) => r.halal_verified).length;
-    const halalPct = haccp.length > 0 ? Math.round((halalDone / haccp.length) * 100) : 0;
-
-    // Attention Actions (tasks + CAPAs)
     const attention = [...tasks, ...capas];
     const overdueActions = attention.filter((r) => isOverdue(r, today) || r.status === "Overdue").length;
     const dueToday = attention.filter((r) => !isVerified(r) && String(r.due_date || "").slice(0, 10) === today).length;
     const verifiedActions = attention.filter((r) => isVerified(r)).length;
 
-    // Shift Data Completion
-    const totalLines = productionLines.length;
-    const linesLogged = new Set([...prod, ...shift].map((r) => r.production_line).filter(Boolean)).size;
-
-    // Critical attention items across all modules
+    // Attention Required: only CAPA Tracker entries and Requests & Stoppages
     const critical = [];
-    tasks.forEach((r) => { if (!isVerified(r)) critical.push({ item: r.title, module: "Supervisor Task Matrix", owner: r.owner, due: r.due_date || r.shift_date, status: r.status === "Overdue" || isOverdue(r, today) ? "Overdue" : "Pending Verification", path: "/task-matrix" }); });
-    capas.forEach((r) => { if (!isVerified(r)) critical.push({ item: r.title, module: "Unified CAPA Tracker", owner: r.owner, due: r.due_date || r.shift_date, status: r.status === "Overdue" || isOverdue(r, today) ? "Overdue" : "Pending Verification", path: "/capa-tracker" }); });
-    haccp.forEach((r) => { if (!isVerified(r) && (r.status === "Overdue" || isOverdue(r, today) || r.result === "Pending")) critical.push({ item: r.check_name, module: "QA & HACCP Safety", owner: r.owner, due: r.due_date || r.shift_date, status: r.status === "Overdue" || isOverdue(r, today) ? "Overdue" : "Pending Verification", path: "/qa-haccp" }); });
-    down.forEach((r) => { if (r.status === "Open") critical.push({ item: r.reason, module: "Requests & Stoppages", owner: r.owner, due: r.shift_date, status: "Open", path: "/downtime" }); });
-    holds.forEach((r) => { if (isActiveHold(r)) critical.push({ item: r.hold_reason, module: "QA & HACCP Safety", owner: r.owner, due: r.shift_date, status: "Open", path: "/qa-haccp" }); });
+    capas.forEach((r) => {
+      if (!isVerified(r)) {
+        critical.push({
+          item: r.title,
+          module: "CAPA Tracker",
+          owner: r.owner,
+          due: r.due_date || r.shift_date,
+          status: r.status === "Overdue" || isOverdue(r, today) ? "Overdue" : "Pending Verification",
+          path: "/capa-tracker",
+        });
+      }
+    });
+    down.forEach((r) => {
+      if (r.status === "Open") {
+        critical.push({
+          item: r.reason,
+          module: "Requests & Stoppages",
+          owner: r.owner,
+          due: r.shift_date,
+          status: "Open",
+          path: "/downtime",
+        });
+      }
+    });
     critical.sort((a, b) => {
       const ao = a.status === "Overdue" ? 0 : 1;
       const bo = b.status === "Overdue" ? 0 : 1;
@@ -153,7 +141,7 @@ export default function AttentionDashboard() {
       return (a.due || "").localeCompare(b.due || "");
     });
 
-    return { actual, target, eff, ordersAtRisk, defectQty, activeHolds, openCapas, haccpOverdue, failedLimits, halalPct, overdueActions, dueToday, verifiedActions, linesLogged, totalLines, critical };
+    return { defectQty, activeHolds, openCapas, overdueActions, dueToday, verifiedActions, critical };
   }, [data, date, shift, line, status]);
 
   if (loading && !data) {
@@ -165,8 +153,6 @@ export default function AttentionDashboard() {
   }
 
   const role = appRoleOf(user);
-  const target = view?.target || 0;
-  const targetLabel = target >= 1000 ? `${(target / 1000).toFixed(target % 1000 === 0 ? 0 : 1)}k` : `${target}`;
 
   return (
     <div className="min-h-screen bg-[#0a0e17] p-3 sm:p-5 lg:p-6 space-y-4">
@@ -185,13 +171,13 @@ export default function AttentionDashboard() {
         onReset={() => setFilters({ date: todayISO(), shift: "all", line: "all", status: "all" })}
       />
 
-      {(view.failedLimits > 0 || view.activeHolds > 0) && (
+      {view.activeHolds > 0 && (
         <div className="bg-[#ff4d4d]/10 border border-[#ff4d4d]/60 rounded-2xl px-4 py-3 flex flex-wrap items-center gap-3">
           <AlertTriangle className="w-5 h-5 text-[#ff4d4d] shrink-0" />
           <div className="flex-1 min-w-[200px]">
             <h3 className="text-[#ff4d4d] text-sm font-semibold">Quality Alert</h3>
             <p className="text-[#e2e8f0] text-xs mt-0.5">
-              {view.failedLimits} failed limit{view.failedLimits === 1 ? "" : "s"} · {view.activeHolds} active hold{view.activeHolds === 1 ? "" : "s"}
+              {view.activeHolds} active hold{view.activeHolds === 1 ? "" : "s"}
             </p>
           </div>
           <Button size="sm" onClick={() => navigate("/qa-haccp?tab=holds")} className="bg-[#ff4d4d] hover:bg-[#e63b3b] text-white">
@@ -209,18 +195,7 @@ export default function AttentionDashboard() {
         <PackagingLowStock />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
-        <KpiCard
-          icon={Factory}
-          title="Production"
-          value={`${fmt(view.actual)} / ${targetLabel}`}
-          valueSub="target"
-          stats={[
-            { text: `${view.eff.toFixed(1)}% Eff`, tone: "green" },
-            { text: `${view.ordersAtRisk} Order${view.ordersAtRisk === 1 ? "" : "s"} At Risk`, tone: "orange" },
-          ]}
-          onClick={() => navigate("/production-line-logs")}
-        />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <KpiCard
           icon={ClipboardCheck}
           title="Quality & CAPA"
@@ -232,16 +207,6 @@ export default function AttentionDashboard() {
           onClick={() => navigate("/capa-tracker")}
         />
         <KpiCard
-          icon={ShieldCheck}
-          title="Food Safety / HACCP"
-          value={`${view.haccpOverdue} Check${view.haccpOverdue === 1 ? "" : "s"} Overdue`}
-          stats={[
-            { text: `${view.failedLimits} Failed Limits`, tone: view.failedLimits > 0 ? "red" : "green" },
-            { text: `${view.halalPct}% Halal Verified`, tone: "green" },
-          ]}
-          onClick={() => navigate("/qa-haccp")}
-        />
-        <KpiCard
           icon={ClipboardList}
           title="Attention Actions"
           value={`${view.overdueActions} Overdue`}
@@ -251,13 +216,6 @@ export default function AttentionDashboard() {
             { text: `${view.verifiedActions} Verified`, tone: "green" },
           ]}
           onClick={() => navigate("/task-matrix?status=Overdue")}
-        />
-        <KpiCard
-          icon={TrendingUp}
-          title="Shift Data Completion"
-          value={`${view.linesLogged} / ${view.totalLines} Lines Complete`}
-          progress={{ value: view.totalLines > 0 ? (view.linesLogged / view.totalLines) * 100 : 0 }}
-          onClick={() => navigate("/production-line-logs")}
         />
       </div>
 
