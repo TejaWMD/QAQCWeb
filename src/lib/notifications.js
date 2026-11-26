@@ -1,7 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { base44 } from "@/api/base44Client";
 import { supabase } from "@/api/supabaseClient";
-import { managerSupabase } from "@/lib/managerSupabase";
 import { isAdminUser } from "@/lib/permissions";
 
 const MAIN_APP_SUPABASE_URL =
@@ -35,7 +34,7 @@ function hasQaqcAppAccess(mainAppUser) {
   return false;
 }
 
-async function resolvePushRecipientIds({
+async function resolvePushRecipients({
   requesterId = "",
   requesterName = "",
   requesterEmail = "",
@@ -48,6 +47,7 @@ async function resolvePushRecipientIds({
   );
   const actorEmail = norm(decidedByEmail);
   const recipientIds = new Set();
+  const recipientEmails = new Set();
 
   const isActorUser = (u) => {
     const uid = String(u?.id || "").trim();
@@ -56,9 +56,10 @@ async function resolvePushRecipientIds({
   };
 
   const addMainAppUserIfEligible = (mainAppUser) => {
-    if (!mainAppUser?.id || !hasQaqcAppAccess(mainAppUser)) return false;
+    if (!mainAppUser || !hasQaqcAppAccess(mainAppUser)) return false;
     if (isActorUser(mainAppUser)) return false;
-    recipientIds.add(String(mainAppUser.id).trim());
+    if (mainAppUser.id) recipientIds.add(String(mainAppUser.id).trim());
+    if (mainAppUser.email) recipientEmails.add(norm(mainAppUser.email));
     return true;
   };
 
@@ -87,7 +88,7 @@ async function resolvePushRecipientIds({
     }
   }
 
-  // 2. Resolve the requester's MainApp user_id (the key stored in push_subscriptions by MainApp PWA)
+  // 2. Resolve the requester from MainApp's users table
   try {
     let matchedUser = null;
     if (targetEmail) {
@@ -112,10 +113,13 @@ async function resolvePushRecipientIds({
     console.warn("Could not resolve MainApp requester for push notification:", err);
   }
 
-  // Also include QAQCWeb requesterId directly if not the actor (covers direct QAQCWeb PWA subscriptions)
+  // Also include QAQCWeb requesterId / email directly if not the actor
   const cleanRequesterId = String(requesterId || "").trim();
   if (cleanRequesterId && !actorIds.has(cleanRequesterId) && !(actorEmail && targetEmail === actorEmail)) {
     recipientIds.add(cleanRequesterId);
+  }
+  if (targetEmail && targetEmail !== actorEmail) {
+    recipientEmails.add(targetEmail);
   }
 
   // 3. Resolve all Admins from MainApp's users table so every admin is notified
@@ -133,7 +137,7 @@ async function resolvePushRecipientIds({
     console.warn("Could not resolve MainApp admins for push notification:", err);
   }
 
-  // 4. Also include QAQCWeb admins (resolving their MainApp IDs if needed + direct QAQCWeb IDs)
+  // 4. Also include QAQCWeb admins
   try {
     const { data: qaqcAdmins } = await supabase
       .from("users")
@@ -143,10 +147,9 @@ async function resolvePushRecipientIds({
     if (Array.isArray(qaqcAdmins)) {
       for (const adminRow of qaqcAdmins) {
         if (isActorUser(adminRow)) continue;
-        if (adminRow.id) {
-          recipientIds.add(String(adminRow.id).trim());
-        }
+        if (adminRow.id) recipientIds.add(String(adminRow.id).trim());
         if (adminRow.email) {
+          recipientEmails.add(norm(adminRow.email));
           const { data: matchedMain } = await mainAppSupabase
             .from("users")
             .select("id, name, email, role, department, status, accessible_apps")
@@ -160,7 +163,10 @@ async function resolvePushRecipientIds({
     // Non-blocking lookup
   }
 
-  return Array.from(recipientIds);
+  return {
+    recipientUserIds: Array.from(recipientIds),
+    recipientEmails: Array.from(recipientEmails),
+  };
 }
 
 function formatStatusNotification(status, summary, decidedBy, comment) {
@@ -198,7 +204,7 @@ async function dispatchQaqcWebPush({
   requesterEmail = "",
 }) {
   try {
-    const recipientUserIds = await resolvePushRecipientIds({
+    const { recipientUserIds, recipientEmails } = await resolvePushRecipients({
       requesterId,
       requesterName,
       requesterEmail,
@@ -207,15 +213,17 @@ async function dispatchQaqcWebPush({
       decidedByEmail,
     });
 
-    if (recipientUserIds.length === 0) return;
+    if (recipientUserIds.length === 0 && recipientEmails.length === 0) return;
 
     const { pushTitle, message } = formatStatusNotification(status, summary, decidedBy, comment);
 
-    const { error } = await managerSupabase.functions.invoke("send-push", {
+    // Calls QAQCWeb's OWN Supabase Edge Function (completely separate from ManagerDashboard)
+    const { error } = await supabase.functions.invoke("send-qaqc-push", {
       body: {
         event: "QAQC_REQUEST_STATUS_CHANGED",
         actorId: decidedByPortalId || decidedById || "",
         actorName: decidedBy || "",
+        recipientEmails,
         recipientUserIds,
         title: pushTitle,
         body: message,
