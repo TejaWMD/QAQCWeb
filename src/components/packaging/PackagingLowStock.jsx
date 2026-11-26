@@ -31,7 +31,7 @@ export default function PackagingLowStock() {
         <div className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 ${low.length ? "bg-[#ff9f43]/20" : "bg-[#00e5ff]/10"}`}>
           {low.length ? <AlertTriangle className="w-4 h-4 text-[#ff9f43]" /> : <Package className="w-4 h-4 text-[#00e5ff]" />}
         </div>
-        <h3 className="text-white text-sm font-semibold">Packaging Stock</h3>
+        <h3 className="text-white text-sm font-semibold">Material Stock</h3>
         <p className={`text-xs ${low.length ? "text-[#ff9f43]" : "text-[#94a3b8]"}`}>
           {low.length ? `${low.length} low` : "All stocked"}
         </p>

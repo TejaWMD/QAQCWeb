@@ -7,8 +7,8 @@ import NotificationBell from "@/components/NotificationBell";
 import {
   Radar, Clock, ShieldCheck, ClipboardList, AlertTriangle, ScrollText,
   LayoutDashboard, Users, Upload, Layers,
-  ArrowLeftRight, ClipboardCheck, Package, FlaskConical, ListChecks,
-  CalendarDays, Trash2, Tag, History, Scale, X, PanelLeftClose, PanelLeftOpen, TrendingUp, ShoppingCart, LayoutGrid, QrCode, MessageSquareText
+  Package, FlaskConical, ListChecks,
+  CalendarDays, Trash2, Tag, Scale, X, PanelLeftClose, PanelLeftOpen, TrendingUp, ShoppingCart, LayoutGrid, QrCode, MessageSquareText
 } from "lucide-react";
 
 const factoryItems = [
@@ -31,18 +31,15 @@ const planningItems = [
 ];
 
 const productionItems = [
-  { key: "create_batch", label: "Create Batch", icon: Tag },
-  { key: "batch_records", label: "Batch Records", icon: History },
+  { key: "create_batch", label: "Label Generator", icon: Tag },
   { key: "batch_scan", label: "Barcode Lookup", icon: QrCode },
-  { key: "production_line_logs", label: "Daily Packaging Entry", icon: LayoutDashboard },
+  { key: "production_line_logs", label: "Daily Packaging Data", icon: LayoutDashboard },
   { key: "yield_loss", label: "Yield & Loss", icon: Scale },
 ];
 
 const warehouseItems = [
   { key: "wms_warehouse", label: "Finished Goods WMS", icon: LayoutGrid },
-  { key: "packaging_stock", label: "Packaging Stock", icon: Layers },
-  { key: "packaging_movements", label: "Stock Movements", icon: ArrowLeftRight },
-  { key: "packaging_approvals", label: "Stock Approvals", icon: ClipboardCheck },
+  { key: "packaging_stock", label: "Material Stock", icon: Layers },
 ];
 
 const systemItems = [

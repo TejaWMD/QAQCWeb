@@ -43,7 +43,7 @@ export default function PackagingAtRisk() {
       <div className="flex flex-wrap items-center gap-2">
         <AlertTriangle className="w-5 h-5 text-amber-600" />
         <h3 className="text-sm font-semibold text-amber-800">Packaging at risk</h3>
-        <Link to="/packaging-stock" className="ml-auto text-xs font-medium text-amber-700 hover:underline">Open Packaging Stock</Link>
+        <Link to="/packaging-stock" className="ml-auto text-xs font-medium text-amber-700 hover:underline">Material Stock</Link>
       </div>
       <ul className="mt-2 space-y-1">
         {risks.map(({ item, required, shortfall }) => (

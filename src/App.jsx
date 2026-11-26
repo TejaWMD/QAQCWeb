@@ -29,7 +29,6 @@ const Procurement = lazy(() => import('./pages/planning/Procurement'));
 
 // Batches, Labels & Traceability
 const CreateBatch = lazy(() => import('./pages/batches/CreateBatch'));
-const BatchRecords = lazy(() => import('./pages/batches/BatchRecords'));
 const BarcodeLookup = lazy(() => import('./pages/batches/BarcodeLookup'));
 const Traceability = lazy(() => import('./pages/batches/Traceability'));
 
@@ -41,8 +40,6 @@ const YieldLoss = lazy(() => import('./pages/qaqc/YieldLoss'));
 
 // Raw & Packaging Inventory
 const PackagingStock = lazy(() => import('./pages/inventory/PackagingStock'));
-const PackagingMovements = lazy(() => import('./pages/inventory/PackagingMovements'));
-const PackagingApprovals = lazy(() => import('./pages/inventory/PackagingApprovals'));
 
 // Finished Goods WMS
 const WmsWarehouse = lazy(() => import('./pages/wms/WmsWarehouse'));
@@ -105,15 +102,15 @@ const AuthenticatedApp = () => {
           <Route path="/production-line-logs" element={<ProductionLineLogs />} />
           <Route path="/yield-loss" element={<YieldLoss />} />
           <Route path="/packaging-stock" element={<PackagingStock />} />
-          <Route path="/packaging-movements" element={<PackagingMovements />} />
-          <Route path="/packaging-approvals" element={<PackagingApprovals />} />
+          <Route path="/packaging-movements" element={<Navigate to="/packaging-stock?tab=movements" replace />} />
+          <Route path="/packaging-approvals" element={<Navigate to="/packaging-stock" replace />} />
           <Route path="/pic-product-entry" element={<Navigate to="/product-master" replace />} />
           <Route path="/product-master" element={<ProductMaster />} />
           <Route path="/recipe-master" element={<RecipeMaster />} />
           <Route path="/production-orders" element={<ProductionOrders />} />
           <Route path="/production-schedule" element={<ProductionSchedule />} />
           <Route path="/create-batch" element={<CreateBatch />} />
-          <Route path="/batch-records" element={<BatchRecords />} />
+          <Route path="/batch-records" element={<Navigate to="/create-batch?tab=records" replace />} />
           <Route path="/traceability" element={<Traceability />} />
           <Route path="/demand-planner" element={<DemandPlanner />} />
           <Route path="/procurement" element={<Procurement />} />

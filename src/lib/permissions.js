@@ -5,13 +5,12 @@
 export const MODULES = [
   { key: "attention_dashboard", label: "Attention Dashboard", path: "/", description: "Overdue and unverified attention items across all modules" },
   { key: "dashboard", label: "Operations Overview", path: "/operations-overview", description: "Overview of output, waste, overtime and downtime" },
-  { key: "production_line_logs", label: "Production Line Logs", path: "/production-line-logs", description: "Overview, operation, overtime, wastage, and baseline logs" },
+  { key: "production_line_logs", label: "Daily Packaging Data", path: "/production-line-logs", description: "Overview, operation, overtime, wastage, and baseline logs" },
   { key: "production_orders", label: "Production Orders", path: "/production-orders", description: "Orders with batches, machine, run time and batch numbers" },
   { key: "demand_planner", label: "Demand Planner", path: "/demand-planner", description: "Shortage calculation, priority scoring & sequence optimizer" },
   { key: "procurement", label: "Procurement (PR / PO)", path: "/procurement", description: "Suppliers, purchase requests and purchase orders" },
   { key: "production_schedule", label: "Production Schedule", path: "/production-schedule", description: "Day timeline per machine with drag-and-drop planning" },
-  { key: "create_batch", label: "Create Batch / Labels", path: "/create-batch", description: "Record a batch and print its labels with a traceability QR code" },
-  { key: "batch_records", label: "Batch Records", path: "/batch-records", description: "All created batches with search, CSV export and reprints" },
+  { key: "create_batch", label: "Label Generator", path: "/create-batch", description: "Generate batch labels and view batch records" },
   { key: "batch_scan", label: "Carton Barcode Lookup", path: "/batch-scan", description: "Scan EAN-13 carton barcode to view product & batch history" },
   { key: "yield_loss", label: "Yield & Loss", path: "/yield-loss", description: "Batch yield, packaging waste, giveaway and rework" },
   { key: "recently_deleted", label: "Recently Deleted", path: "/recently-deleted", description: "Deleted production orders, restorable by Admin", adminOnly: true },
@@ -26,10 +25,8 @@ export const MODULES = [
   { key: "task_matrix", label: "Supervisor Task Matrix", path: "/task-matrix", description: "Supervisor attention tasks and verification" },
   { key: "capa_tracker", label: "Unified CAPA Tracker", path: "/capa-tracker", description: "Corrective and preventive actions" },
   { key: "audit_trail", label: "Audit Trail Log", path: "/audit-trail", description: "Chronological record of actions across modules" },
-  { key: "wms_warehouse", label: "Finished Goods WMS", path: "/wms", description: "QR scan-in and physical stock takes" },
-  { key: "packaging_stock", label: "Packaging Stock", path: "/packaging-stock", description: "Packaging material stock with in, use and count movements" },
-  { key: "packaging_movements", label: "Stock Movements", path: "/packaging-movements", description: "Full log of stock in, use and adjustments" },
-  { key: "packaging_approvals", label: "Stock Approvals", path: "/packaging-approvals", description: "Stock count and high-value issue approvals" },
+  { key: "wms_warehouse", label: "Finished Goods WMS", path: "/wms", description: "QR scan-in and warehouse stock" },
+  { key: "packaging_stock", label: "Material Stock", path: "/packaging-stock", description: "Material stock and movement history" },
   { key: "product_master", label: "Product Master", path: "/product-master", description: "Product codes, carton sizes and packaging used per carton" },
   { key: "recipe_master", label: "Recipe Master", path: "/recipe-master", description: "Versioned recipes per product with ingredient lists" },
   { key: "user_management", label: "User Management", path: "/users", description: "Members, roles and invitations", adminOnly: true },
@@ -51,11 +48,11 @@ export const isAdminUser = (user) => user?.role === "admin" || user?.role === "s
 // FactoryOps roles. A role grants a fixed preset of modules; members without a
 // role keep whatever modules were assigned to them individually.
 export const APP_ROLES = [
-  { key: "operator", label: "Operator / Line Leader", preset: ["shift_log", "downtime", "production_orders", "production_schedule", "create_batch", "batch_records", "yield_loss"] },
-  { key: "supervisor", label: "Supervisor", preset: ["task_matrix", "shift_log", "downtime", "product_master", "production_orders", "production_schedule", "create_batch", "batch_records", "yield_loss"] },
+  { key: "operator", label: "Operator / Line Leader", preset: ["shift_log", "downtime", "production_orders", "production_schedule", "create_batch", "yield_loss"] },
+  { key: "supervisor", label: "Supervisor", preset: ["task_matrix", "shift_log", "downtime", "product_master", "production_orders", "production_schedule", "create_batch", "yield_loss"] },
   { key: "qa_officer", label: "QA Officer", preset: ["qa_haccp", "task_matrix", "capa_tracker", "product_master", "recipe_master", "yield_loss"] },
   { key: "warehouse_staff", label: "Warehouse Staff", preset: ["wms_warehouse", "packaging_stock"] },
-  { key: "warehouse_supervisor", label: "Warehouse Supervisor", preset: ["wms_warehouse", "packaging_stock", "packaging_movements", "packaging_approvals"] },
+  { key: "warehouse_supervisor", label: "Warehouse Supervisor", preset: ["wms_warehouse", "packaging_stock"] },
   { key: "sales", label: "Sales Team", preset: ["capa_tracker"] },
   { key: "manager", label: "Production Manager / MD", preset: MANAGER_PRESET_KEYS },
 ];
@@ -122,6 +119,8 @@ export const effectiveModuleKeys = (user) => {
 // of the six modules it now contains, so no one loses access in the reorg.
 const MODULE_ALIASES = {
   production_line_logs: ["dashboard", "operation_record", "overtime_record", "wastage_records", "baseline_capacity", "activity_logs"],
+  create_batch: ["batch_records"],
+  packaging_stock: ["packaging_movements", "packaging_approvals"],
 };
 
 // True when modules have been assigned explicitly (an empty assignment means no access).

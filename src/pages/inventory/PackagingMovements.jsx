@@ -31,7 +31,7 @@ const buildQuery = (f) => {
   return query;
 };
 
-export default function PackagingMovements() {
+export default function PackagingMovements({ embedded = false }) {
   const [filters, setFilters] = useState(EMPTY);
   const [rows, setRows] = useState([]);
   const [items, setItems] = useState([]);
@@ -103,14 +103,15 @@ export default function PackagingMovements() {
   const set = (key, value) => setFilters((f) => ({ ...f, [key]: value }));
 
   return (
-    <div className="min-h-screen bg-[#F6F8FC] p-4 md:p-6 space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
+    <div className={embedded ? "space-y-4" : "min-h-screen bg-[#F6F8FC] p-4 md:p-6 space-y-4"}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        {!embedded ? (
           <h2 className="text-[#0F294A] text-lg font-semibold">Stock Movements</h2>
-          <p className="text-[#64748B] text-sm mt-1">Every stock in, use and adjustment. Movements cannot be edited or deleted — corrections are adjustments.</p>
-        </div>
-        <Button onClick={exportCsv} disabled={exporting} variant="outline" className="border-[#E2E8F0] bg-white text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F294A]">
-          <Download className="w-4 h-4" /> {exporting ? "Exporting..." : "Export CSV"}
+        ) : (
+          <p className="text-xs text-[#64748B]">{loading ? "Loading…" : `${rows.length} movements`}</p>
+        )}
+        <Button onClick={exportCsv} disabled={exporting} size="sm" variant="outline" className="border-[#E2E8F0] bg-white text-[#0F294A] hover:bg-[#F1F5F9]">
+          <Download className="w-3.5 h-3.5 mr-1.5" /> {exporting ? "Exporting..." : "Export CSV"}
         </Button>
       </div>
 
@@ -148,9 +149,6 @@ export default function PackagingMovements() {
       </div>
 
       <div className="rounded-xl border border-[#E2E8F0] bg-white p-3">
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-xs text-[#64748B]">{loading ? "Loading…" : `${rows.length} movement${rows.length === 1 ? "" : "s"} shown`}</p>
-        </div>
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
@@ -161,14 +159,14 @@ export default function PackagingMovements() {
                 <TableHead className="text-[#64748B] text-right">Qty</TableHead>
                 <TableHead className="text-[#64748B]">Batch</TableHead>
                 <TableHead className="text-[#64748B]">Rack</TableHead>
-                <TableHead className="text-[#64748B]">Production Order</TableHead>
+                <TableHead className="text-[#64748B]">Order</TableHead>
                 <TableHead className="text-[#64748B]">User</TableHead>
                 <TableHead className="text-[#64748B]">Remarks</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {!loading && rows.length === 0 && (
-                <TableRow><TableCell colSpan={9} className="text-[#64748B] text-center py-6">No movements match these filters.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-[#64748B] text-center py-6">No movements.</TableCell></TableRow>
               )}
               {rows.map((m) => (
                 <TableRow key={m.id} className="border-[#E2E8F0] hover:bg-[#F1F5F9]">
