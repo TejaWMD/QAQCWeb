@@ -1,4 +1,4 @@
-import { managerSupabase } from "@/lib/managerSupabase";
+import { supabase } from "@/api/supabaseClient";
 
 export const VAPID_PUBLIC_KEY =
   import.meta.env.VITE_VAPID_PUBLIC_KEY ||
@@ -59,34 +59,50 @@ async function getSwRegistration() {
   }
 }
 
-async function saveSubscriptionToManagerDb(userId, sub) {
+export function resolvePushUserEmail(user) {
+  if (!user) return "";
+  return String(user.email || "").trim().toLowerCase();
+}
+
+export function resolvePushUserId(user) {
+  if (!user) return "";
+  return String(user.portal_user_id || user.id || "").trim();
+}
+
+async function saveSubscriptionToQaqcDb(user, sub) {
+  const userEmail = resolvePushUserEmail(user);
+  const userId = resolvePushUserId(user);
+  if (!userEmail) return { ok: false, error: "Missing user email" };
+
   const p256dh = encodeSubscriptionKey(sub, "p256dh");
   const auth = encodeSubscriptionKey(sub, "auth");
 
-  const { error: upsertError } = await managerSupabase
-    .from("push_subscriptions")
+  const { error: upsertError } = await supabase
+    .from("qaqc_push_subscriptions")
     .upsert(
       {
-        user_id: userId,
+        user_email: userEmail,
+        user_id: userId || null,
         endpoint: sub.endpoint,
         p256dh,
         auth,
+        updated_at: new Date().toISOString(),
       },
-      { onConflict: "user_id,endpoint" }
+      { onConflict: "user_email,endpoint" }
     );
 
   if (!upsertError) {
     return { ok: true };
   }
 
-  await managerSupabase
-    .from("push_subscriptions")
+  await supabase
+    .from("qaqc_push_subscriptions")
     .delete()
-    .match({ user_id: userId, endpoint: sub.endpoint });
+    .match({ user_email: userEmail, endpoint: sub.endpoint });
 
-  const { error: insertError } = await managerSupabase
-    .from("push_subscriptions")
-    .insert([{ user_id: userId, endpoint: sub.endpoint, p256dh, auth }]);
+  const { error: insertError } = await supabase
+    .from("qaqc_push_subscriptions")
+    .insert([{ user_email: userEmail, user_id: userId || null, endpoint: sub.endpoint, p256dh, auth }]);
 
   if (insertError) {
     return { ok: false, error: insertError.message || upsertError.message };
@@ -95,13 +111,8 @@ async function saveSubscriptionToManagerDb(userId, sub) {
   return { ok: true };
 }
 
-export function resolvePushUserId(user) {
-  if (!user) return "";
-  return String(user.portal_user_id || user.id || "").trim();
-}
-
 export async function getPushStatus(user) {
-  const userId = resolvePushUserId(user);
+  const userEmail = resolvePushUserEmail(user);
   if (isIosDevice() && !isStandalonePwa()) {
     return {
       supported: false,
@@ -133,18 +144,18 @@ export async function getPushStatus(user) {
     };
   }
 
-  if (userId) {
+  if (userEmail) {
     try {
-      const { data, error } = await managerSupabase
-        .from("push_subscriptions")
+      const { data, error } = await supabase
+        .from("qaqc_push_subscriptions")
         .select("endpoint")
-        .eq("user_id", userId);
+        .eq("user_email", userEmail);
 
       const hasEndpoint =
         !error && Array.isArray(data) && data.some((row) => row.endpoint === sub.endpoint);
 
       if (!hasEndpoint) {
-        await saveSubscriptionToManagerDb(userId, sub);
+        await saveSubscriptionToQaqcDb(user, sub);
       }
     } catch {
       // Non-blocking sync
@@ -160,8 +171,8 @@ export async function getPushStatus(user) {
 }
 
 export async function enablePushNotifications(user) {
-  const userId = resolvePushUserId(user);
-  if (!userId) {
+  const userEmail = resolvePushUserEmail(user);
+  if (!userEmail) {
     return {
       ok: false,
       status: await getPushStatus(user),
@@ -215,7 +226,7 @@ export async function enablePushNotifications(user) {
     });
   }
 
-  const saved = await saveSubscriptionToManagerDb(userId, sub);
+  const saved = await saveSubscriptionToQaqcDb(user, sub);
   const status = await getPushStatus(user);
 
   if (!saved.ok) {
@@ -230,17 +241,17 @@ export async function enablePushNotifications(user) {
 }
 
 export async function disablePushNotifications(user) {
-  const userId = resolvePushUserId(user);
+  const userEmail = resolvePushUserEmail(user);
   const reg = await getSwRegistration();
   const sub = reg ? await reg.pushManager.getSubscription() : null;
 
   if (sub) {
-    if (userId) {
+    if (userEmail) {
       try {
-        await managerSupabase
-          .from("push_subscriptions")
+        await supabase
+          .from("qaqc_push_subscriptions")
           .delete()
-          .match({ user_id: userId, endpoint: sub.endpoint });
+          .match({ user_email: userEmail, endpoint: sub.endpoint });
       } catch {
         // Ignore DB delete error
       }
@@ -257,8 +268,8 @@ export async function disablePushNotifications(user) {
 
 // Silently ensure push subscription is active & synced when permission was already granted
 export async function syncPushSubscriptionIfGranted(user) {
-  const userId = resolvePushUserId(user);
-  if (!userId || !isPushSupported() || Notification.permission !== "granted") {
+  const userEmail = resolvePushUserEmail(user);
+  if (!userEmail || !isPushSupported() || Notification.permission !== "granted") {
     return;
   }
   try {
